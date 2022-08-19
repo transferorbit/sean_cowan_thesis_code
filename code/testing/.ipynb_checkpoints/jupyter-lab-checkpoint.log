@@ -1,0 +1,21 @@
+[I 2022-07-21 08:37:35.491 ServerApp] jupyterlab | extension was successfully linked.
+[I 2022-07-21 08:37:35.509 ServerApp] nbclassic | extension was successfully linked.
+[I 2022-07-21 08:37:36.148 ServerApp] notebook_shim | extension was successfully linked.
+[I 2022-07-21 08:37:36.213 ServerApp] notebook_shim | extension was successfully loaded.
+[I 2022-07-21 08:37:36.215 LabApp] JupyterLab extension loaded from /Users/sean/opt/miniconda3/envs/tudat-space-dev/lib/python3.9/site-packages/jupyterlab
+[I 2022-07-21 08:37:36.215 LabApp] JupyterLab application directory is /Users/sean/opt/miniconda3/envs/tudat-space-dev/share/jupyter/lab
+[I 2022-07-21 08:37:36.220 ServerApp] jupyterlab | extension was successfully loaded.
+[I 2022-07-21 08:37:36.230 ServerApp] nbclassic | extension was successfully loaded.
+[I 2022-07-21 08:37:36.232 ServerApp] Serving notebooks from local directory: /Users/sean/Desktop/TUDelft/Thesis/Code/testing
+[I 2022-07-21 08:37:36.232 ServerApp] Jupyter Server 1.18.1 is running at:
+[I 2022-07-21 08:37:36.232 ServerApp] http://localhost:8888/lab?token=5f8d870363f24e74bb35b86e517c58ec194c8ec0e8869771
+[I 2022-07-21 08:37:36.232 ServerApp]  or http://127.0.0.1:8888/lab?token=5f8d870363f24e74bb35b86e517c58ec194c8ec0e8869771
+[I 2022-07-21 08:37:36.232 ServerApp] Use Control-C to stop this server and shut down all kernels (twice to skip confirmation).
+[C 2022-07-21 08:37:36.239 ServerApp] 
+    
+    To access the server, open this file in a browser:
+        file:///Users/sean/Library/Jupyter/runtime/jpserver-8925-open.html
+    Or copy and paste one of these URLs:
+        http://localhost:8888/lab?token=5f8d870363f24e74bb35b86e517c58ec194c8ec0e8869771
+     or http://127.0.0.1:8888/lab?token=5f8d870363f24e74bb35b86e517c58ec194c8ec0e8869771
+[I 2022-07-21 08:37:41.066 LabApp] Build is up to date

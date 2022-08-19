@@ -1,0 +1,11 @@
+{
+  "include": [
+    "Code"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "~/opt/miniconda3/envs/tudat-space-pygmo/"
+    }
+  ]
+
+}
