@@ -238,7 +238,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_free_parameters.append(node_parameters)
 
     # Arrival node
-    node_free_parameters.append(np.array([arrival_velocity, 0, 0]))
+    node_free_parameters.append(np.array([departure_velocity, 0, 0]))
     
     return node_free_parameters
 

@@ -123,27 +123,31 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_bounds(self):
         julian_day = constants.JULIAN_DAY
-        lower_bounds = [-1000*julian_day]
+        lower_bounds = [-1000*julian_day] # departure date
         lower_bounds.append(self.departure_velocity) if self.pre_dep_vel == True else \
-        lower_bounds.append(0)
+        lower_bounds.append(0) # departure velocity
         # lower_bounds.append([50 for i in range(7)])
         # lower_bounds.append([0 for i in range(8)])
-        for _ in range(self.max_no_of_gas + 1):
-            lower_bounds.append(50)
-        for _ in range(self.max_no_of_gas):
+        for _ in range(self.max_no_of_gas + 1): # time of flight
+            lower_bounds.append(50) 
+        for _ in range(self.total_no_of_free_coefficients): # free coefficients
+            lower_bounds.append(-10**6)
+        for _ in range(self.max_no_of_gas): # planet identifier
             lower_bounds.append(0)
-        for _ in range(self.number_of_revolution_parameters):
+        for _ in range(self.number_of_revolution_parameters): # number of revolutions
             lower_bounds.append(0)
 
-        upper_bounds = [1000*julian_day]
+        upper_bounds = [1000*julian_day] # departure date
         upper_bounds.append(self.departure_velocity) if self.pre_dep_vel == True else \
-        upper_bounds.append(2000)
+        upper_bounds.append(2000) # departure velocity
 
-        for _ in range(self.max_no_of_gas + 1):
+        for _ in range(self.max_no_of_gas + 1): # time of flight
             upper_bounds.append(2000)
-        for _ in range(self.max_no_of_gas):
+        for _ in range(self.total_no_of_free_coefficients): # free coefficients
+            upper_bounds.append(10**6)
+        for _ in range(self.max_no_of_gas): # planet identifier
             upper_bounds.append(15)
-        for _ in range(self.number_of_revolution_parameters):
+        for _ in range(self.number_of_revolution_parameters): # number of revolutions
             upper_bounds.append(4)
 
         #print(lower_bounds, upper_bounds)
@@ -208,6 +212,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
  
     def fitness(self, design_parameter_vector : list):
 
+        """
+        Assuming max_no_of_gas == 6
+        0 - departure_date
+        1 - departure velocity
+        2..9 - time of flights
+        9..51 - free_coefficients
+        51..57 - integer ga identifier 
+        """
+
         # parameters
         freq = 1e-6
         scale = 1e-6
@@ -225,14 +238,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # indexes
         time_of_flight_index = 2 + self.max_no_of_gas + 1
+        free_coefficient_index = time_of_flight_index + self.total_no_of_free_coefficients
         planet_identifier_index = time_of_flight_index + self.max_no_of_gas
         revolution_index = planet_identifier_index + self.number_of_revolution_parameters
 
         # departure date
         departure_date = design_parameter_vector[0]
+
         
         # time of flight
-        time_of_flight = design_parameter_vector[2:time_of_flight_index]
+        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+
+        # hodographic shaping free coefficients
+        free_coefficients = design_parameter_vector[planet_identifier_index:free_coefficient_index]
 
         # transfer_body_order
         transfer_body_converter = mga_util.transfer_body_order_conversion()
@@ -242,20 +260,21 @@ class MGALowThrustTrajectoryOptimizationProblem:
         transfer_body_order.insert(0, self.depart_body)
         transfer_body_order.append(self.target_body)
 
+
         # number of revolutions
         number_of_revolutions = design_parameter_vector[planet_identifier_index:revolution_index]
 
         leg_parameters = number_of_revolutions # add free coefficients later
 
-         
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(transfer_body_order,
-                                                                                time_of_flight,
-                                                                                departure_elements,
-                                                                                target_elements,
-                                                                                bodies,
-                                                                                central_body,
-                                                                                frequency=freq,
-                                                                                scale_factor=scale)
+                                                                    time_of_flights,
+                                                                    departure_elements,
+                                                                    target_elements,
+                                                                    bodies,
+                                                                    central_body,
+                                                                    no_of_free_parameters=self.no_of_free_parameters,
+                                                                    frequency=freq,
+                                                                    scale_factor=scale)
 
         
 
@@ -269,7 +288,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # problem
 
 
-        node_times = mga_util.get_node_times(transfer_body_order, departure_date, time_of_flight)
+        node_times = mga_util.get_node_times(transfer_body_order, departure_date, time_of_flights)
         self.node_times = node_times
         leg_free_parameters = mga_util.get_leg_free_parameters(leg_parameters, transfer_body_order)
         node_free_parameters=  mga_util.get_node_free_parameters(transfer_body_order,

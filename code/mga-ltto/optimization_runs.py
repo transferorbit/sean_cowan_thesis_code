@@ -94,19 +94,19 @@ tof_total = np.sum(time_of_flight)
 #constructing the design parameter vector
 #velocity_coefficients = np.array([np.ones(6) for i in range(max_no_of_gas)]) #get all velocity coefficients
 
-design_parameter_vector = np.zeros(17) #without periapses, revolutions, and free coefficients
+# design_parameter_vector = np.zeros(17) #without periapses, revolutions, and free coefficients
 
 
-"""
-0: departure_date
-1: departure_velocity_magnitude
-2-9:time of flight
-9-15:transfer_body_order
-"""
-design_parameter_vector[0] = departure_date
-design_parameter_vector[1] = departure_velocity_magnitude
-design_parameter_vector[2:9] = time_of_flight
-design_parameter_vector[9:15] = transfer_body_order
+# """
+# 0: departure_date
+# 1: departure_velocity_magnitude
+# 2-9:time of flight
+# 9-15:transfer_body_order
+# """
+# design_parameter_vector[0] = departure_date
+# design_parameter_vector[1] = departure_velocity_magnitude
+# design_parameter_vector[2:9] = time_of_flight
+# design_parameter_vector[9:15] = transfer_body_order
 # print(design_parameter_vector)
 # print(type(transfer_body_order[0]))
 
@@ -117,7 +117,8 @@ scale = 1.0 / tof_total
 # MGALowThrustTrajectoryOptimizationProblem(design_parameter_vector)
 # print(mga_ltto_problem)
 
-mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem()
+mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=2,
+        max_no_of_gas=0)
 prob = pg.problem(mga_low_thrust_problem)
 #prob.c_tol = [0]*17
 
