@@ -154,7 +154,8 @@ if parallel:
             archi.evolve()
             # archi.status
             archi.wait_check()
-            # print(archi.get_champions_x())
+
+        print(archi.get_champions_x())
         # print(archi)
         #
         # champions_x = archi.get_champions_x()

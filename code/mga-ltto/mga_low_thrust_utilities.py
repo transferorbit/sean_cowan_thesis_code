@@ -143,6 +143,7 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     for i in range(len(transfer_body_order)-2):
         transfer_node_settings.append( transfer_trajectory.swingby_node() )
     transfer_node_settings.append( transfer_trajectory.capture_node(target_semi_major_axis, target_eccentricity) )
+    # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
 
     # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(

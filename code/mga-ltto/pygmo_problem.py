@@ -84,7 +84,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     departure_velocity=2000, 
                     arrival_velocity=0, 
                     pre_dep_vel=False,
-                    pre_arr_vel=True):
+                    pre_arr_vel=True,
+                    no_of_free_parameters=2,
+                    max_no_of_gas=6):
 
         self.target_body = target_body
         self.depart_body = depart_body
@@ -99,6 +101,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.arrival_velocity = arrival_velocity
         self.pre_dep_vel = pre_dep_vel
         self.pre_arr_vel = pre_arr_vel
+        self.no_of_free_parameters = no_of_free_parameters
+        self.max_no_of_gas = max_no_of_gas
 
         self.transfer_trajectory_object = None
         self.node_times = None
@@ -107,6 +111,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for i in self.bodies_to_create:
             planetary_radii[i] = spice.get_average_radius(i)
         self.planetary_radii = planetary_radii
+
+        self.number_of_revolution_parameters = self.max_no_of_gas + 1
+        self.total_no_of_free_coefficients = self.no_of_free_parameters*3*(self.max_no_of_gas+1)
 
         # global_frame_origin = 'SSB'
         # global_frame_orientation = 'ECLIPJ2000'
@@ -121,19 +128,23 @@ class MGALowThrustTrajectoryOptimizationProblem:
         lower_bounds.append(0)
         # lower_bounds.append([50 for i in range(7)])
         # lower_bounds.append([0 for i in range(8)])
-        for _ in range(7):
+        for _ in range(self.max_no_of_gas + 1):
             lower_bounds.append(50)
-        for _ in range(8):
+        for _ in range(self.max_no_of_gas):
+            lower_bounds.append(0)
+        for _ in range(self.number_of_revolution_parameters):
             lower_bounds.append(0)
 
         upper_bounds = [1000*julian_day]
         upper_bounds.append(self.departure_velocity) if self.pre_dep_vel == True else \
         upper_bounds.append(2000)
 
-        for _ in range(7):
+        for _ in range(self.max_no_of_gas + 1):
             upper_bounds.append(2000)
-        for _ in range(8):
+        for _ in range(self.max_no_of_gas):
             upper_bounds.append(15)
+        for _ in range(self.number_of_revolution_parameters):
+            upper_bounds.append(4)
 
         #print(lower_bounds, upper_bounds)
 
@@ -157,7 +168,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         return 0
 
     def get_nix(self):
-        return 6 # maximum of 6 GAs
+        return self.max_no_of_gas + self.number_of_revolution_parameters # maximum of 6 GAs
 
     # def get_planet_radii(transfer_body_order: list) -> np.ndarray:
     #     self.planetary_radii = planetary_radii
@@ -212,18 +223,30 @@ class MGALowThrustTrajectoryOptimizationProblem:
         target_elements = (self.target_semi_major_axis, self.target_eccentricity) # defined
         # depending on problem
 
+        # indexes
+        time_of_flight_index = 2 + self.max_no_of_gas + 1
+        planet_identifier_index = time_of_flight_index + self.max_no_of_gas
+        revolution_index = planet_identifier_index + self.number_of_revolution_parameters
+
+        # departure date
         departure_date = design_parameter_vector[0]
         
+        # time of flight
+        time_of_flight = design_parameter_vector[2:time_of_flight_index]
+
         # transfer_body_order
         transfer_body_converter = mga_util.transfer_body_order_conversion()
         transfer_body_order = \
-        transfer_body_converter.get_transfer_body_list(design_parameter_vector[10:18], strip=True)
+            transfer_body_converter.get_transfer_body_list(design_parameter_vector[time_of_flight_index:planet_identifier_index],
+                strip=True)
         transfer_body_order.insert(0, self.depart_body)
         transfer_body_order.append(self.target_body)
-        no_of_gas = len(transfer_body_order)-2
 
-        # time of flight
-        time_of_flight = design_parameter_vector[2:(2+no_of_gas+1)]
+        # number of revolutions
+        number_of_revolutions = design_parameter_vector[planet_identifier_index:revolution_index]
+
+        leg_parameters = number_of_revolutions # add free coefficients later
+
          
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(transfer_body_order,
                                                                                 time_of_flight,
@@ -236,19 +259,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         
 
-        planetary_radii_sequence = np.zeros(no_of_gas)
+        planetary_radii_sequence = np.zeros(self.max_no_of_gas)
         for i, body in enumerate(transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
         swingby_periapses = np.array([planetary_radii_sequence[i] + self.swingby_altitude for i in
-            range(no_of_gas)]) # defined depending on problem
-        incoming_velocities = np.array([2000 for _ in range(no_of_gas)]) #defined depending on
+            range(self.max_no_of_gas)]) # defined depending on problem
+        incoming_velocities = np.array([2000 for _ in range(self.max_no_of_gas)]) #defined depending on
         # problem
 
 
         node_times = mga_util.get_node_times(transfer_body_order, departure_date, time_of_flight)
         self.node_times = node_times
-        leg_free_parameters = mga_util.get_leg_free_parameters(np.zeros(1), transfer_body_order)
+        leg_free_parameters = mga_util.get_leg_free_parameters(leg_parameters, transfer_body_order)
         node_free_parameters=  mga_util.get_node_free_parameters(transfer_body_order,
                 swingby_periapses, incoming_velocities)
 
