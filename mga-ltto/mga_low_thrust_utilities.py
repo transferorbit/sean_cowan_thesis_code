@@ -23,8 +23,16 @@ from tudatpy.kernel import numerical_simulation
 from tudatpy.kernel.math import interpolators
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
+# from memory_profiler import profile
 
 from tudatpy.kernel.interface import spice
+
+import io
+import sys
+
+import warnings
+warnings.filterwarnings("error")
+
 
 spice.load_standard_kernels()
 
@@ -145,15 +153,30 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     transfer_node_settings.append( transfer_trajectory.capture_node(target_semi_major_axis, target_eccentricity) )
     # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
 
-    # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
+    # output = io.StringIO()
+    # sys.stdout = output
     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
         bodies,
         transfer_leg_settings,
         transfer_node_settings,
         transfer_body_order,
         central_body)
+    # sys.stdout = sys.__stdout__
+    # print('Output : ', output.getvalue(), '\n') # here is where I left off
+    # cylindrical_penalty = False
+    # try:
+    #     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
+    #         bodies,
+    #         transfer_leg_settings,
+    #         transfer_node_settings,
+    #         transfer_body_order,
+    #         central_body)
+    # except Warning:
+    #     cylindrical_penalty = True
 
 
+
+    # return (transfer_trajectory_object, output.getvalue())
     return transfer_trajectory_object
 
 

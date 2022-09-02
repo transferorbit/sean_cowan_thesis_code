@@ -39,52 +39,52 @@ subdirectory = '/test_optimization_results/'
 ###########################################################################
 
 # Define settings for celestial bodies
-bodies_to_create = ['Mercury',
-                    'Venus',
-                    'Earth',
-                    'Mars',
-                    'Jupiter',
-                    'Saturn',
-                    'Uranus',
-                    'Neptune',
-                    'Sun']
-
-# Define coordinate system
-global_frame_origin = 'SSB'
-global_frame_orientation = 'ECLIPJ2000'
-# Create body settings
-body_settings = environment_setup.get_default_body_settings(bodies_to_create,
-                                                            global_frame_origin,
-                                                            global_frame_orientation)
-# Create bodies
-bodies = environment_setup.create_system_of_bodies(body_settings)
-central_body = 'Sun'
-
-########################################################################################
-# DEFINE PARAMETERS AND PROBLEM ########################################################
-########################################################################################
-
-## definitions
-julian_day = constants.JULIAN_DAY
-
-## constraints
-max_no_of_gas = 8
-
-## trajectory information
-departure_date = (-789.8117 - 0.5)  * julian_day
-departure_velocity_magnitude = 2000 # m/s
-
-begin_body = "Earth"
-target_body = "Jupiter"
-
-"""
-transfer_body_order = ["Earth", "Mars", "Jupiter"]
-"""
-transfer_body_order = np.array([3, 0, 4, 0, 0, 0], dtype=int)
-number_of_gas = len(transfer_body_order)
-
-time_of_flight = np.array([500, 2500, 0, 0, 0, 0, 0]) * julian_day
-tof_total = np.sum(time_of_flight)
+# bodies_to_create = ['Mercury',
+#                     'Venus',
+#                     'Earth',
+#                     'Mars',
+#                     'Jupiter',
+#                     'Saturn',
+#                     'Uranus',
+#                     'Neptune',
+#                     'Sun']
+# 
+# # Define coordinate system
+# global_frame_origin = 'SSB'
+# global_frame_orientation = 'ECLIPJ2000'
+# # Create body settings
+# body_settings = environment_setup.get_default_body_settings(bodies_to_create,
+#                                                             global_frame_origin,
+#                                                             global_frame_orientation)
+# # Create bodies
+# bodies = environment_setup.create_system_of_bodies(body_settings)
+# central_body = 'Sun'
+# 
+# ########################################################################################
+# # DEFINE PARAMETERS AND PROBLEM ########################################################
+# ########################################################################################
+# 
+# ## definitions
+# julian_day = constants.JULIAN_DAY
+# 
+# ## constraints
+# max_no_of_gas = 8
+# 
+# ## trajectory information
+# departure_date = (-789.8117 - 0.5)  * julian_day
+# departure_velocity_magnitude = 2000 # m/s
+# 
+# begin_body = "Earth"
+# target_body = "Jupiter"
+# 
+# """
+# transfer_body_order = ["Earth", "Mars", "Jupiter"]
+# """
+# transfer_body_order = np.array([3, 0, 4, 0, 0, 0], dtype=int)
+# number_of_gas = len(transfer_body_order)
+# 
+# time_of_flight = np.array([500, 2500, 0, 0, 0, 0, 0]) * julian_day
+# tof_total = np.sum(time_of_flight)
 # swingby_periapses=  np.array([50e6, 200e6])
 # number_of_revolutions = np.array([0, 0])
 
@@ -110,8 +110,8 @@ tof_total = np.sum(time_of_flight)
 # print(design_parameter_vector)
 # print(type(transfer_body_order[0]))
 
-freq = 2.0 * np.pi / tof_total
-scale = 1.0 / tof_total
+# freq = 2.0 * np.pi / tof_total
+# scale = 1.0 / tof_total
 
 # mga_ltto_problem = \
 # MGALowThrustTrajectoryOptimizationProblem(design_parameter_vector)

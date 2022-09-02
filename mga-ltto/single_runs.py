@@ -30,6 +30,7 @@ from tudatpy.kernel.trajectory_design import transfer_trajectory
 import pygmo_island as isl
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
 from error_vectors import design_vector_list
+from error_vectors import cylindrical_radial_list
 # print(design_vector_list)
 
 current_dir = os.getcwd()
@@ -42,8 +43,12 @@ mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_pa
 # mga_low_thrust_problem.fitness(design_vector_list[6])
 
 # All 'problematic' design vectors run in a loop
-for i in range(len(design_vector_list)):
-    mga_low_thrust_problem.fitness(design_vector_list[i])
+# for i in range(len(design_vector_list)):
+#     mga_low_thrust_problem.fitness(design_vector_list[i])
+
+# Cylindrical error test
+for i in range(len(cylindrical_radial_list)):
+    mga_low_thrust_problem.fitness(cylindrical_radial_list[i])
 
 
 
