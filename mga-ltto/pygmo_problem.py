@@ -222,6 +222,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         9..51 - free_coefficients
         51..57 - integer ga identifier 
         """
+        print("Design Parameters:", design_parameter_vector, "\n")
 
         # parameters
         freq = 1e-6
@@ -264,8 +265,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
 
         # number of revolutions
+        # number_of_revolutions = \
+        # design_parameter_vector[planet_identifier_index:revolution_index].astype(int)
         number_of_revolutions = \
-        design_parameter_vector[planet_identifier_index:revolution_index].astype(int)
+        [int(x) for x in design_parameter_vector[planet_identifier_index:revolution_index]]
         # print('number of revolution', type(number_of_revolutions[0]))
 
         # approach 2
@@ -328,9 +331,17 @@ class MGALowThrustTrajectoryOptimizationProblem:
         transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
 
         #self.transfer_trajectory_object = transfer_trajectory_object # resulted in error last time
-        objective = transfer_trajectory_object.delta_v
+        try:
+            objective = transfer_trajectory_object.delta_v
+        except RuntimeError:
+            print("excepted")
+            fitness +=10**9
         #constraint_check(design_parameter_vector)
         # objective = np.random.normal(0, 1000)
+
+        # if cylindrical_penalty:
+        #     objective += 10**12
+        #     print('Penalty applied')
         
         print('Fitness evaluated')
         return [objective]
