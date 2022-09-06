@@ -328,14 +328,22 @@ class MGALowThrustTrajectoryOptimizationProblem:
         
 
 
-        transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
-
-        #self.transfer_trajectory_object = transfer_trajectory_object # resulted in error last time
+        # print("test")
         try:
-            objective = transfer_trajectory_object.delta_v
+            transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
+            objective = transfer_trajectory_object.delta_v 
         except RuntimeError:
             print("excepted")
-            fitness +=10**9
+            objective = 10**12
+            # print(transfer_trajectory_object)
+            # objective = transfer_trajectory_object.delta_v + objective_penalty
+
+        #self.transfer_trajectory_object = transfer_trajectory_object # resulted in error last time
+        # try:
+        #     objective = transfer_trajectory_object.delta_v
+        # except RuntimeError:
+        #     print("excepted")
+        #     fitness +=10**9
         #constraint_check(design_parameter_vector)
         # objective = np.random.normal(0, 1000)
 

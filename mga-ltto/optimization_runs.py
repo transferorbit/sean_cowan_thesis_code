@@ -17,6 +17,9 @@ import pygmo as pg
 import multiprocessing as mp
 
 # Tudatpy imports
+import sys
+sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+
 import tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
@@ -25,6 +28,7 @@ from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.math import interpolators
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
+
 
 # import mga_low_thrust_utilities as mga_util
 import pygmo_island as isl
