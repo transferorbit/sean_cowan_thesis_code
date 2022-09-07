@@ -153,30 +153,13 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     transfer_node_settings.append( transfer_trajectory.capture_node(target_semi_major_axis, target_eccentricity) )
     # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
 
-    # output = io.StringIO()
-    # sys.stdout = output
     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
         bodies,
         transfer_leg_settings,
         transfer_node_settings,
         transfer_body_order,
         central_body)
-    # sys.stdout = sys.__stdout__
-    # print('Output : ', output.getvalue(), '\n') # here is where I left off
-    # cylindrical_penalty = False
-    # try:
-    #     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
-    #         bodies,
-    #         transfer_leg_settings,
-    #         transfer_node_settings,
-    #         transfer_body_order,
-    #         central_body)
-    # except Warning:
-    #     cylindrical_penalty = True
 
-
-
-    # return (transfer_trajectory_object, output.getvalue())
     return transfer_trajectory_object
 
 
@@ -198,29 +181,30 @@ def get_node_times(transfer_body_order: list,
 
     return node_times
 
-def get_leg_free_parameters(free_parameters: np.ndarray,
-                            transfer_body_order: list,
-                            number_of_revolutions: np.array = np.zeros(1)) -> list:
-    """
-    Forms list of leg free parameters based on free_parameter vector
-
-    Returns
-    -------
-    list[list[float]]
-
-    """
-    # free_parameters = np.ones(len(free_parameters))
-    
-    number_of_revolutions = np.zeros(len(transfer_body_order)-1)
-    leg_free_parameters = list()
-    for i in range(len(transfer_body_order)-1):
-        leg_parameters = list()
-        leg_parameters.append(number_of_revolutions[i])
-        # for j in free_parameters:
-        #     leg_parameters.append(j)
-        leg_free_parameters.append(leg_parameters)
-
-    return leg_free_parameters
+# NOT USED ANYMORE
+# def get_leg_free_parameters(free_parameters: np.ndarray,
+#                             transfer_body_order: list,
+#                             number_of_revolutions: np.array = np.zeros(1)) -> list:
+#     """
+#     Forms list of leg free parameters based on free_parameter vector
+# 
+#     Returns
+#     -------
+#     list[list[float]]
+# 
+#     """
+#     # free_parameters = np.ones(len(free_parameters))
+#     
+#     number_of_revolutions = np.zeros(len(transfer_body_order)-1)
+#     leg_free_parameters = list()
+#     for i in range(len(transfer_body_order)-1):
+#         leg_parameters = list()
+#         leg_parameters.append(number_of_revolutions[i])
+#         # for j in free_parameters:
+#         #     leg_parameters.append(j)
+#         leg_free_parameters.append(leg_parameters)
+# 
+#     return leg_free_parameters
 
 def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.ndarray,
         incoming_velocities: np.ndarray, departure_velocity: float = 0, arrival_velocity: float = 0) -> list:

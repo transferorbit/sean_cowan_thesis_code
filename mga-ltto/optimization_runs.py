@@ -39,96 +39,12 @@ write_results_to_file = True
 subdirectory = '/test_optimization_results/'
 
 ###########################################################################
-# CREATE ENVIRONMENT ######################################################
-###########################################################################
-
-# Define settings for celestial bodies
-# bodies_to_create = ['Mercury',
-#                     'Venus',
-#                     'Earth',
-#                     'Mars',
-#                     'Jupiter',
-#                     'Saturn',
-#                     'Uranus',
-#                     'Neptune',
-#                     'Sun']
-# 
-# # Define coordinate system
-# global_frame_origin = 'SSB'
-# global_frame_orientation = 'ECLIPJ2000'
-# # Create body settings
-# body_settings = environment_setup.get_default_body_settings(bodies_to_create,
-#                                                             global_frame_origin,
-#                                                             global_frame_orientation)
-# # Create bodies
-# bodies = environment_setup.create_system_of_bodies(body_settings)
-# central_body = 'Sun'
-# 
-# ########################################################################################
-# # DEFINE PARAMETERS AND PROBLEM ########################################################
-# ########################################################################################
-# 
-# ## definitions
-# julian_day = constants.JULIAN_DAY
-# 
-# ## constraints
-# max_no_of_gas = 8
-# 
-# ## trajectory information
-# departure_date = (-789.8117 - 0.5)  * julian_day
-# departure_velocity_magnitude = 2000 # m/s
-# 
-# begin_body = "Earth"
-# target_body = "Jupiter"
-# 
-# """
-# transfer_body_order = ["Earth", "Mars", "Jupiter"]
-# """
-# transfer_body_order = np.array([3, 0, 4, 0, 0, 0], dtype=int)
-# number_of_gas = len(transfer_body_order)
-# 
-# time_of_flight = np.array([500, 2500, 0, 0, 0, 0, 0]) * julian_day
-# tof_total = np.sum(time_of_flight)
-# swingby_periapses=  np.array([50e6, 200e6])
-# number_of_revolutions = np.array([0, 0])
-
-#no_of_free_coefficients = 2
-# velocity_coefficients = np.array([np.ones(6), np.ones(6)])
-
-#constructing the design parameter vector
-#velocity_coefficients = np.array([np.ones(6) for i in range(max_no_of_gas)]) #get all velocity coefficients
-
-# design_parameter_vector = np.zeros(17) #without periapses, revolutions, and free coefficients
-
-
-# """
-# 0: departure_date
-# 1: departure_velocity_magnitude
-# 2-9:time of flight
-# 9-15:transfer_body_order
-# """
-# design_parameter_vector[0] = departure_date
-# design_parameter_vector[1] = departure_velocity_magnitude
-# design_parameter_vector[2:9] = time_of_flight
-# design_parameter_vector[9:15] = transfer_body_order
-# print(design_parameter_vector)
-# print(type(transfer_body_order[0]))
-
-# freq = 2.0 * np.pi / tof_total
-# scale = 1.0 / tof_total
-
-# mga_ltto_problem = \
-# MGALowThrustTrajectoryOptimizationProblem(design_parameter_vector)
-# print(mga_ltto_problem)
-
-mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=1)
-prob = pg.problem(mga_low_thrust_problem)
-#prob.c_tol = [0]*17
-
-
-###########################################################################
 # OPTIMIZE PROBLEM ########################################################
 ###########################################################################
+
+mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=2)
+prob = pg.problem(mga_low_thrust_problem)
+
 
 parallel = True
 if parallel:
@@ -218,29 +134,3 @@ else:
         save2txt(state_history, 'state_history.dat', output_path)
         save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_path)
         save2txt(node_times, 'node_times.dat', output_path)
-
-    # # Select algorithm from pygmo, with one generation
-    # algo = pg.algorithm(pg.de())
-    # # Create pygmo problem
-    # prob = pg.problem(current_shape_optimization_problem)
-    # # Initialize pygmo population with 50 individuals
-    # population_size = 50
-    # pop = pg.population(prob, size=population_size)
-    # # Set the number of evolutions
-    # number_of_evolutions = 50
-    # # Evolve the population recursively
-    # fitness_list = []
-    # population_list = []
-    # 
-    # fitness_list.append(pop.get_f())
-    # population_list.append(pop.get_x())
-    # 
-    # for i in range(number_of_evolutions):
-    #     # Evolve the population
-    #     pop = algo.evolve(pop)
-    #     # Store the fitness values for all individuals in a list
-    #     fitness_list.append(pop.get_f())
-    #     population_list.append(pop.get_x())
-    #     print(pop.champion_f)
-    #     print('Evolving population; at generation ' + str(i))
-    # 

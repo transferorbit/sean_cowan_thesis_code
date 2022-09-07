@@ -68,9 +68,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
     Class to initialize, simulate, and optimize the MGA low-thrust trajectory optimization problem.
     """
 
-    # def __init__(self, design_parameter_vector):
-    #     self.design_parameter_vector = design_parameter_vector
-
     def __init__(self, 
                     target_body='Jupiter', 
                     depart_body='Earth', 
@@ -115,12 +112,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.number_of_revolution_parameters = self.max_no_of_gas + 1
         self.total_no_of_free_coefficients = self.no_of_free_parameters*3*(self.max_no_of_gas+1)
 
-        # global_frame_origin = 'SSB'
-        # global_frame_orientation = 'ECLIPJ2000'
-        # self.bodies = \
-        # environment_setup.create_system_of_bodies(environment_setup.get_default_body_settings(self.bodies_to_create,
-        #     global_frame_origin, global_frame_orientation))
-
     def get_bounds(self):
         julian_day = constants.JULIAN_DAY
         lower_bounds = [-1000*julian_day] # departure date
@@ -150,13 +141,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for _ in range(self.number_of_revolution_parameters): # number of revolutions
             upper_bounds.append(4)
 
-        #print(lower_bounds, upper_bounds)
-
         return (lower_bounds, upper_bounds)
-    # design_parameter_vector[0] = departure_date
-    # design_parameter_vector[1] = departure_velocity_magnitude
-    # design_parameter_vector[2:9] = time_of_flight
-    # design_parameter_vector[9:17] = transfer_body_order
 
     def get_central_body(self, central_body):
         self.central_body = central_body
@@ -173,9 +158,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_nix(self):
         return self.max_no_of_gas + self.number_of_revolution_parameters # maximum of 6 GAs
-
-    # def get_planet_radii(transfer_body_order: list) -> np.ndarray:
-    #     self.planetary_radii = planetary_radii
 
     def get_states_along_trajectory(self, no_of_points) -> dict:
         """
@@ -244,16 +226,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # departure date
         departure_date = design_parameter_vector[0]
-
         
         # time of flight
         time_of_flights = design_parameter_vector[2:time_of_flight_index]
 
         # hodographic shaping free coefficients
         free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
-        # print('design parameters vector', design_parameter_vector)
-        # print('free coefficients', free_coefficients.shape)
-        # free_coefficients = free_coefficients.astype(np.float64)
 
         # transfer_body_order
         transfer_body_converter = mga_util.transfer_body_order_conversion()
@@ -263,38 +241,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
         transfer_body_order.insert(0, self.depart_body)
         transfer_body_order.append(self.target_body)
 
-
         # number of revolutions
-        # number_of_revolutions = \
-        # design_parameter_vector[planet_identifier_index:revolution_index].astype(int)
         number_of_revolutions = \
         [int(x) for x in design_parameter_vector[planet_identifier_index:revolution_index]]
-        # print('number of revolution', type(number_of_revolutions[0]))
-
-        # approach 2
-        # leg_parameters = np.zeros((self.max_no_of_gas + 1, 1 + self.no_of_free_parameters * 3))
-        #
-        # for i in range(self.max_no_of_gas + 1):
-        #     leg_parameters[i+1, :] = \
-        #     free_coefficients[i*(self.no_of_free_parameters*3):(i+1)*(self.no_of_free_parameters*3)]
-        #
-        # leg_parameters[:, 0] = number_of_revolutions
-        # leg_parameters.flatten()
-        # print('leg parameters: ', leg_parameters)
-        # print('leg parameters: ', type(leg_parameters[0]))
-        # print('leg parameters: ', leg_parameters.shape)
-
-
-        #approach 3
-        # just insert the number of revolutions elements in the free_coefficients array
-
-        # approach 1
-        leg_parameters = np.concatenate(np.array([np.append(number_of_revolutions[i],
-            free_coefficients[i*(self.no_of_free_parameters*3):(i+1)*(self.no_of_free_parameters*3)]) for i
-            in range(self.max_no_of_gas+1)])) # add free coefficients later
-        # print('leg parameters: ', leg_parameters)
-        # print('leg parameters: ', type(leg_parameters[0]))
-        # print('leg parameters: ', leg_parameters.shape)
 
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(transfer_body_order,
                                                                     time_of_flights,
@@ -307,49 +256,34 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                                     frequency=freq,
                                                                     scale_factor=scale)
 
-        
-
         planetary_radii_sequence = np.zeros(self.max_no_of_gas)
         for i, body in enumerate(transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
         swingby_periapses = np.array([planetary_radii_sequence[i] + self.swingby_altitude for i in
             range(self.max_no_of_gas)]) # defined depending on problem
-        incoming_velocities = np.array([2000 for _ in range(self.max_no_of_gas)]) #defined depending on
-        # problem
+        incoming_velocities = np.array([2000 for _ in range(self.max_no_of_gas)]) 
 
-
+        # node times
         node_times = mga_util.get_node_times(transfer_body_order, departure_date, time_of_flights)
         self.node_times = node_times
-        leg_free_parameters = mga_util.get_leg_free_parameters(leg_parameters, transfer_body_order)
+
+        # leg free parameters 
+        leg_free_parameters = np.concatenate(np.array([np.append(number_of_revolutions[i],
+            free_coefficients[i*(self.no_of_free_parameters*3):(i+1)*(self.no_of_free_parameters*3)]) for i
+            in range(self.max_no_of_gas+1)])).reshape((self.max_no_of_gas+1, 1 + 3*
+                self.no_of_free_parameters)) # added reshape
+
+        # node free parameters
         node_free_parameters=  mga_util.get_node_free_parameters(transfer_body_order,
                 swingby_periapses, incoming_velocities)
 
-        
-
-
-        # print("test")
         try:
             transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
             objective = transfer_trajectory_object.delta_v 
-        except RuntimeError:
-            print("excepted")
+        except RuntimeError as e:
+            print(str(e), "\n", "Objective increased by 10**12")
             objective = 10**12
-            # print(transfer_trajectory_object)
-            # objective = transfer_trajectory_object.delta_v + objective_penalty
-
-        #self.transfer_trajectory_object = transfer_trajectory_object # resulted in error last time
-        # try:
-        #     objective = transfer_trajectory_object.delta_v
-        # except RuntimeError:
-        #     print("excepted")
-        #     fitness +=10**9
-        #constraint_check(design_parameter_vector)
-        # objective = np.random.normal(0, 1000)
-
-        # if cylindrical_penalty:
-        #     objective += 10**12
-        #     print('Penalty applied')
         
         print('Fitness evaluated')
         return [objective]
