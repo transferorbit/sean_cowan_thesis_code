@@ -13,19 +13,16 @@ performing the actual optimization.
 
 # General imports
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt
-from tudatpy.kernel import constants
-from tudatpy.kernel.numerical_simulation import propagation_setup
-from tudatpy.kernel import numerical_simulation
-from tudatpy.kernel.math import interpolators
+from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
-# from memory_profiler import profile
-
 from tudatpy.kernel.interface import spice
+from trajectory3d import trajectory_3d
 
 import io
 import sys
@@ -404,3 +401,64 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
+def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):
+    """
+    Function that plots the relevant data provided by the input parameters. Generally this function
+    is designed for MGA trajectories, and is specifically adapted to use data created by multiple
+    islands with PyGMO
+
+    Parameters
+    ----------
+    dir : directory in which to look for state_history, thrust_acceleration, node_times, and auxiliary
+    information
+    dir_of_dir : directory in which to look for directories of various islands that all have
+    to-be plotted data
+    trajectory_function : function from tudatpy that visualizes mga trajectories based on specific
+    inputs
+
+    Returns
+    -------
+    python instance
+    """
+
+    if dir == None and dir_of_dir == None:
+        raise RuntimeError('No directory has been provided that contains to-be plotted data') 
+    if dir != None and dir_of_dir != None:
+        raise RuntimeError('Too many resources are provided. Please only pass a directory or \
+                directory of directories to dir or dir_of_dir, respectively') 
+
+    if dir != None:
+        input_directory = dir
+    elif dir_of_dir != None:
+        input_directory = dir_of_dir
+    else:
+        raise RuntimeError('Something went wrong, check source')
+
+    state_history = np.loadtxt(dir + 'state_history.dat')
+    node_times = np.loadtxt(dir + 'node_times.dat')
+
+    state_history_dict = {}
+    for i in range(len(state_history)):
+        state_history_dict[state_history[i, 0]] = state_history[i,1:]
+
+    # print(node_times[0, 1])
+    print(state_history_dict)
+    print(node_times)
+    fly_by_states = np.array([state_history_dict[int(node_times[i, 1])] for i in range(len(node_times))])
+
+    fig, ax = trajectory_function(
+            state_history_dict,
+            vehicles_names=["Spacecraft"],
+            central_body_name="SSB",
+            spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"],
+            frame_orientation= 'ECLIPJ2000',
+            )
+# Change the size of the figure
+    # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
+        #     2] , marker='o', color='blue', label='Earth departure')
+    # ax.scatter(fly_by_states[1, 0] , fly_by_states[1, 1] , fly_by_states[1,
+        #     2] , marker='o', color='brown', label='Mars fly-by')
+
+    fig.set_size_inches(8, 8)
+# Show the plot
+    plt.show()

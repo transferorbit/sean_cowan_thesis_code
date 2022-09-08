@@ -1,15 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from typing import List, Dict, Union
 
 def trajectory_3d(
-    vehicles_states: dict[float, np.ndarray],
-    vehicles_names: list[str],
+    vehicles_states: Dict[float, np.ndarray],
+    vehicles_names: List[str],
     central_body_name:str,
-    spice_bodies: list[str] = [],
+    spice_bodies: List[str] = [],
     frame_orientation:str = "J2000",
     center_plot:bool = False,
-    colors:list[str] = [],
-    linestyles:list[str] = [] ):
+    colors:List[str] = [],
+    linestyles:List[str] = [] ):
     """Plot the trajectory specified bodies in 3D.
 
     This function allows to plot the 3D trajectory of vehicles of which the state has been propagated, as well as
