@@ -227,13 +227,13 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     node_free_parameters = list()
 
     # Departure node
-    node_free_parameters.append(np.array([departure_velocity, 0, 0]))
+    node_free_parameters.append(np.array([0, departure_velocity, 0]))#  departure_velocity
 
     # Swingby nodes
     for i in range(len(transfer_body_order)-2):
         node_parameters = list()
         node_parameters.append(incoming_velocities[i])
-        node_parameters.append(0)
+        node_parameters.append(10)
         node_parameters.append(0)
         node_parameters.append(swingby_periapses[i])
         node_parameters.append(0)
@@ -242,7 +242,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_free_parameters.append(node_parameters)
 
     # Arrival node
-    node_free_parameters.append(np.array([departure_velocity, 0, 0]))
+    node_free_parameters.append(np.array([0, 0, 0]))
     
     return node_free_parameters
 
