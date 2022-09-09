@@ -51,7 +51,7 @@ Population size; unknown
 
 """
 
-free_param_count = 2
+free_param_count = 1
 num_gen = 2
 pop_size = 100
 no_of_points = 500

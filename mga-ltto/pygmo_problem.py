@@ -118,7 +118,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # lower_bounds.append([50 for i in range(7)])
         # lower_bounds.append([0 for i in range(8)])
         for _ in range(self.max_no_of_gas + 1): # time of flight
-            lower_bounds.append(50) 
+            lower_bounds.append(50*julian_day) 
         for _ in range(self.total_no_of_free_coefficients): # free coefficients
             lower_bounds.append(-10**6)
         for _ in range(self.max_no_of_gas): # planet identifier
@@ -131,7 +131,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         upper_bounds.append(2000) # departure velocity
 
         for _ in range(self.max_no_of_gas + 1): # time of flight
-            upper_bounds.append(2000)
+            upper_bounds.append(2000*julian_day)
         for _ in range(self.total_no_of_free_coefficients): # free coefficients
             upper_bounds.append(10**6)
         for _ in range(self.max_no_of_gas): # planet identifier
@@ -219,15 +219,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         planet_identifier_index = free_coefficient_index + self.max_no_of_gas
         revolution_index = planet_identifier_index + self.number_of_revolution_parameters
 
-        # departure date
-        departure_date = design_parameter_vector[0]
-        
-        # time of flight
-        time_of_flights = design_parameter_vector[2:time_of_flight_index]
-
-        # hodographic shaping free coefficients
-        free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
-
+        ### INTEGER PART ###
         # transfer_body_order
         transfer_body_converter = mga_util.transfer_body_order_conversion()
         transfer_body_order = \
@@ -239,6 +231,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # number of revolutions
         number_of_revolutions = \
         [int(x) for x in design_parameter_vector[planet_identifier_index:revolution_index]]
+
+        ### CONTINUOUS PART ###
+        # departure date
+        departure_date = design_parameter_vector[0]
+        
+        # time of flight
+        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+        # takes first parameters approach (not the indexes that are equal to the planets)
+        time_of_flights = time_of_flights[0:len(transfer_body_order)-1]
+
+        # hodographic shaping free coefficients
+        free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
 
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(transfer_body_order,
                                                                     time_of_flights,
@@ -327,6 +332,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
         
         # time of flight
         time_of_flights = design_parameter_vector[2:time_of_flight_index]
+        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+        # takes first parameters approach (not the indexes that are equal to the planets)
+        time_of_flights = time_of_flights[0:len(transfer_body_order)-1]
 
         # hodographic shaping free coefficients
         free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
@@ -368,7 +376,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
             transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
             objective = transfer_trajectory_object.delta_v 
         except RuntimeError as e:
-            print(str(e), "\n", "Objective increased by 10**16")
+            print(str(e), "\n")#, "Objective increased by 10**16")
             objective = 10**16
 
 

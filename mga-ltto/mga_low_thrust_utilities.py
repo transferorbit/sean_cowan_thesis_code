@@ -418,7 +418,10 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
 
     Returns
     -------
-    python instance
+    fig : matplotlib.figure.Figure
+        Figure containing the 3D plot.
+    ax : matplotlib.axes.Axes
+        3D axis system used to plot the trajectory.
     """
 
     if dir == None and dir_of_dir == None:
@@ -440,11 +443,13 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     state_history_dict = {}
     for i in range(len(state_history)):
         state_history_dict[state_history[i, 0]] = state_history[i,1:]
+    # print(state_history_dict)
 
     # print(node_times[0, 1])
-    print(state_history_dict)
-    print(node_times)
-    fly_by_states = np.array([state_history_dict[int(node_times[i, 1])] for i in range(len(node_times))])
+    # print(state_history_dict)
+    # print(node_times)
+    fly_by_states = np.array([state_history_dict[node_times[i, 1]] for i in range(len(node_times))])
+    # print(fly_by_states)
 
     fig, ax = trajectory_function(
             state_history_dict,
@@ -453,12 +458,12 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"],
             frame_orientation= 'ECLIPJ2000',
             )
-# Change the size of the figure
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
-        #     2] , marker='o', color='blue', label='Earth departure')
+    #         2] , marker='o', color='blue', label='Earth departure')
     # ax.scatter(fly_by_states[1, 0] , fly_by_states[1, 1] , fly_by_states[1,
-        #     2] , marker='o', color='brown', label='Mars fly-by')
+    #         2] , marker='o', color='brown', label='Mars fly-by')
 
+# Change the size of the figure
     fig.set_size_inches(8, 8)
 # Show the plot
     plt.show()

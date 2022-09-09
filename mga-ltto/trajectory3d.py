@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from typing import List, Dict, Union
 
+def solar_system_propagation(spice_bodies : List[str]=[],
+                                ):
+    pass
+
 def trajectory_3d(
     vehicles_states: Dict[float, np.ndarray],
     vehicles_names: List[str],
@@ -95,6 +99,7 @@ def trajectory_3d(
     # Convert the states to a ndarray
     vehicles_states_array = result2array(vehicles_states)
     sim_epochs = vehicles_states_array[:,0]
+    print(sim_epochs[-1]-sim_epochs[0])
 
     # Make a list of positions per vehicle
     vehicles_positions = []
@@ -112,7 +117,8 @@ def trajectory_3d(
     for i, vehicle_name in enumerate(vehicles_names):
         if len(vehicle_name) != 0:
             # Update the minimum and maximum positions
-            min_pos, max_pos = min(min_pos, np.min(vehicles_positions[i])), max(max_pos, np.max(vehicles_positions[i]))
+            min_pos, max_pos = min(min_pos, np.min(vehicles_positions[i])), max(max_pos,
+                    np.max(vehicles_positions[i]))
             # Select appropriate color and linestyle
             _color = colors[i_c]
             _linestyle = linestyles[i_ls]
@@ -120,14 +126,21 @@ def trajectory_3d(
             i_c = i_c + 1 if i_c != len(colors) else 0
             i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
             # Plot the trajectory of the vehicle
-            ax.plot(vehicles_positions[i][:,0], vehicles_positions[i][:,1], vehicles_positions[i][:,2], label=vehicle_name, color=_color, linestyle=_linestyle)
+            ax.plot(vehicles_positions[i][:,0], vehicles_positions[i][:,1],
+                    vehicles_positions[i][:,2], label=vehicle_name, color=_color,
+                    linestyle=_linestyle)
+            ax.scatter(vehicles_positions[i][0, 0] , vehicles_positions[i][0, 1] ,
+                    vehicles_positions[i][0, 2] , marker='o', color=_color)
+            ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
+                    vehicles_positions[i][-1, 2] , marker='o', color=_color)
 
-    for i, spice_body in enumerate(spice_bodies):
-        # Get the position of the body from SPICE
+    for spice_body in spice_bodies:
+    # spice_body = "Jupiter"
+    # Get the position of the body from SPICE
         body_state_array = np.array([
-            spice_interface.get_body_cartesian_position_at_epoch(spice_body, central_body_name, frame_orientation, "None", epoch)
-            for epoch in sim_epochs
-        ])
+            spice_interface.get_body_cartesian_position_at_epoch(spice_body, central_body_name,
+                frame_orientation, "None", epoch) for epoch in sim_epochs ])
+        print(body_state_array[0, 0] - body_state_array[-1, 0])
         # Update the minimum and maximum positions
         min_pos, max_pos = min(min_pos, np.min(body_state_array)), max(max_pos, np.max(body_state_array))
         # Select appropriate color and linestyle
@@ -137,7 +150,8 @@ def trajectory_3d(
         i_c = i_c + 1 if i_c != len(colors) else 0
         i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
         # Plot the trajectory of the body
-        ax.plot(body_state_array[:,0], body_state_array[:,1], body_state_array[:,2], label=spice_body, color=_color, linestyle=_linestyle)
+        ax.plot(body_state_array[:,0], body_state_array[:,1], body_state_array[:,2],
+                label=spice_body, color=_color, linestyle=_linestyle)
         ax.scatter(body_state_array[0, 0], body_state_array[0, 1],
                 body_state_array[0, 2], marker="o", color=_color)
         ax.scatter(body_state_array[-1, 0], body_state_array[-1, 1],
