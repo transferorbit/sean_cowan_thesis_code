@@ -148,7 +148,7 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     for i in range(len(transfer_body_order)-2):
         transfer_node_settings.append( transfer_trajectory.swingby_node() )
     transfer_node_settings.append( transfer_trajectory.capture_node(target_semi_major_axis, target_eccentricity) )
-    # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
+    transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
 
     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
         bodies,
@@ -227,7 +227,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     node_free_parameters = list()
 
     # Departure node
-    node_free_parameters.append(np.array([0, departure_velocity, 0]))#  departure_velocity
+    node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
 
     # Swingby nodes
     for i in range(len(transfer_body_order)-2):
@@ -242,7 +242,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_free_parameters.append(node_parameters)
 
     # Arrival node
-    node_free_parameters.append(np.array([0, 0, 0]))
+    node_free_parameters.append(np.array([arrival_velocity, 0, 0]))
     
     return node_free_parameters
 

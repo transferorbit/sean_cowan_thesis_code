@@ -99,7 +99,7 @@ def trajectory_3d(
     # Convert the states to a ndarray
     vehicles_states_array = result2array(vehicles_states)
     sim_epochs = vehicles_states_array[:,0]
-    print(sim_epochs[-1]-sim_epochs[0])
+    # print(sim_epochs[-1]-sim_epochs[0])
 
     # Make a list of positions per vehicle
     vehicles_positions = []
@@ -140,7 +140,7 @@ def trajectory_3d(
         body_state_array = np.array([
             spice_interface.get_body_cartesian_position_at_epoch(spice_body, central_body_name,
                 frame_orientation, "None", epoch) for epoch in sim_epochs ])
-        print(body_state_array[0, 0] - body_state_array[-1, 0])
+        # print(body_state_array[0, 0] - body_state_array[-1, 0])
         # Update the minimum and maximum positions
         min_pos, max_pos = min(min_pos, np.min(body_state_array)), max(max_pos, np.max(body_state_array))
         # Select appropriate color and linestyle

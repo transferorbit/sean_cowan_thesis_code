@@ -51,6 +51,7 @@ Population size; unknown
 
 """
 
+transfer_body_order = ["Earth", "Mars", "Jupiter"]
 free_param_count = 1
 num_gen = 2
 pop_size = 100
@@ -60,7 +61,9 @@ no_of_points = 500
 # my_problem = pg.minlp_rastrigin(300, 60) 
 
 # testing problem functionality
-mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count)
+mga_low_thrust_problem = \
+MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count,
+        transfer_body_order=transfer_body_order)
 prob = pg.problem(mga_low_thrust_problem)
 
 # verification
@@ -96,7 +99,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # Saving the trajectories for post-processing
     for i in range(len(champions)):
         mga_low_thrust_problem = \
-        MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count)
+        MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count,
+                transfer_body_order=transfer_body_order)
         # print("Champion: ", champions[i])
         mga_low_thrust_problem.post_processing_states(champions[i])
 
@@ -111,7 +115,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         # Node times
         node_times_list = mga_low_thrust_problem.node_times
 
-        print(state_history)
+        # print(state_history)
         print(node_times_list)
 
         node_times = {}
