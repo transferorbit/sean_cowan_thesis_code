@@ -51,10 +51,10 @@ Population size; unknown
 
 """
 
-transfer_body_order = ["Earth", "Mars", "Jupiter"]
-free_param_count = 1
-num_gen = 2
-pop_size = 100
+transfer_body_order = ["Earth", "Mars", "Mars", "Jupiter", "Saturn"]
+free_param_count = 2
+num_gen = 10
+pop_size = 500
 no_of_points = 500
 
 # test minlp optimization
@@ -132,7 +132,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         auxiliary_info = {}
         auxiliary_info['Number of legs'] = number_of_legs 
         auxiliary_info['Number of nodes'] = number_of_nodes 
-        auxiliary_info['Total ToF'] = time_of_flight 
+        auxiliary_info['Total ToF (Days)'] = time_of_flight / 86400.0
         for j in range(number_of_legs):
             auxiliary_info['Delta V for leg %s'%(j)] = delta_v_per_leg[j]
         auxiliary_info['Delta V'] = delta_v 

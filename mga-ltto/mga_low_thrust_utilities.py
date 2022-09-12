@@ -111,13 +111,10 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
                                         bodies,
                                         central_body,
                                         no_of_free_parameters: int = 0,
-                                        number_of_revolutions: np.ndarray = np.zeros(7, dtype=int),
-                                        frequency: float = 1e-6,
-                                        scale_factor: float = 1e-6) -> transfer_trajectory.TransferTrajectory:
+                                        number_of_revolutions: np.ndarray = np.zeros(7, dtype=int))\
+                                        -> transfer_trajectory.TransferTrajectory:
     """
     Provides the transfer settings required to construct a hodographic shaping mga trajectory.
-    frequency = 2.0 * np.pi / tof
-    scale_factor = 1.0 / tof
 
     """
 
@@ -130,15 +127,26 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     
     transfer_leg_settings = []
     for i in range(len(transfer_body_order)-1):
+
+        tof = time_of_flight[i]
+        frequency = 2.0 * np.pi / tof
+        scale_factor = 1.0 / tof
+
         radial_velocity_functions = get_radial_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
-                                            no_of_free_parameters=no_of_free_parameters)
+                                            no_of_free_parameters=no_of_free_parameters,
+                                            frequency=frequency,
+                                            scale_factor=scale_factor)
         normal_velocity_functions = get_normal_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
-                                            no_of_free_parameters=no_of_free_parameters)
+                                            no_of_free_parameters=no_of_free_parameters,
+                                            frequency=frequency,
+                                            scale_factor=scale_factor)
         axial_velocity_functions = get_axial_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
-                                            no_of_free_parameters=no_of_free_parameters)
+                                            no_of_free_parameters=no_of_free_parameters,
+                                            frequency=frequency,
+                                            scale_factor=scale_factor)
 
         transfer_leg_settings.append( transfer_trajectory.hodographic_shaping_leg( 
             radial_velocity_functions, normal_velocity_functions, axial_velocity_functions) )
@@ -148,7 +156,7 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     for i in range(len(transfer_body_order)-2):
         transfer_node_settings.append( transfer_trajectory.swingby_node() )
     transfer_node_settings.append( transfer_trajectory.capture_node(target_semi_major_axis, target_eccentricity) )
-    transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
+    # transfer_trajectory.print_parameter_definitions(transfer_leg_settings, transfer_node_settings)
 
     transfer_trajectory_object = transfer_trajectory.create_transfer_trajectory(
         bodies,
@@ -233,7 +241,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     for i in range(len(transfer_body_order)-2):
         node_parameters = list()
         node_parameters.append(incoming_velocities[i])
-        node_parameters.append(10)
+        node_parameters.append(0)
         node_parameters.append(0)
         node_parameters.append(swingby_periapses[i])
         node_parameters.append(0)
@@ -247,10 +255,10 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     return node_free_parameters
 
 def get_radial_velocity_shaping_functions(time_of_flight: float,
-                                             number_of_revolutions: int = 0,
                                              no_of_free_parameters: int = 2,
                                              frequency: float = np.pi,
-                                             scale_factor: float = 1) -> list:
+                                             scale_factor: float = 1,
+                                             number_of_revolutions: int = 0) -> list:
 
     """
     Retrieves the radial velocity shaping functions (lowest and highest order in Gondelach and Noomen, 2015) and returns
@@ -276,7 +284,8 @@ def get_radial_velocity_shaping_functions(time_of_flight: float,
     """
 
     # Retrieve default methods (lowest-order in Gondelach and Noomen, 2015)
-    radial_velocity_shaping_functions = shape_based_thrust.recommended_radial_hodograph_functions(time_of_flight)
+    radial_velocity_shaping_functions = \
+    shape_based_thrust.recommended_radial_hodograph_functions(time_of_flight)
     # Add degrees of freedom (highest-order in Gondelach and Noomen, 2015)
     if no_of_free_parameters > 0:
         radial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_sine(
@@ -326,7 +335,8 @@ def get_normal_velocity_shaping_functions(time_of_flight: float,
         A tuple composed by two lists: the normal velocity shaping functions and their free coefficients.
     """
     # Retrieve default methods (lowest-order in Gondelach and Noomen, 2015)
-    normal_velocity_shaping_functions = shape_based_thrust.recommended_normal_hodograph_functions(time_of_flight)
+    normal_velocity_shaping_functions = \
+    shape_based_thrust.recommended_normal_hodograph_functions(time_of_flight)
     # Add degrees of freedom (highest-order in Gondelach and Noomen, 2015)
     if no_of_free_parameters > 0:
         normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_sine(

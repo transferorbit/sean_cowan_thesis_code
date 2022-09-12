@@ -127,8 +127,8 @@ def trajectory_3d(
             i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
             # Plot the trajectory of the vehicle
             ax.plot(vehicles_positions[i][:,0], vehicles_positions[i][:,1],
-                    vehicles_positions[i][:,2], label=vehicle_name, color=_color,
-                    linestyle=_linestyle)
+                    vehicles_positions[i][:,2], label=vehicle_name, color='k',
+                    linestyle='-.')
             ax.scatter(vehicles_positions[i][0, 0] , vehicles_positions[i][0, 1] ,
                     vehicles_positions[i][0, 2] , marker='o', color=_color)
             ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
