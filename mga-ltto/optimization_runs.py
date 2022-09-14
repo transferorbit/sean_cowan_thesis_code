@@ -35,6 +35,7 @@ from tudatpy.kernel.trajectory_design import transfer_trajectory
 # import mga_low_thrust_utilities as mga_util
 # import pygmo_island as isl
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
+from manual_topology import * 
 
 current_dir = os.getcwd()
 write_results_to_file = True
@@ -49,7 +50,11 @@ Number of evolutions requires redefining the islands which requires more time on
 Population size; unknown
 """
 
+## constants
 julian_day = constants.JULIAN_DAY
+
+## General parameters
+max_number_of_exchange_generations = 5
 
 # test minlp optimization
 # my_problem = pg.minlp_rastrigin(300, 60) 
@@ -95,8 +100,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # my_island = pg.mp_island()
     archi = pg.archipelago(n=cpu_count, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
     print("CPU count : %d \nIsland number : %d" % (cpu_count, cpu_count))
+    archi.push_back(island)
 
-    for _ in range(1): # step between which topology steps are executed
+    for _ in range(max_number_of_exchange_generations): # step between which topology steps are executed
         archi.evolve()
         # archi.status
         # archi.wait_check()
