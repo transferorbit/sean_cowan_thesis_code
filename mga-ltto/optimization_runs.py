@@ -33,7 +33,7 @@ from tudatpy.kernel.trajectory_design import transfer_trajectory
 
 
 # import mga_low_thrust_utilities as mga_util
-import pygmo_island as isl
+# import pygmo_island as isl
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
 
 current_dir = os.getcwd()
@@ -47,9 +47,7 @@ write_results_to_file = True
 Number of generations increases the amount of time spent in parallel computing the different islands
 Number of evolutions requires redefining the islands which requires more time on single thread.
 Population size; unknown
-
 """
-
 
 julian_day = constants.JULIAN_DAY
 
@@ -101,11 +99,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     for _ in range(1): # step between which topology steps are executed
         archi.evolve()
         # archi.status
-        archi.wait_check()
+        # archi.wait_check()
+    archi.wait_check()
 
 # End of simulations
-    # print(archi.get_champions_x())
-    # print(archi.get_champions_f())
+
     champions = archi.get_champions_x()
     champion_fitness = archi.get_champions_f()
 
