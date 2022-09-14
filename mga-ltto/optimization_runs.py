@@ -38,7 +38,6 @@ from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
 
 current_dir = os.getcwd()
 write_results_to_file = True
-subdirectory = '/test_optimization_results/'
 
 ###########################################################################
 # OPTIMIZE PROBLEM ########################################################
@@ -51,27 +50,41 @@ Population size; unknown
 
 """
 
-transfer_body_order = ["Earth", "Mars", "Mars", "Jupiter", "Saturn"]
-free_param_count = 2
-num_gen = 10
-pop_size = 500
-no_of_points = 500
+
+julian_day = constants.JULIAN_DAY
 
 # test minlp optimization
 # my_problem = pg.minlp_rastrigin(300, 60) 
 
 # testing problem functionality
-mga_low_thrust_problem = \
-MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count,
-        transfer_body_order=transfer_body_order)
-prob = pg.problem(mga_low_thrust_problem)
+# transfer_body_order = ["Earth", "Mars"]
+# free_param_count = 0
+# num_gen = 10
+# pop_size = 500
+# no_of_points = 4000
+# bounds = [[-1000*julian_day, 1, 50*julian_day, -10**6, 0],
+#         [1000*julian_day, 2000, 4000*julian_day, 10**6, 6]]
+# subdirectory = '/test_optimization_results/'
 
 # verification
-# mga_low_thrust_problem=  MGALowThrustTrajectoryOptimizationProblem(
+transfer_body_order = ["Earth", "Mars"]
+free_param_count = 0
+num_gen = 2
+pop_size = 100
+no_of_points = 500
+bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
+        [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
+subdirectory = '/verification/verification_results/'
 
 # validation
 
 # optimization
+
+# making problem
+mga_low_thrust_problem = \
+MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+        no_of_free_parameters=free_param_count, bounds=bounds)
+prob = pg.problem(mga_low_thrust_problem)
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
 # https://stackoverflow.com/questions/419163/what-does-if-name-main-do
@@ -99,8 +112,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # Saving the trajectories for post-processing
     for i in range(len(champions)):
         mga_low_thrust_problem = \
-        MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=free_param_count,
-                transfer_body_order=transfer_body_order)
+        MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+                no_of_free_parameters=free_param_count, bounds=bounds)
         # print("Champion: ", champions[i])
         mga_low_thrust_problem.post_processing_states(champions[i])
 
@@ -133,9 +146,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         auxiliary_info['Number of legs'] = number_of_legs 
         auxiliary_info['Number of nodes'] = number_of_nodes 
         auxiliary_info['Total ToF (Days)'] = time_of_flight / 86400.0
+        departure_velocity = delta_v
         for j in range(number_of_legs):
             auxiliary_info['Delta V for leg %s'%(j)] = delta_v_per_leg[j]
+            departure_velocity -= delta_v_per_leg[j]
         auxiliary_info['Delta V'] = delta_v 
+        auxiliary_info['Departure velocity'] = departure_velocity
+        # auxiliary_info['Design parameter vector Island %s' % (i)] = champions[i]
+
+
 
 
         # Saving files

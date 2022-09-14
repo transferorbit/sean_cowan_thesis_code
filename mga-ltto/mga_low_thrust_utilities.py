@@ -465,13 +465,17 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
-            spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"],
+            spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
             frame_orientation= 'ECLIPJ2000',
             )
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
-    #         2] , marker='o', color='blue', label='Earth departure')
+    #         2] , marker='+', color='yellow', label='Earth departure')
     # ax.scatter(fly_by_states[1, 0] , fly_by_states[1, 1] , fly_by_states[1,
-    #         2] , marker='o', color='brown', label='Mars fly-by')
+    #         2] , marker='+', color='yellow', label='Mars arrival')
+    # ax.scatter(fly_by_states[2, 0] , fly_by_states[2, 1] , fly_by_states[2,
+    #         2] , marker='+', color='yellow', label='Mars fly-by')
+    # ax.scatter(fly_by_states[3, 0] , fly_by_states[3, 1] , fly_by_states[3,
+    #         2] , marker='+', color='yellow', label='Mars fly-by')
 
 # Change the size of the figure
     fig.set_size_inches(8, 8)

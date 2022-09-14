@@ -40,6 +40,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def __init__(self,
                     transfer_body_order,
                     no_of_free_parameters,
+                    bounds, 
                     depart_semi_major_axis=np.inf,
                     depart_eccentricity=0, 
                     target_semi_major_axis=np.inf, 
@@ -57,6 +58,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.no_of_free_parameters = no_of_free_parameters
         self.total_no_of_free_coefficients = self.no_of_free_parameters*3*(self.no_of_legs)
 
+        self.bounds = bounds
+
         self.depart_semi_major_axis = depart_semi_major_axis
         self.depart_eccentricity = depart_eccentricity
         self.target_semi_major_axis = target_semi_major_axis
@@ -66,8 +69,11 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus',
-            'Neptune', 'Sun'] 
+        self.bodies_to_create = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Sun'] 
+
+# Create bodies in simulation
+        # self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(
+        #         environment_setup.get_default_body_settings(self.bodies_to_create))
 
         self.transfer_trajectory_object = None
         self.node_times = None
@@ -78,26 +84,40 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.planetary_radii = planetary_radii
 
     def get_bounds(self):
-        julian_day = constants.JULIAN_DAY
+        departure_date_lb = self.bounds[0][0]
+        departure_date_ub = self.bounds[1][0]
 
-        lower_bounds = [-1000*julian_day] # departure date
-        lower_bounds.append(1) # departure velocity # FIXED
+        departure_velocity_lb = self.bounds[0][1]
+        departure_velocity_ub = self.bounds[1][1]
+
+        time_of_flight_lb = self.bounds[0][2]
+        time_of_flight_ub = self.bounds[1][2]
+
+        free_coefficients_lb = self.bounds[0][3]
+        free_coefficients_ub = self.bounds[1][3]
+
+        number_of_revolutions_lb = self.bounds[0][4]
+        number_of_revolutions_ub = self.bounds[1][4]
+
+
+        lower_bounds = [departure_date_lb] # departure date
+        lower_bounds.append(departure_velocity_lb) # departure velocity # FIXED
         for _ in range(self.no_of_legs): # time of flight
-            lower_bounds.append(50*julian_day) 
+            lower_bounds.append(time_of_flight_lb) 
         for _ in range(self.total_no_of_free_coefficients): # free coefficients
-            lower_bounds.append(-10**6)
+            lower_bounds.append(free_coefficients_lb)
         for _ in range(self.no_of_legs): # number of revolutions
-            lower_bounds.append(0)
+            lower_bounds.append(number_of_revolutions_lb)
 
-        upper_bounds = [1000*julian_day] # departure date
-        upper_bounds.append(self.departure_velocity) # departure velocity
+        upper_bounds = [departure_date_ub] # departure date
+        upper_bounds.append(departure_velocity_ub) # departure velocity
 
         for _ in range(self.no_of_legs): # time of flight
-            upper_bounds.append(4000*julian_day)
+            upper_bounds.append(time_of_flight_ub)
         for _ in range(self.total_no_of_free_coefficients): # free coefficients
-            upper_bounds.append(10**6)
+            upper_bounds.append(free_coefficients_ub)
         for _ in range(self.no_of_legs): # number of revolutions
-            upper_bounds.append(6)
+            upper_bounds.append(number_of_revolutions_ub)
 
         return (lower_bounds, upper_bounds)
 
@@ -164,10 +184,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
 
-        # parameters
-        # bodies and central body
-        # cannot create system of bodies to self, because it cannot be pickled -> QUESTION
-        # bodies = environment_setup.create_simplified_system_of_bodies()
         central_body = 'Sun'
 
         #depart and target elements
@@ -249,9 +265,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # parameters
         freq = 1e-6
         scale = 1e-6
-        # bodies and central body
-        # cannot create system of bodies to self, because it cannot be pickled -> QUESTION
-        # bodies = environment_setup.create_simplified_system_of_bodies()
         central_body = 'Sun'
 
         #depart and target elements
