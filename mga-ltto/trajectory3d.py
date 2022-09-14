@@ -1,10 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import List, Dict, Union
+import tudatpy
+from tudatpy.kernel.numerical_simulation import environment_setup
 
-def solar_system_propagation(spice_bodies : List[str]=[],
-                                ):
-    pass
+# def solar_system_propagation(spice_bodies : List[str]=[],
+#                                 ):
+#     pass
 
 def trajectory_3d(
     vehicles_states: Dict[float, np.ndarray],
@@ -99,12 +101,13 @@ def trajectory_3d(
     # Convert the states to a ndarray
     vehicles_states_array = result2array(vehicles_states)
     sim_epochs = vehicles_states_array[:,0]
-    # print(sim_epochs[-1]-sim_epochs[0])
+    # print(sim_epochs[-1],sim_epochs[0])
 
     # Make a list of positions per vehicle
     vehicles_positions = []
     for i in range(len(vehicles_names)):
         vehicles_positions.append(vehicles_states_array[:, 1+i*6:4+i*6])
+    # print(vehicles_positions[0][-10:-1,:])
 
     # Create a figure with a 3D projection for the Moon and vehicle trajectory around Earth
     fig = plt.figure(figsize=(7, 6))
@@ -134,12 +137,19 @@ def trajectory_3d(
             ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
                     vehicles_positions[i][-1, 2] , marker='o', color=_color)
 
+    system_of_bodies = environment_setup.create_simplified_system_of_bodies()
     for spice_body in spice_bodies:
-    # spice_body = "Jupiter"
-    # Get the position of the body from SPICE
-        body_state_array = np.array([
-            spice_interface.get_body_cartesian_position_at_epoch(spice_body, central_body_name,
-                frame_orientation, "None", epoch) for epoch in sim_epochs ])
+        body_object = system_of_bodies.get(spice_body)
+        body_state_array = np.array([body_object.state_in_base_frame_from_ephemeris(epoch) for epoch
+            in sim_epochs])
+        body_state_array = body_state_array[:, 0:3]
+        # print(body_state_array)
+
+        # body_state_array = np.array([
+        #     spice_interface.get_body_cartesian_position_at_epoch(spice_body, central_body_name,
+        #         frame_orientation, "None", epoch) for epoch in sim_epochs ])
+        # print(body_state_array)
+
         # print(body_state_array[0, 0] - body_state_array[-1, 0])
         # Update the minimum and maximum positions
         min_pos, max_pos = min(min_pos, np.min(body_state_array)), max(max_pos, np.max(body_state_array))
