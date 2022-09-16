@@ -73,9 +73,13 @@ no_of_points = 500
 # bounds = [[8000*julian_day, 1, 50*julian_day, -10**6, 0],
 #         [10000*julian_day, 2000, 2000*julian_day, 10**6, 6]]
 # subdirectory = '/verification/verification_results/'
-bounds = [[9200*julian_day, 160, 1185*julian_day, -10**6, 2], # number of revolutions cannot be same
-        [9200*julian_day, 160, 1185*julian_day, 10**6, 4]]
-subdirectory = '/verification/tdep9200_vdep160_tof1185_rev3/'
+
+# bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
+#         [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
+bounds = [[9300*julian_day, 150, 1185*julian_day, -10**6, 2],
+        [9300*julian_day, 150, 1185*julian_day, 10**6, 4]]
+# subdirectory = '/verification/verification_results/'
+subdirectory = '/verification/tdep9300_vdep150_tof1185_rev3/'
 
 # validation
 
@@ -103,7 +107,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         archi.evolve()
         # archi.status
         # archi.wait_check()
-    archi.wait_check()
+        archi.wait_check()
 
 # End of simulations
 
