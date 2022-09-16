@@ -55,24 +55,27 @@ julian_day = constants.JULIAN_DAY
 # my_problem = pg.minlp_rastrigin(300, 60) 
 
 # testing problem functionality
-# transfer_body_order = ["Earth", "Mars"]
+# transfer_body_order = ["Earth", "Mars", "Mars", "Jupiter"]
 # free_param_count = 0
 # num_gen = 10
 # pop_size = 500
-# no_of_points = 4000
+# no_of_points = 500
 # bounds = [[-1000*julian_day, 1, 50*julian_day, -10**6, 0],
-#         [1000*julian_day, 2000, 4000*julian_day, 10**6, 6]]
+#         [1000*julian_day, 2000, 2000*julian_day, 10**6, 6]]
 # subdirectory = '/test_optimization_results/'
 
 # verification
 transfer_body_order = ["Earth", "Mars"]
 free_param_count = 0
-num_gen = 2
-pop_size = 100
+num_gen = 5
+pop_size = 200
 no_of_points = 500
-bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
-        [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
-subdirectory = '/verification/verification_results/'
+# bounds = [[8000*julian_day, 1, 50*julian_day, -10**6, 0],
+#         [10000*julian_day, 2000, 2000*julian_day, 10**6, 6]]
+# subdirectory = '/verification/verification_results/'
+bounds = [[9200*julian_day, 160, 1185*julian_day, -10**6, 2], # number of revolutions cannot be same
+        [9200*julian_day, 160, 1185*julian_day, 10**6, 4]]
+subdirectory = '/verification/tdep9200_vdep160_tof1185_rev3/'
 
 # validation
 
@@ -106,6 +109,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     champions = archi.get_champions_x()
     champion_fitness = archi.get_champions_f()
+    print(champions[0])
 
 # Saving the trajectories for post-processing
     for i in range(len(champions)):
@@ -125,9 +129,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
         # Node times
         node_times_list = mga_low_thrust_problem.node_times
+        node_times_days_list = [i / constants.JULIAN_DAY for i in node_times_list]
 
         # print(state_history)
         print(node_times_list)
+        print(node_times_days_list)
 
         node_times = {}
         for it, time in enumerate(node_times_list):
@@ -150,8 +156,10 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             departure_velocity -= delta_v_per_leg[j]
         auxiliary_info['Delta V'] = delta_v 
         auxiliary_info['Departure velocity'] = departure_velocity
-        # auxiliary_info['Design parameter vector Island %s' % (i)] = champions[i]
-
+        # auxiliary_info['Number of revolutions %s' % (i)] = champions[i][-1]
+        # auxiliary_info['Number of revolutions %s' % (i)] = champions[i][-2]
+        # auxiliary_info['Number of revolutions %s' % (i)] = champions[i][-3]
+        # auxiliary_info['Number of revolutions %s' % (i)] = champions[i][-4]
 
 
 
