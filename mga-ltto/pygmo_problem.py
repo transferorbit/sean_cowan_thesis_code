@@ -69,11 +69,28 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Sun'] 
+        self.bodies_to_create = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"] 
 
 # Create bodies in simulation
         # self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(
         #         environment_setup.get_default_body_settings(self.bodies_to_create))
+
+        body_list_settings = environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
+                base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+        for i in self.bodies_to_create:
+            # body_list_settings.get(i).ephemeris_settings = \
+            # environment_setup.ephemeris.approximate_jpl_model(i)
+            body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian_from_spice(i,
+                    6000*constants.JULIAN_DAY,
+                    1.327*10**20,
+                    frame_origin='SSB',
+                    frame_orientation='ECLIPJ2000')
+            print(body_list_settings.get(i))
+        print(body_list_settings)
+
+        self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(body_list_settings)
+
 
         self.transfer_trajectory_object = None
         self.node_times = None
@@ -184,7 +201,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
 
-        central_body = 'Sun'
+        central_body = 'SSB'
 
         #depart and target elements
         departure_elements = (self.depart_semi_major_axis, self.depart_eccentricity) 
@@ -218,7 +235,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             time_of_flights,
                                                             departure_elements,
                                                             target_elements,
-                                                            bodies,
+                                                            self.system_of_bodies(),
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)
@@ -298,7 +315,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             time_of_flights,
                                                             departure_elements,
                                                             target_elements,
-                                                            bodies,
+                                                            self.system_of_bodies(),
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)
