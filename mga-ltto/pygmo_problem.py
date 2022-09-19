@@ -214,6 +214,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
 
 
+        # print(self.transfer_body_order)
+        # print(number_of_revolutions)
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
                                                             departure_elements,

@@ -27,6 +27,8 @@ from trajectory3d import trajectory_3d
 import io
 import sys
 
+import mga_low_thrust_utilities as util
+
 import warnings
 warnings.filterwarnings("error")
 
@@ -40,7 +42,16 @@ spice.load_standard_kernels()
 class transfer_body_order_conversion:
     
     def __init__(self):
-        self.body_dict = {0: "Null",
+        pass
+
+    @staticmethod
+    def get_transfer_body_integers(transfer_body_list: list, strip=True) -> np.ndarray:
+        """
+        Input : ["Venus", "Venus", "Earth", "Mercury", "Null", "Null", "Null", "Null"]
+        Ouput : np.array([2, 2, 3, 5, 0, 0, 0, 0])
+        """
+        #transfer_body_list = transfer_body_list[1:-1]
+        body_dict = {0: "Null",
                 1: "Mercury",
                 2: "Venus",
                 3: "Earth",
@@ -50,19 +61,12 @@ class transfer_body_order_conversion:
                 7: "Uranus",
                 8: "Neptune"}
 
-    def get_transfer_body_integers(self, transfer_body_list: list, strip=True) -> np.ndarray:
-        """
-        Input : ["Venus", "Venus", "Earth", "Mercury", "Null", "Null", "Null", "Null"]
-        Ouput : np.array([2, 2, 3, 5, 0, 0, 0, 0])
-        """
-        #transfer_body_list = transfer_body_list[1:-1]
-
-        body_values = list(self.body_dict.values())
-        body_keys = list(self.body_dict.keys())
+        body_values = list(body_dict.values())
+        body_keys = list(body_dict.keys())
         body_list = []
 
-        for i, body in enumerate(transfer_body_list):
-            for j in range(len(self.body_dict.values())):
+        for body in transfer_body_list:
+            for j in range(len(body_dict.values())):
                 if body == body_values[j] and strip and body != "Null":
                     body_list.append(body_keys[j])
                 elif body == body_values[j] and strip == False:
@@ -72,18 +76,28 @@ class transfer_body_order_conversion:
 
         return body_array
 
-    def get_transfer_body_list(self, transfer_body_integers: np.ndarray, strip=True) -> list:
+    @staticmethod
+    def get_transfer_body_list(transfer_body_integers: np.ndarray, strip=True) -> list:
         """
         Input : np.array([2, 2, 3, 5, 0, 0, 0, 0])
         Output : ["Venus", "Venus", "Earth", "Mercury"]
         """
+        body_dict = {0: "Null",
+                1: "Mercury",
+                2: "Venus",
+                3: "Earth",
+                4: "Mars",
+                5: "Jupiter",
+                6: "Saturn",
+                7: "Uranus",
+                8: "Neptune"}
 
-        body_values = list(self.body_dict.values())
-        body_keys = list(self.body_dict.keys())
+        body_values = list(body_dict.values())
+        body_keys = list(body_dict.keys())
         body_list = []
 
-        for i, j in enumerate(transfer_body_integers):
-            for k in range(len(self.body_dict.values())):
+        for j in transfer_body_integers:
+            for k in range(len(body_dict.values())):
                 if j == body_keys[k] and strip and j != 0:
                     body_list.append(body_values[k])
                 elif j == body_keys[k] and strip == False:
@@ -91,7 +105,8 @@ class transfer_body_order_conversion:
 
         return body_list
     
-    def get_mga_sequence(self, bodylist: list) -> str():
+    @staticmethod
+    def get_mga_sequence(bodylist: list) -> str():
 
         char_list = []
         for i in bodylist:
@@ -449,11 +464,19 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
 
     state_history = np.loadtxt(dir + 'state_history.dat')
     node_times = np.loadtxt(dir + 'node_times.dat')
+    auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
+    # print(auxiliary_info[0][0])
+    # print(auxiliary_info[1])
+    # aux_info_list= [i.replace('\t') for i in auxiliary_info]
+    # print(aux_info_list)
 
     state_history_dict = {}
     for i in range(len(state_history)):
         state_history_dict[state_history[i, 0]] = state_history[i,1:]
     # print(state_history_dict)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
 
     # print(node_times[0, 1])
     # print(state_history_dict)
@@ -468,6 +491,8 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
             frame_orientation= 'ECLIPJ2000',
             )
+    # print(auxiliary_info_dict)
+    ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
     #         2] , marker='+', color='yellow', label='Earth departure')
     # ax.scatter(fly_by_states[1, 0] , fly_by_states[1, 1] , fly_by_states[1,
