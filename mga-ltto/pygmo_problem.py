@@ -69,27 +69,42 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"] 
+        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"] 
 
 # Create bodies in simulation
         # self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(
         #         environment_setup.get_default_body_settings(self.bodies_to_create))
 
-        body_list_settings = environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
-                base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+        # body_list_settings = lambda : \
+        #     environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
+        #             base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+        # print(body_list_settings().get("Earth").ephemeris_settings)
+        body_list_settings = lambda : environment_setup.BodyListSettings
         for i in self.bodies_to_create:
-            # body_list_settings.get(i).ephemeris_settings = \
-            # environment_setup.ephemeris.approximate_jpl_model(i)
-            body_list_settings.get(i).ephemeris_settings = \
-            environment_setup.ephemeris.keplerian_from_spice(i,
-                    6000*constants.JULIAN_DAY,
-                    1.327*10**20,
-                    frame_origin='SSB',
-                    frame_orientation='ECLIPJ2000')
-            print(body_list_settings.get(i))
-        print(body_list_settings)
+            body_list_settings().add_empty_settings(i)
+            body_list_settings().get(i).ephemeris_settings = \
+            environment_setup.ephemeris.approximate_jpl_model(i)
+        print(body_list_settings().get("Earth").ephemeris_settings)
 
-        self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(body_list_settings)
+            # INTERPOLATED SPICE
+            # environment_setup.ephemeris.interpolated_spice(9000*constants.JULIAN_DAY,
+            #         10500*constants.JULIAN_DAY,
+            #         86400)
+            # APPROXIMATE JPL MODEL
+            # environment_setup.ephemeris.approximate_jpl_model(i)
+            # KEPLERIAN FROM SPICE
+            # environment_setup.ephemeris.keplerian_from_spice(i,
+                    # 6000*constants.JULIAN_DAY,
+                    # 1.327*10**20,
+                    # frame_origin='SSB',
+                    # frame_orientation='ECLIPJ2000')
+            # TIME_LIMITED
+            # environment_setup.get_default_body_settings_time_limited(bodies=self.bodies_to_create,
+            #         initial_time=9000*constants.JULIAN_DAY, final_time=950*constants.JULIAN_DAY,
+            #         base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+
+        self.system_of_bodies = lambda : \
+            environment_setup.create_system_of_bodies(body_list_settings())
 
 
         self.transfer_trajectory_object = None
@@ -201,7 +216,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
 
-        central_body = 'SSB'
+        central_body = 'Sun'
 
         #depart and target elements
         departure_elements = (self.depart_semi_major_axis, self.depart_eccentricity) 
@@ -236,6 +251,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             departure_elements,
                                                             target_elements,
                                                             self.system_of_bodies(),
+                                                            # bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)
@@ -316,6 +332,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             departure_elements,
                                                             target_elements,
                                                             self.system_of_bodies(),
+                                                            # bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)

@@ -67,8 +67,8 @@ julian_day = constants.JULIAN_DAY
 # verification
 transfer_body_order = ["Earth", "Mars"]
 free_param_count = 0
-num_gen = 5
-pop_size = 200
+num_gen = 2
+pop_size = 100
 no_of_points = 500
 # bounds = [[8000*julian_day, 1, 50*julian_day, -10**6, 0],
 #         [10000*julian_day, 2000, 2000*julian_day, 10**6, 6]]
@@ -89,6 +89,7 @@ subdirectory = '/verification/tdep9300_vdep150_tof1185_rev3/'
 mga_low_thrust_problem = \
 MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
         no_of_free_parameters=free_param_count, bounds=bounds)
+# mga_low_thrust_problem.get_system_of_bodies()
 prob = pg.problem(mga_low_thrust_problem)
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
@@ -120,6 +121,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds)
+        # mga_low_thrust_problem.get_system_of_bodies()
         # print("Champion: ", champions[i])
         mga_low_thrust_problem.post_processing_states(champions[i])
 
