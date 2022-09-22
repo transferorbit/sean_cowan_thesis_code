@@ -69,22 +69,22 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"] 
+        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
+                "Uranus", "Neptune"] 
 
 # Create bodies in simulation
-        # self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(
-        #         environment_setup.get_default_body_settings(self.bodies_to_create))
-
-        # body_list_settings = lambda : \
-        #     environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
-        #             base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
-        # print(body_list_settings().get("Earth").ephemeris_settings)
-        body_list_settings = lambda : environment_setup.BodyListSettings
+        body_list_settings = lambda : \
+            environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
+                    base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
         for i in self.bodies_to_create:
-            body_list_settings().add_empty_settings(i)
-            body_list_settings().get(i).ephemeris_settings = \
-            environment_setup.ephemeris.approximate_jpl_model(i)
-        print(body_list_settings().get("Earth").ephemeris_settings)
+            current_body_list_settings = body_list_settings()
+            current_body_list_settings.add_empty_settings(i)            
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.approximate_jpl_model(i)        
+            # print(current_body_list_settings.get(i).ephemeris_settings)
+
+        self.system_of_bodies = lambda : \
+            environment_setup.create_system_of_bodies(current_body_list_settings)
 
             # INTERPOLATED SPICE
             # environment_setup.ephemeris.interpolated_spice(9000*constants.JULIAN_DAY,
@@ -103,8 +103,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
             #         initial_time=9000*constants.JULIAN_DAY, final_time=950*constants.JULIAN_DAY,
             #         base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
 
-        self.system_of_bodies = lambda : \
-            environment_setup.create_system_of_bodies(body_list_settings())
 
 
         self.transfer_trajectory_object = None
