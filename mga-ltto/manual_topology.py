@@ -47,14 +47,15 @@ class manualTopology:
 
     @staticmethod
     def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size):
-        problem = \
-            pg.problem(MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-                no_of_free_parameters=free_param_count, bounds=bounds))
+        mga_low_thrust_object = \
+        MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+                no_of_free_parameters=free_param_count, bounds=bounds)
+        problem = pg.problem(mga_low_thrust_object)
         algorithm = pg.algorithm(pg.gaco(gen=num_gen))
-        return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island())
+        return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
-    def create_random_transfer_body_order(arrival_planet, max_no_of_gas=6):
+    def create_random_transfer_body_order(arrival_planet, max_no_of_gas=6) -> list:
 
         # transfer_body_order.append(predefined_sequence) if predefined_sequence != [] else None #?
         # create random sequence of numbers with max_no_of_gas length

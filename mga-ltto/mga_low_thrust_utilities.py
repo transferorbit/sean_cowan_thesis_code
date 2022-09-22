@@ -106,7 +106,7 @@ class transfer_body_order_conversion:
         return body_list
     
     @staticmethod
-    def get_mga_sequence(bodylist: list) -> str():
+    def get_mga_characters_from_list(bodylist: list) -> str():
 
         char_list = []
         for i in bodylist:
@@ -118,6 +118,22 @@ class transfer_body_order_conversion:
 
         return mga_sequence
 
+    
+    @staticmethod
+    def get_mga_list_from_characters(character_string: str) -> str():
+
+        character_dict = {'Y' : "Mercury",
+                'V' : "Venus",
+                'E' : "Earth",
+                'M' : "Mars",
+                'J' : "Jupiter",
+                'S' : "Saturn",
+                'U' : "Uranus",
+                'N' : "Neptune"}
+
+        character_list = character_string.split()
+
+        return [character_dict[i] for i in character_list]
 
 def get_low_thrust_transfer_object(transfer_body_order : list,
                                         time_of_flight : np.ndarray,

@@ -69,7 +69,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Sun'] 
+        self.bodies_to_create = ['Mercury', 'Venus', 'Earth', 'Mars', 'Jupiter', 'Saturn', 'Uranus',
+                'Neptune', 'Sun'] 
 
 # Create bodies in simulation
         # self.system_of_bodies = lambda : environment_setup.create_system_of_bodies(
@@ -194,11 +195,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         time_of_flight_index = 2 + self.no_of_legs
         free_coefficient_index = time_of_flight_index + self.total_no_of_free_coefficients
         revolution_index = free_coefficient_index + self.no_of_legs
-
-        ### INTEGER PART ###
-        # number of revolutions
-        number_of_revolutions = \
-        [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
+        # print(time_of_flight_index, free_coefficient_index, revolution_index)
 
         ### CONTINUOUS PART ###
         # departure date
@@ -213,9 +210,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # hodographic shaping free coefficients
         free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
 
+        ### INTEGER PART ###
+        # number of revolutions
+        number_of_revolutions = \
+        [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
 
+        # Debug list index out of range error with number of revolutions
         # print(self.transfer_body_order)
         # print(number_of_revolutions)
+
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
                                                             departure_elements,
@@ -265,8 +268,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # print("Design Parameters:", design_parameter_vector, "\n")
 
         # parameters
-        freq = 1e-6
-        scale = 1e-6
         central_body = 'Sun'
 
         #depart and target elements
@@ -334,8 +335,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
             transfer_trajectory_object.evaluate(node_times, leg_free_parameters, node_free_parameters)
             objective = transfer_trajectory_object.delta_v 
         except RuntimeError as e:
-            print(str(e), "\n")#, "Objective increased by 10**16")
+            # print(str(e), "\n")#, "Objective increased by 10**16")
             objective = 10**16
 
-        print('Fitness evaluated')
+        # print('Fitness evaluated')
         return [objective]
