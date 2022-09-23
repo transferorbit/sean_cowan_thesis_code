@@ -411,6 +411,24 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
+def create_modified_system_of_bodies(bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
+    "Saturn", "Uranus", "Neptune"], ephemeris_type='JPL'):
+
+    body_list_settings = lambda : \
+        environment_setup.get_default_body_settings(bodies=bodies,
+                base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+    for i in bodies:
+        current_body_list_settings = body_list_settings()
+        current_body_list_settings.add_empty_settings(i)            
+        if ephemeris_type=='JPL':
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.approximate_jpl_model(i)        
+        # print(current_body_list_settings.get(i).ephemeris_settings)
+
+    return environment_setup.create_system_of_bodies(current_body_list_settings)
+    # self.system_of_bodies = lambda : system_of_bodies
+
+
 def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):
     """
     Function that plots the relevant data provided by the input parameters. Generally this function

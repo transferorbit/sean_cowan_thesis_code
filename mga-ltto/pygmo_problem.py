@@ -73,19 +73,18 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 "Uranus", "Neptune"] 
 
 # Create bodies in simulation
-        body_list_settings = lambda : \
-            environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
-                    base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
-        for i in self.bodies_to_create:
-            current_body_list_settings = body_list_settings()
-            current_body_list_settings.add_empty_settings(i)            
-            current_body_list_settings.get(i).ephemeris_settings = \
-            environment_setup.ephemeris.approximate_jpl_model(i)        
-            # print(current_body_list_settings.get(i).ephemeris_settings)
-
-        self.system_of_bodies = lambda : \
-            environment_setup.create_system_of_bodies(current_body_list_settings)
-
+        # body_list_settings = lambda : \
+        #     environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
+        #             base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+        # for i in self.bodies_to_create:
+        #     current_body_list_settings = body_list_settings()
+        #     current_body_list_settings.add_empty_settings(i)            
+        #     current_body_list_settings.get(i).ephemeris_settings = \
+        #     environment_setup.ephemeris.approximate_jpl_model(i)        
+        #
+        # system_of_bodies = environment_setup.create_system_of_bodies(current_body_list_settings)
+        # self.system_of_bodies = lambda : system_of_bodies
+        #
             # INTERPOLATED SPICE
             # environment_setup.ephemeris.interpolated_spice(9000*constants.JULIAN_DAY,
             #         10500*constants.JULIAN_DAY,
@@ -202,7 +201,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def post_processing_states(self, 
                 design_parameter_vector : list, 
-                bodies = environment_setup.create_simplified_system_of_bodies()):
+                bodies = mga_util.create_modified_system_of_bodies()):
 
         """
         Assuming no_of_gas == 6
@@ -248,8 +247,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             time_of_flights,
                                                             departure_elements,
                                                             target_elements,
-                                                            self.system_of_bodies(),
-                                                            # bodies,
+                                                            # self.system_of_bodies(),
+                                                            bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)
@@ -281,7 +280,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
  
     def fitness(self, 
                 design_parameter_vector : list, 
-                bodies = environment_setup.create_simplified_system_of_bodies()):
+                bodies = mga_util.create_modified_system_of_bodies()):
 
         """
         Assuming no_of_gas == 6
@@ -294,8 +293,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # print("Design Parameters:", design_parameter_vector, "\n")
 
         # parameters
-        freq = 1e-6
-        scale = 1e-6
         central_body = 'Sun'
 
         #depart and target elements
@@ -329,8 +326,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             time_of_flights,
                                                             departure_elements,
                                                             target_elements,
-                                                            self.system_of_bodies(),
-                                                            # bodies,
+                                                            # self.system_of_bodies(),
+                                                            bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             number_of_revolutions=number_of_revolutions)

@@ -19,8 +19,8 @@ import multiprocessing as mp
 # Tudatpy imports
 # Still necessary to implement most recent version of the code
 
-import sys
-sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+# import sys
+# sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
 
 import tudatpy
 from tudatpy.io import save2txt
@@ -67,8 +67,8 @@ julian_day = constants.JULIAN_DAY
 # verification
 transfer_body_order = ["Earth", "Mars"]
 free_param_count = 0
-num_gen = 2
-pop_size = 100
+num_gen = 1
+pop_size = 70
 no_of_points = 500
 # bounds = [[8000*julian_day, 1, 50*julian_day, -10**6, 0],
 #         [10000*julian_day, 2000, 2000*julian_day, 10**6, 6]]
