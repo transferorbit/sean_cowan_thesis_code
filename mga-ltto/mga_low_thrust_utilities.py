@@ -108,13 +108,20 @@ class transfer_body_order_conversion:
     @staticmethod
     def get_mga_characters_from_list(bodylist: list) -> str():
 
-        char_list = []
-        for i in bodylist:
-            chars = [char for char in i]
-            char_list.append(chars[0])
+        character_dict = {'Y' : "Mercury",
+                'V' : "Venus",
+                'E' : "Earth",
+                'M' : "Mars",
+                'J' : "Jupiter",
+                'S' : "Saturn",
+                'U' : "Uranus",
+                'N' : "Neptune"}
+
         mga_sequence = ""
-        for j in char_list:
-            mga_sequence += j
+        for i in bodylist:
+            for j, k in character_dict.items():
+                if i == k:
+                    mga_sequence += j
 
         return mga_sequence
 
