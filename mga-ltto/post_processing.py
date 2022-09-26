@@ -17,7 +17,7 @@ from trajectory3d import trajectory_3d
 
 # data_directory = "test_optimization_results/island_0/"
 # mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
-data_directory = "verification/tdep9200_vdep160_tof1185_rev3/island_0/"
+data_directory = "verification/tdep9300_vdep150_tof1185_rev3/island_0/"
 # data_directory = "verification/verification_results/island_4/"
 mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
 

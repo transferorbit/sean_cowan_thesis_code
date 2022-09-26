@@ -202,6 +202,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def post_processing_states(self, 
                 design_parameter_vector : list, 
                 bodies = mga_util.create_modified_system_of_bodies()):
+                # bodies = environment_setup.create_simplified_system_of_bodies()):
 
         """
         Assuming no_of_gas == 6
@@ -281,6 +282,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def fitness(self, 
                 design_parameter_vector : list, 
                 bodies = mga_util.create_modified_system_of_bodies()):
+                # bodies = environment_setup.create_simplified_system_of_bodies()):
 
         """
         Assuming no_of_gas == 6

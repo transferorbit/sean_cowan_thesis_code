@@ -3,81 +3,19 @@ import numpy as np
 from typing import List, Dict, Union
 import tudatpy
 from tudatpy.kernel.numerical_simulation import environment_setup
-
-# def solar_system_propagation(spice_bodies : List[str]=[],
-#                                 ):
-#     pass
+# from tudatpy.kernel.interface import spice_interface
+from tudatpy.util import result2array
 
 def trajectory_3d(
     vehicles_states: Dict[float, np.ndarray],
     vehicles_names: List[str],
     central_body_name:str,
-    spice_bodies: List[str] = [],
+    bodies: List[str] = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
+        "Saturn", "Uranus", "Neptune"],
     frame_orientation:str = "J2000",
     center_plot:bool = False,
     colors:List[str] = [],
     linestyles:List[str] = [] ):
-    """Plot the trajectory specified bodies in 3D.
-
-    This function allows to plot the 3D trajectory of vehicles of which the state has been propagated, as well as
-    the trajectory of bodies taken directly from the SPICE interface.
-
-    Parameters
-    ----------
-    vehicles_states : Dict[float, numpy.ndarray]
-        Dictionary mapping the simulation time steps to the propagated state time series of the simulation bodies.
-    vehicles_names : List[str]
-        List of the name of the simulated body for which the trajectory must be plotted. Use an empty string in the list to skip a specific body.
-    central_body_name : str
-        Name of the central body in the simulation
-    spice_bodies : List[str], optional
-        List of the name of bodies for which the trajectory has to be taken from SPICE and plotted.
-    frame_orientation : str, optional, default="J2000"
-        Orientation of the reference frame used in the simulation.
-    center_plot : bool, optional, default=False
-        If True, the central body will be centered on the plot.
-    colors : List[str], optional
-        List of colors to use for the trajectories. In order, the colors will first be used for the vehicles and then for the SPICE bodies.
-    linestyles : List[str], optional
-        List of linestyles to use for the trajectories. In order, the linestyles will first be used for the vehicles and then for the SPICE bodies.
-    
-
-    Examples
-    --------
-    After the propagation of two CubeSats on which thrust is applied, we can for instance plot both of their trajectories, as well as the trajectory of the Moon,
-    using the following code snippet:
-
-    .. code-block:: python
-
-        # Plot the trajectory of two satellite and the Moon around the Earth
-        fig, ax = plotting.trajectory_3d(
-            vehicles_states=dynamics_simulator.state_history,
-            vehicles_names=["Lunar CubeSat A", "Lunar CubeSat B"],
-            central_body_name="Earth",
-            spice_bodies=["Moon"],
-            linestyles=["dotted", "dashed", "solid"],
-            colors=["blue", "green", "grey"]
-        )
-        # Change the size of the figure
-        fig.set_size_inches(8, 8)
-        # Show the plot
-        plt.show()
-
-    .. image:: _static/trajectory_3D.png
-       :width: 450
-       :align: center
-
-    Returns
-    -------
-    fig : matplotlib.figure.Figure
-        Figure containing the 3D plot.
-    ax : matplotlib.axes.Axes
-        3D axis system used to plot the trajectory.
-
-    """
-    # Import SPICE
-    from tudatpy.kernel.interface import spice_interface
-    from tudatpy.util import result2array
 
     # Save color and linestyle index
     i_c, i_ls = 0, 0
@@ -86,17 +24,17 @@ def trajectory_3d(
     if len(colors) == 0:
         colors = ["C%i" % i for i in range(10)]
     if len(linestyles) == 0:
-        linestyles = ["-"]*(len(vehicles_names)+len(spice_bodies))
+        linestyles = ["-"]*(len(vehicles_names)+len(bodies))
 
     # If the SPICE kernels are not loaded, load THEM
-    if spice_interface.get_total_count_of_kernels_loaded() < 4:
-        spice_interface.load_standard_kernels()
+    # if spice_interface.get_total_count_of_kernels_loaded() < 4:
+    #     spice_interface.load_standard_kernels()
 
     # Make sure inputs are the correct format
     if type(vehicles_names) == str:
         vehicles_names = [vehicles_names]
-    if type(spice_bodies) == str:
-        spice_bodies = [spice_bodies]
+    # if type(spice_bodies) == str:
+    #     spice_bodies = [spice_bodies]
 
     # Convert the states to a ndarray
     vehicles_states_array = result2array(vehicles_states)
@@ -137,12 +75,35 @@ def trajectory_3d(
             ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
                     vehicles_positions[i][-1, 2] , marker='o', color=_color)
 
-    system_of_bodies = environment_setup.create_simplified_system_of_bodies()
-    for spice_body in spice_bodies:
-        body_object = system_of_bodies.get(spice_body)
+    body_list_settings = lambda : \
+        environment_setup.get_default_body_settings(bodies=bodies,
+                base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
+
+
+    for i in bodies:
+        current_body_list_settings = body_list_settings()
+        current_body_list_settings.add_empty_settings(i)            
+        current_body_list_settings.get(i).ephemeris_settings = \
+        environment_setup.ephemeris.approximate_jpl_model(i)        
+
+    system_of_bodies = environment_setup.create_system_of_bodies(current_body_list_settings)
+
+    for body in bodies:
+        body_object = system_of_bodies.get(body)
         body_state_array = np.array([body_object.state_in_base_frame_from_ephemeris(epoch) for epoch
             in sim_epochs])
         body_state_array = body_state_array[:, 0:3]
+
+
+# Old GTOP ephemeris with simplified_system_of_bodies
+    # system_of_bodies = environment_setup.create_simplified_system_of_bodies()
+    # for spice_body in spice_bodies:
+    #     body_object = system_of_bodies.get(spice_body)
+    #     body_state_array = np.array([body_object.state_in_base_frame_from_ephemeris(epoch) for epoch
+    #         in sim_epochs])
+    #     body_state_array = body_state_array[:, 0:3]
+
+#Old Spice direct ephemerides
         # print(body_state_array)
 
         # body_state_array = np.array([
@@ -161,7 +122,7 @@ def trajectory_3d(
         i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
         # Plot the trajectory of the body
         ax.plot(body_state_array[:,0], body_state_array[:,1], body_state_array[:,2],
-                label=spice_body, color=_color, linestyle=_linestyle)
+                label=body, color=_color, linestyle=_linestyle)
         ax.scatter(body_state_array[0, 0], body_state_array[0, 1],
                 body_state_array[0, 2], marker="o", color=_color)
         ax.scatter(body_state_array[-1, 0], body_state_array[-1, 1],

@@ -483,7 +483,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
-            spice_bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
+            bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
             frame_orientation= 'ECLIPJ2000'
             )
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
