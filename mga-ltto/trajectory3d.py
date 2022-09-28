@@ -69,11 +69,11 @@ def trajectory_3d(
             # Plot the trajectory of the vehicle
             ax.plot(vehicles_positions[i][:,0], vehicles_positions[i][:,1],
                     vehicles_positions[i][:,2], label=vehicle_name, color='k',
-                    linestyle='-.')
+                    linestyle='-', linewidth=0.5)
             ax.scatter(vehicles_positions[i][0, 0] , vehicles_positions[i][0, 1] ,
-                    vehicles_positions[i][0, 2] , marker='o', color=_color)
+                    vehicles_positions[i][0, 2] , marker='D', s=40, color='k')
             ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
-                    vehicles_positions[i][-1, 2] , marker='o', color=_color)
+                    vehicles_positions[i][-1, 2] , marker='D', s=40, color='k')
 
     body_list_settings = lambda : \
         environment_setup.get_default_body_settings(bodies=bodies,
