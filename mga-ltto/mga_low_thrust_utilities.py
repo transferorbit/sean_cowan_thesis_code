@@ -15,6 +15,7 @@ performing the actual optimization.
 import numpy as np
 import matplotlib.pyplot as plt
 
+
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt

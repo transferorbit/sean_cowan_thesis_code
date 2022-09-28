@@ -164,7 +164,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         return 0
 
     def get_nix(self):
-        return self.no_of_legs # number of revolution parameters
+        return self.no_of_legs + self.total_no_of_free_coefficients # number of revolution parameters
 
     def get_states_along_trajectory(self, no_of_points) -> dict:
         """
