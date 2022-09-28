@@ -89,4 +89,25 @@ class manualTopology:
             planet_list.pop()
         return planet_list
 
-    # def get_leg_specific_dict
+    @staticmethod
+    def get_leg_specifics(mga_sequence : str, champion_x : list, delta_v_per_leg : list,
+            number_of_free_coefficients : int = 0) -> str:
+        """
+        'EMMJ' EM MM MJ
+        EM, dV, ToF, #rev
+        MM, dV, ToF, #rev
+        MJ, dV, ToF, #rev
+        """
+        leg_information = ""
+        chars = [i for i in mga_sequence]
+        number_of_legs = len(chars) - 1
+        for i in range(number_of_legs):
+            current_leg = chars[i] + chars[i+1]
+            current_dV = delta_v_per_leg[i]
+            current_tof = champion_x[2+i] / 86400
+            current_rev = champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * 
+                    number_of_legs + i]
+            leg_information += "%s, %d, %d, %i\n" % (current_leg, current_dV, current_tof, current_rev)
+        return leg_information
+
+

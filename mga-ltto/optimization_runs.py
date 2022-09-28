@@ -17,8 +17,8 @@ import pygmo as pg
 import multiprocessing as mp
 
 # If conda environment does not work
-import sys
-sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+# import sys
+# sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
 
 import tudatpy
 from tudatpy.io import save2txt
@@ -57,7 +57,8 @@ julian_day = constants.JULIAN_DAY
 
 max_no_of_gas = 6
 max_number_of_exchange_generations = 1
-number_of_sequences_per_planet = [3 for i in range(max_no_of_gas)]
+number_of_sequences_per_planet = [10 for i in range(max_no_of_gas)]
+# number_of_sequences_per_planet = [1 for i in range(max_no_of_gas)]
 seed = 1032022
 
 # test minlp optimization
@@ -66,12 +67,18 @@ seed = 1032022
 departure_planet = "Earth"
 arrival_planet = "Jupiter"
 free_param_count = 0
-num_gen = 1
-pop_size = 100
+num_gen = 10
+pop_size = 200
 no_of_points = 1000
-bounds = [[10000*julian_day, 100, 50*julian_day, -10**6, 0],
-        [10000*julian_day, 100, 2000*julian_day, 10**6, 6]]
+bounds = [[10000*julian_day, 1, 50*julian_day, -10**6, 0],
+        [10200*julian_day, 200, 2000*julian_day, 10**6, 6]]
 subdirectory = '/island_testing/'
+# num_gen = 1
+# pop_size = 100
+# no_of_points = 1000
+# bounds = [[10000*julian_day, 100, 50*julian_day, -10**6, 0],
+#         [10000*julian_day, 100, 2000*julian_day, 10**6, 6]]
+# subdirectory = '/island_testing/'
 
 planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
 planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
@@ -80,12 +87,12 @@ planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus
 planet_list = topo.manualTopology.remove_excess_planets(planet_list, departure_planet, arrival_planet)
 
 evaluated_sequences_database = current_dir + '/topology_database/evaluated_sequences_database.txt'
-predefined_sequences_database = current_dir + '/topology_database/predefined_sequences_database.txt'
+separate_leg_database = current_dir + '/topology_database/separate_leg_database.txt'
 
 if os.path.exists(evaluated_sequences_database):
     os.remove(evaluated_sequences_database)
-if os.path.exists(predefined_sequences_database):
-    os.remove(predefined_sequences_database)
+if os.path.exists(separate_leg_database):
+    os.remove(separate_leg_database)
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
 # https://stackoverflow.com/questions/419163/what-does-if-name-main-do
@@ -94,10 +101,13 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     # print(len(planet_list)
     evaluated_sequences_results = 'Sequence, Delta V, ToF\n'
+    leg_results = 'Leg, Delta V, ToF, #rev\n'
     champions_x = {}
     champions_f = {}
     island_problems = {}
     evaluated_sequences_dict = {}
+    mga_sequence_characters_list = []
+
 
     # Loop for number of sequence recursions
     p_bump = False
@@ -114,39 +124,42 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
+        directtransferbump = 0
         if p == 0:
             number_of_islands = number_of_sequences_per_planet[p]*len(planet_list) + 1
             transfer_body_order = [departure_planet, arrival_planet]
+            temp_evaluated_sequences.append(transfer_body_order) 
+            temp_predefined_sequences.append([departure_planet])
+            print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             topo.manualTopology.create_island(transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=num_gen,
                     pop_size=pop_size)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
+            directtransferbump = 1
         else:
             number_of_islands = number_of_sequences_per_planet[p]*len(planet_list)
 
         print('Number of islands: ', number_of_islands, '\n')
-        for i in range(number_of_islands):
+        for i in range(number_of_islands - directtransferbump):
             predefined_sequence = [departure_planet]
             random_sequence = []
             random_sequence = \
                     topo.manualTopology.create_random_transfer_body_order(
                             arrival_planet=arrival_planet, max_no_of_gas=current_max_no_of_gas)
 
-            if p == 0 and i == 0:
-                random_sequence = [arrival_planet]
-            elif p == 0:
+            if p == 0:
                 predefined_sequence += [planet_list[i % len(planet_list)]]
             else:
                 predefined_sequence += locally_best_sequence + [planet_list[i % len(planet_list)]]
 
             temp_predefined_sequences.append(predefined_sequence)
             transfer_body_order = predefined_sequence + random_sequence
-            print(transfer_body_order)
             temp_evaluated_sequences.append(transfer_body_order) 
             # print(temp_evaluated_sequences)
 
+            print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             topo.manualTopology.create_island(transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=num_gen,
@@ -155,13 +168,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             archi.push_back(island_to_be_added)
 
         island_problems[p] = current_island_problems
+        # print(current_island_problems)
         # Evolve all islands
         for _ in range(max_number_of_exchange_generations): # step between which topology steps are executed
             archi.evolve()
         archi.wait_check()
 
         champions_x[p] = archi.get_champions_x()
-        # print(champions_x)
+        # print('champion_x[p] type', type(champions_x[p]))
         champions_f[p] = archi.get_champions_f()
         # print(champion_f)
 
@@ -170,37 +184,31 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         delta_v_per_leg = {}
         tof = {}
         evaluated_sequences_dict[p] = [[] for _ in range(number_of_islands)]
-        for j in range(number_of_islands):
 
+        for j in range(number_of_islands):
             # define delta v to be used for evaluation of best sequence
-            current_island_problems[j].fitness(champions_x[p][j], post_processing=True)
-            delta_v[j] = current_island_problems[j].transfer_trajectory_object.delta_v
-            delta_v_per_leg[j] = current_island_problems[j].transfer_trajectory_object.delta_v_per_leg
-            tof[j]=  current_island_problems[j].transfer_trajectory_object.time_of_flight
+            island_problems[p][j].fitness(champions_x[p][j], post_processing=True)
+            delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
+            delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
+            tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
+            # print('delta_v_per_leg type', type(delta_v_per_leg[j]))
+            # print('delta_v_per_leg', delta_v_per_leg[j])
 
             # Save evaluated sequences to database with extra information
             mga_sequence_characters = \
                     util.transfer_body_order_conversion.get_mga_characters_from_list(
                                     temp_evaluated_sequences[j])
+            mga_sequence_characters_list.append(mga_sequence_characters)
             current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400]
-
             current_sequence_result_string = " %s, %d, %d\n" % (current_sequence_result[0],
                     current_sequence_result[1], current_sequence_result[2])
-
             evaluated_sequences_results += current_sequence_result_string
-
             evaluated_sequences_dict[p][j] = current_sequence_result
 
-            
-            # island_fitness = champions_f[p][i]
-
-            # Save predefined sequences to database
-            file_object = open(predefined_sequences_database, 'a+')
-            mga_sequence_characters = \
-                    util.transfer_body_order_conversion.get_mga_characters_from_list(
-                                    temp_predefined_sequences[j])
-            file_object.write(mga_sequence_characters + '\n')
-            file_object.close()
+            # Save separate leg information
+            current_sequence_leg_results = topo.manualTopology.get_leg_specifics(mga_sequence_characters, champions_x[p][j],
+                    delta_v_per_leg[j])
+            leg_results += current_sequence_leg_results
 
             # check auxiliary help for good legs -> SOLVE PICKLE ERROR
             # we have island_problms in a list
@@ -226,26 +234,29 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         #     number_of_sequences_per_planet[p] *= 3
         #     p_bump =  True
 
-
         # print(temp_predefined_sequences)
 
+    ### End of predefined sequence length loop
 
     # print(evaluated_sequences_results)
+
+    file_object = open(separate_leg_database, 'a+')
+    file_object.write(leg_results)
+    file_object.close()
 
     file_object = open(evaluated_sequences_database, 'a+')
     file_object.write(evaluated_sequences_results)
     file_object.close()
 
-
-
 # Saving the trajectories for post-processing
     pp = True
     if pp:
-        for i in range(len(champions_x[0])):
+        layer_to_analyse = 0
+        for i in range(len(champions_x[layer_to_analyse])):
             # print("Champion: ", champions[i])
-            mga_low_thrust_problem = island_problems[0][i]
+            mga_low_thrust_problem = island_problems[layer_to_analyse][i]
             # print(champions_x)
-            mga_low_thrust_problem.fitness(champions_x[0][i], post_processing=True) # 2 is one loop
+            mga_low_thrust_problem.fitness(champions_x[layer_to_analyse][i], post_processing=True) # 2 is one loop
 
             # State history
             state_history = \
@@ -282,7 +293,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                 departure_velocity -= delta_v_per_leg[j]
             auxiliary_info['Delta V,'] = delta_v 
             auxiliary_info['Departure velocity,'] = departure_velocity
-            auxiliary_info['MGA Sequence,'] = evaluated_sequences_dict[p][j][0]
+            auxiliary_info['MGA Sequence,'] = \
+            mga_sequence_characters_list[layer_to_analyse*len(champions_x[layer_to_analyse]) + i]
+            #evaluated_sequences_dict[p][j][0]
 
             # auxiliary_info['Design parameter vector Island %s' % (i)] = champions[i]
 
