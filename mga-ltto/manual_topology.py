@@ -72,3 +72,21 @@ class manualTopology:
     def add_sequence_to_database(self):
         pass
 
+    @staticmethod
+    def remove_excess_planets(planet_list : list, departure_planet : str, arrival_planet : str) -> list:
+        for it, i in enumerate(planet_list):
+            if i == departure_planet:
+                dep_index = it
+            if i == arrival_planet:
+                arr_index = it
+        if arr_index < dep_index:
+            number_of_truncations = len(planet_list) - dep_index - 1
+            # print(number_of_truncations)
+        else:
+            number_of_truncations = len(planet_list) - arr_index - 1
+            # print(number_of_truncations)
+        for i in range(number_of_truncations):
+            planet_list.pop()
+        return planet_list
+
+    # def get_leg_specific_dict
