@@ -21,7 +21,9 @@ from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
+
 from tudatpy.kernel.interface import spice
+
 spice.load_standard_kernels()
 
 import mga_low_thrust_utilities as mga_util
@@ -39,8 +41,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def __init__(self,
                     transfer_body_order,
-                    no_of_free_parameters,
-                    bounds, 
+                    no_of_free_parameters =0 ,
+                    bounds = None, 
                     depart_semi_major_axis=np.inf,
                     depart_eccentricity=0, 
                     target_semi_major_axis=np.inf, 
@@ -72,37 +74,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
                 "Uranus", "Neptune"] 
 
-# Create bodies in simulation
-        # body_list_settings = lambda : \
-        #     environment_setup.get_default_body_settings(bodies=self.bodies_to_create,
-        #             base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
-        # for i in self.bodies_to_create:
-        #     current_body_list_settings = body_list_settings()
-        #     current_body_list_settings.add_empty_settings(i)            
-        #     current_body_list_settings.get(i).ephemeris_settings = \
-        #     environment_setup.ephemeris.approximate_jpl_model(i)        
-        #
-        # system_of_bodies = environment_setup.create_system_of_bodies(current_body_list_settings)
-        # self.system_of_bodies = lambda : system_of_bodies
-        #
-            # INTERPOLATED SPICE
-            # environment_setup.ephemeris.interpolated_spice(9000*constants.JULIAN_DAY,
-            #         10500*constants.JULIAN_DAY,
-            #         86400)
-            # APPROXIMATE JPL MODEL
-            # environment_setup.ephemeris.approximate_jpl_model(i)
-            # KEPLERIAN FROM SPICE
-            # environment_setup.ephemeris.keplerian_from_spice(i,
-                    # 6000*constants.JULIAN_DAY,
-                    # 1.327*10**20,
-                    # frame_origin='SSB',
-                    # frame_orientation='ECLIPJ2000')
-            # TIME_LIMITED
-            # environment_setup.get_default_body_settings_time_limited(bodies=self.bodies_to_create,
-            #         initial_time=9000*constants.JULIAN_DAY, final_time=950*constants.JULIAN_DAY,
-            #         base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
-
-
+        self.design_parameter_vector = None
 
         self.transfer_trajectory_object = None
         self.node_times = None
@@ -192,6 +164,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
         """
         return self.node_times
 
+    def get_design_parameter_vector(self):
+        return self.design_parameter_vector
+
     def fitness(self, 
                 design_parameter_vector : list, 
                 bodies = mga_util.create_modified_system_of_bodies(),
@@ -206,6 +181,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         51..57 - integer ga identifier 
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
+        self.design_parameter_vector = design_parameter_vector
 
         # parameters
         central_body = 'Sun'
@@ -223,6 +199,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # number of revolutions
         number_of_revolutions = \
         [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
+
+        ### CONTINUOUS PART ###
+        # departure date
+        departure_date = design_parameter_vector[0]
+
+        # departure velocity
+        departure_velocity = design_parameter_vector[1] 
+
+        # time of flight
+        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+
+        # hodographic shaping free coefficients
+        free_coefficients = design_parameter_vector[time_of_flight_index:free_coefficient_index]
 
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,

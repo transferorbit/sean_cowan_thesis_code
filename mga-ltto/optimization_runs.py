@@ -23,6 +23,7 @@ import multiprocessing as mp
 import tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
+from tudatpy.kernel.astro import time_conversion
 from tudatpy.kernel.numerical_simulation import propagation_setup
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.math import interpolators
@@ -55,19 +56,23 @@ julian_day = constants.JULIAN_DAY
 ## General parameters
 
 max_no_of_gas = 6
+no_of_sequence_recursions = 1
 max_number_of_exchange_generations = 1
-number_of_sequences_per_planet = [10 for i in range(max_no_of_gas)]
+number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
 # number_of_sequences_per_planet = [1 for i in range(max_no_of_gas)]
 seed = 1032022
 
 departure_planet = "Earth"
 arrival_planet = "Jupiter"
 free_param_count = 0
-num_gen = 10
-pop_size = 200
+num_gen = 2
+pop_size = 100
 no_of_points = 1000
-bounds = [[10000*julian_day, 1, 50*julian_day, -10**6, 0],
-        [10200*julian_day, 200, 2000*julian_day, 10**6, 6]]
+bounds = [[1000*julian_day, 1, 50*julian_day, -10**6, 0],
+        [1200*julian_day, 200, 2000*julian_day, 10**6, 6]]
+# print('Departure date bounds : [%d, %d]' %
+#         (time_conversion.julian_day_to_calendar_date(1000),
+#     time_conversion.julian_day_to_calendar_date(1200)))
 subdirectory = '/island_testing/'
 # num_gen = 1
 # pop_size = 100
@@ -107,7 +112,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     # Loop for number of sequence recursions
     p_bump = False
-    for p in range(2): # gonna be max_no_of_gas
+    for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
         if p_bump == True:
             p -= 1
             p_bump = False
@@ -248,6 +253,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     pp = True
     if pp:
         layer_to_analyse = 0
+        champions_dict = {}
+        champion_fitness_dict = {}
         for i in range(len(champions_x[layer_to_analyse])):
             # print("Champion: ", champions[i])
             mga_low_thrust_problem = island_problems[layer_to_analyse][i]
@@ -293,11 +300,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             mga_sequence_characters_list[layer_to_analyse*len(champions_x[layer_to_analyse]) + i]
             #evaluated_sequences_dict[p][j][0]
 
-            # auxiliary_info['Design parameter vector Island %s' % (i)] = champions[i]
-
-
-
-
             # Saving files
             unique_identifier = "island_" + str(i) + "/"
 
@@ -311,3 +313,22 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                 save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_path)
                 save2txt(node_times, 'node_times.dat', output_path)
                 save2txt(auxiliary_info, 'auxiliary_info.dat', output_path)
+            champions_dict[i] = champions_x[layer_to_analyse][i]
+            champion_fitness_dict[i] = champions_f[layer_to_analyse][i]
+        
+        # print(champions_dict)
+        # Saving files
+        # unique_identifier = "champions/"
+        #
+        # if write_results_to_file:
+        #     output_path = current_dir + subdirectory + unique_identifier
+        # else:
+        #     output_path = None
+        #
+        # file_object = open("%schampions.dat" % (output_path), 'a+')
+        # file_object.write(champions_x[layer_to_analyse][i])
+        # file_object.close("%schampions.dat" % (output_path))
+        #
+        # file_object = open("%schampions_fitness.dat" % (output_path), 'a+')
+        # file_object.write(champions_f[layer_to_analyse][i])
+        # file_object.close("%schampions_fitness.dat" % (output_path))

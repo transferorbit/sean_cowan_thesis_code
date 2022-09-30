@@ -13,42 +13,40 @@ pygmo-utilities.py
 # General imports
 import numpy as np
 import os
-import pygmo as pg
 import multiprocessing as mp
 
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
-from tudatpy.kernel.numerical_simulation import propagation_setup
-from tudatpy.kernel.numerical_simulation import environment_setup
-from tudatpy.kernel.math import interpolators
-from tudatpy.kernel.trajectory_design import shape_based_thrust
-from tudatpy.kernel.trajectory_design import transfer_trajectory
 
-# import mga_low_thrust_utilities as mga_util
-import pygmo_island as isl
+import mga_low_thrust_utilities as util
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
-from error_vectors import design_vector_list
-from error_vectors import cylindrical_radial_list
-# print(design_vector_list)
 
 current_dir = os.getcwd()
 write_results_to_file = True
-subdirectory = '/test_optimization_results/'
+julian_day = constants.JULIAN_DAY
 
-mga_low_thrust_problem = MGALowThrustTrajectoryOptimizationProblem(no_of_free_parameters=1)
+transfer_body_order = ["Earth", "Mars", "Jupiter"]
+mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+        transfer_body_order)
 
-# Single runs from the list
-# mga_low_thrust_problem.fitness(design_vector_list[6])
+# dpv from file
+dir = 'single_sequence_optimisation/test_optimization_results/champions/'
+design_parameter_vectors = np.loadtxt(dir + 'champions.dat')
 
-# All 'problematic' design vectors run in a loop
-# for i in range(len(design_vector_list)):
-#     mga_low_thrust_problem.fitness(design_vector_list[i])
+# dpv self defined
+# design_parameter_vectors = np.array([])
 
-# Cylindrical error test
-for i in range(len(cylindrical_radial_list)):
-    mga_low_thrust_problem.fitness(cylindrical_radial_list[i])
+design_parameter_vectors = design_parameter_vectors[:,1:]
+# print(design_parameter_vectors)
 
-
+mga_low_thrust_problem = \
+MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order)
+mga_low_thrust_problem.fitness(design_parameter_vectors[0], post_processing=True)
+delta_v = mga_low_thrust_problem.transfer_trajectory_object.delta_v
+delta_v_per_leg = mga_low_thrust_problem.transfer_trajectory_object.delta_v_per_leg
+tof = mga_low_thrust_problem.transfer_trajectory_object.time_of_flight
+# dpv = mga_low_thrust_problem.get_design_parameter_vector()
+print(delta_v, tof, delta_v_per_leg)#, dpv)
 

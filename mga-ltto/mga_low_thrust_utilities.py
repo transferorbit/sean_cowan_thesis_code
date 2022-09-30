@@ -21,7 +21,7 @@ from tudatpy.io import save2txt
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
-from tudatpy.kernel.interface import spice
+# from tudatpy.kernel.interface import spice
 from trajectory3d import trajectory_3d
 
 import io
@@ -31,7 +31,7 @@ import warnings
 warnings.filterwarnings("error")
 
 
-spice.load_standard_kernels()
+# spice.load_standard_kernels()
 
 ###########################################################################
 # HODOGRAPH-SPECIFIC FUNCTIONS ############################################

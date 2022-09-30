@@ -22,17 +22,14 @@ from tudatpy.io import save2txt
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
-from tudatpy.kernel.interface import spice
-from trajectory3d import trajectory_3d
 
 import io
 import sys
-
-import warnings
-warnings.filterwarnings("error")
+from trajectory3d import trajectory_3d
 
 
-spice.load_standard_kernels()
+# import warnings
+# warnings.filterwarnings("error")
 
 ###########################################################################
 # HODOGRAPH-SPECIFIC FUNCTIONS ############################################
@@ -92,17 +89,42 @@ class transfer_body_order_conversion:
 
         return body_list
     
-    def get_mga_sequence(self, bodylist: list) -> str():
+    @staticmethod
+    def get_mga_characters_from_list(bodylist: list) -> str():
 
-        char_list = []
-        for i in bodylist:
-            chars = [char for char in i]
-            char_list.append(chars[0])
+        character_dict = {'Y' : "Mercury",
+                'V' : "Venus",
+                'E' : "Earth",
+                'M' : "Mars",
+                'J' : "Jupiter",
+                'S' : "Saturn",
+                'U' : "Uranus",
+                'N' : "Neptune"}
+
         mga_sequence = ""
-        for j in char_list:
-            mga_sequence += j
+        for i in bodylist:
+            for j, k in character_dict.items():
+                if i == k:
+                    mga_sequence += j
 
         return mga_sequence
+
+    
+    @staticmethod
+    def get_mga_list_from_characters(character_string: str) -> str():
+
+        character_dict = {'Y' : "Mercury",
+                'V' : "Venus",
+                'E' : "Earth",
+                'M' : "Mars",
+                'J' : "Jupiter",
+                'S' : "Saturn",
+                'U' : "Uranus",
+                'N' : "Neptune"}
+
+        character_list = character_string.split()
+
+        return [character_dict[i] for i in character_list]
 
 
 def get_low_thrust_transfer_object(transfer_body_order : list,
@@ -118,14 +140,39 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     Provides the transfer settings required to construct a hodographic shaping mga trajectory.
 
     """
+    # body_dict = {"Mercury" : 0,
+    #         "Venus" : 1,
+    #         "Earth" : 2,
+    #         "Mars" : 3,
+    #         "Jupiter" : 4,
+    #         "Saturn" : 5,
+    #         "Uranus" : 6,
+    #         "Neptune" : 7}
 
+    # From approximate jpl model states
+    # planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
+    #         77.45779628,     48.33076593],
+    # [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
+    # [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
+    # [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
+    # [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
+    # [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
+    # [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
+    # [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
+    #     131.78422574]]
 
     # departure and target things
+    
+    # departure_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[0]]][0]
+    # departure_eccentricity = planet_kep_states[body_dict[transfer_body_order[0]]][1]
+    # target_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[-1]]][1]
+    # target_eccentricity = planet_kep_states[body_dict[transfer_body_order[-1]]][1]
+    
     departure_semi_major_axis = np.inf
     departure_eccentricity = 0
     target_semi_major_axis = np.inf
     target_eccentricity = 0
-    
+     
     transfer_leg_settings = []
     for i in range(len(transfer_body_order)-1):
 
@@ -245,7 +292,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_parameters.append(0)
         node_parameters.append(0)
         node_parameters.append(swingby_periapses[i])
-        node_parameters.append(0)
+        node_parameters.append(np.pi / 2)
         node_parameters.append(0)
 
         node_free_parameters.append(node_parameters)
@@ -412,18 +459,37 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
-def create_modified_system_of_bodies(bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
-    "Saturn", "Uranus", "Neptune"], ephemeris_type='JPL'):
+def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
+    "Saturn", "Uranus", "Neptune"], ephemeris_type='JPL', planet_kep_states = None):
+    frame_origin = 'SSB'
+    frame_orientation = 'ECLIPJ2000'
 
     body_list_settings = lambda : \
         environment_setup.get_default_body_settings(bodies=bodies,
-                base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
-    for i in bodies:
+                base_frame_origin=frame_origin, base_frame_orientation=frame_orientation)
+    for it, i in enumerate(bodies):
         current_body_list_settings = body_list_settings()
         current_body_list_settings.add_empty_settings(i)            
         if ephemeris_type=='JPL':
             current_body_list_settings.get(i).ephemeris_settings = \
             environment_setup.ephemeris.approximate_jpl_model(i)        
+        elif ephemeris_type=='KEPFROMSPICE':
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian_from_spice(i, 
+                    departure_date,
+                    central_body_mu,
+                    frame_origin,
+                    frame_orientation)
+        elif ephemeris_type=='KEPLERIAN':
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian(planet_kep_states[it], 
+                    departure_date,
+                    central_body_mu,
+                    frame_origin,
+                    frame_orientation)
+
+
+            
         # print(current_body_list_settings.get(i).ephemeris_settings)
 
     return environment_setup.create_system_of_bodies(current_body_list_settings)
@@ -468,11 +534,19 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
 
     state_history = np.loadtxt(dir + 'state_history.dat')
     node_times = np.loadtxt(dir + 'node_times.dat')
+    auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
+    # print(auxiliary_info[0][0])
+    # aux_info_list= [i.replace('\t') for i in auxiliary_info]
+    # print(aux_info_list)
 
     state_history_dict = {}
     for i in range(len(state_history)):
         state_history_dict[state_history[i, 0]] = state_history[i,1:]
     # print(state_history_dict)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
 
     # print(node_times[0, 1])
     # print(state_history_dict)
@@ -487,6 +561,8 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
             frame_orientation= 'ECLIPJ2000'
             )
+
+    ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
     #         2] , marker='+', color='yellow', label='Earth departure')
     # ax.scatter(fly_by_states[1, 0] , fly_by_states[1, 1] , fly_by_states[1,
@@ -494,7 +570,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     # ax.scatter(fly_by_states[2, 0] , fly_by_states[2, 1] , fly_by_states[2,
     #         2] , marker='+', color='yellow', label='Mars fly-by')
     # ax.scatter(fly_by_states[3, 0] , fly_by_states[3, 1] , fly_by_states[3,
-    #         2] , marker='+', color='yellow', label='Mars fly-by')
+    #         3] , marker='+', color='yellow', label='Mars fly-by')
 
 # Change the size of the figure
     fig.set_size_inches(8, 8)
