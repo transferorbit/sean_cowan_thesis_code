@@ -21,14 +21,11 @@ from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
-
 from tudatpy.kernel.interface import spice
 
 spice.load_standard_kernels()
 
 import mga_low_thrust_utilities as mga_util
-
-
 
 #######################################################################
 # PROBLEM CLASS #######################################################
@@ -49,7 +46,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     target_eccentricity=0,
                     swingby_altitude=200000000, #2e5 km
                     departure_velocity=2000, 
-                    arrival_velocity=0):
+                    arrival_velocity=0,
+                    planet_kep_states = None):
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -71,8 +69,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
-        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
-                "Uranus", "Neptune"] 
+        # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
+        #         "Uranus", "Neptune"] 
+        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
+        self.central_body = 'Sun'
+        self.central_body_mu = 1.3271244e20 # m^3 / s^2
+
+        # self.system_of_bodies = lambda :  mga_util.create_modified_system_of_bodies(self.bounds[0][0], # departure date
+        #     self.central_body_mu, bodies=self.bodies_to_create, ephemeris_type='JPL',
+        #     planet_kep_states=planet_kep_states)
 
         self.design_parameter_vector = None
 
@@ -121,9 +126,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
             upper_bounds.append(number_of_revolutions_ub)
 
         return (lower_bounds, upper_bounds)
-
-    def get_central_body(self, central_body):
-        self.central_body = central_body
 
     def get_nic(self):
         return 0

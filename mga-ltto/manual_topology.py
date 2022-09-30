@@ -55,10 +55,11 @@ class manualTopology:
         return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
-    def create_random_transfer_body_order(arrival_planet, max_no_of_gas=6) -> list:
+    def create_random_transfer_body_order(arrival_planet, seed, max_no_of_gas=6) -> list:
 
         # transfer_body_order.append(predefined_sequence) if predefined_sequence != [] else None #?
         # create random sequence of numbers with max_no_of_gas length
+        random.seed(seed)
         sequence_length = random.randrange(0, max_no_of_gas)
         sequence_digits = [random.randrange(1, 6) for _ in range(sequence_length)]
 
