@@ -172,6 +172,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def fitness(self, 
                 design_parameter_vector : list, 
                 bodies = mga_util.create_modified_system_of_bodies(),
+                # bodies = environment_setup.create_simplified_system_of_bodies(),
                 post_processing=False):
 
         """
@@ -253,11 +254,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
                 objective = transfer_trajectory_object.delta_v 
             except RuntimeError as e:
-                # print(str(e), "\n")#, "Objective increased by 10**16")
+                print(str(e), "\n")#, "Objective increased by 10**16")
                 objective = 10**16
 
             # print('Fitness evaluated')
             return [objective]
         if post_processing == True:
-            transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
-            self.transfer_trajectory_object = transfer_trajectory_object
+            try:
+                transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+                self.transfer_trajectory_object = transfer_trajectory_object
+            except RuntimeError as e:
+                print(str(e), "\n")#, "Objective increased by 10**16")
+                raise

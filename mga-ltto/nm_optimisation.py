@@ -1,10 +1,10 @@
 '''
 Author: Sean Cowan
 Purpose: MSc Thesis
-Date Created: 26-07-2022
+Date Created: 03-10-2022
 
-This module performs the optimization calculations using the help modules from mga-low-thrust-utilities.py and
-pygmo-utilities.py
+This module attempts to verify the hodographic shaping method with the Nelder Mead method from
+Pygmo, which should converge to similar results
 '''
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
@@ -94,26 +94,17 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # subdirectory=  '/test_optimisation'
     
     # verification Gondelach
-    # transfer_body_order = ["Earth", "Mars"]
-    # free_param_count = 2
-    # num_gen = 100
-    # pop_size = 30
-    # num_gen = 1
-    # pop_size = 100
-    # no_of_points = 500
-    # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 2],
-    #         [10225*julian_day, 0, 2000*julian_day, 10**4, 2]]
-    # subdirectory = '/verification/gondelach_N2'
     transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 2
-    num_gen = 50
-    pop_size = 30
-    # num_gen = 1
-    # pop_size = 100
+    free_param_count = 0
+    num_gen = 10
+    pop_size = 100
     no_of_points = 500
-    bounds = [[9985*julian_day, 0, 1100*julian_day, -10**4, 4],
-            [9985*julian_day, 0, 1100*julian_day, 10**4, 4]]
-    subdirectory = '/verification/gondelach_N4'
+    bounds = [[10025*julian_day, 0, 1050*julian_day, -10**4, 2],
+            [10025*julian_day, 0, 1050*julian_day, 10**4, 2]]
+    subdirectory = '/verification/neldermead_N2'
+    # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
+    #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]
+    # subdirectory = '/verification/gondelach'
     
     # TGRRoegiers p.116
     # mjd_depart_lb = 58849
@@ -156,7 +147,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ###################################################################
 
     my_population = pg.population(prob, size=pop_size, seed=seed)
-    my_algorithm = pg.algorithm(pg.sga(gen=num_gen))
+    my_algorithm = pg.algorithm(pg.nlopt(solver='neldermead'))
     # my_island = pg.mp_island()
     print('Creating archipelago')
     archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
@@ -180,7 +171,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     champions_dict = {}
     champion_fitness_dict = {}
-    thrust_acceleration_list=  []
     for i in range(len(champions)):
         mga_low_thrust_problem.fitness(champions[i], post_processing=True)
 
@@ -237,8 +227,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
             champions_dict[i] = champions[i]
             champion_fitness_dict[i] = champion_fitness[i]
-            champions_dict[i][0] /= 86400.0
-            champions_dict[i][2] /= 86400.0
 
     if write_results_to_file:
 
@@ -267,3 +255,4 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         unique_identifier = ""
         save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
                 subdirectory + unique_identifier)
+

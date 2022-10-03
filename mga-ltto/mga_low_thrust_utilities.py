@@ -452,7 +452,7 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
         time_of_flight,
         number_of_revolutions)
 
-    exponent = 2.0
+    exponent = 4.0
     # Add degrees of freedom (highest-order in Gondelach and Noomen, 2015)
     if no_of_free_parameters > 0:
         axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine(

@@ -15,16 +15,11 @@ This module performs post processing actions to visualize the optimized results.
 # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
 
 from tudatpy.kernel.interface import spice
-
 spice.load_standard_kernels()
+import mga_low_thrust_utilities as mga_util
+from trajectory3d import trajectory_3d
 
-# import mga_low_thrust_utilities as mga_util
-import single_sequence_optimisation.mga_low_thrust_utilities as mga_util
-
-# from trajectory3d import trajectory_3d
-from single_sequence_optimisation.trajectory3d import trajectory_3d
-
-data_directory = "test_optimization_results/island_2/"
+data_directory = "pp_ltto/test_optimisation_2fp/island_5/"
 mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
 # data_directory = "verification/roegiers_test3/island_0/"
 # data_directory = "verification/verification_results/island_4/"
