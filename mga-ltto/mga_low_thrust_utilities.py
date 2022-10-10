@@ -302,9 +302,11 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     for i in range(len(transfer_body_order)-2):
         node_parameters = list()
         node_parameters.append(incoming_velocities[i])
+        # node_parameters.append(100)
         node_parameters.append(0)
         node_parameters.append(0)
         node_parameters.append(swingby_periapses[i])
+        # node_parameters.append(10)
         node_parameters.append(0)
         node_parameters.append(0)
 
@@ -477,6 +479,7 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
     frame_origin = 'SSB'
     frame_orientation = 'ECLIPJ2000'
 
+    # this needs spice
     body_list_settings = lambda : \
         environment_setup.get_default_body_settings(bodies=bodies,
                 base_frame_origin=frame_origin, base_frame_orientation=frame_orientation)
@@ -507,6 +510,21 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
 
     return environment_setup.create_system_of_bodies(current_body_list_settings)
     # self.system_of_bodies = lambda : system_of_bodies
+
+
+def get_delivery_mass(thrust_acceleration, Isp, m0, g0=9.81):
+    # Isp = 4000
+    # g0 = 9.81
+    # m = 1300
+    m = m0
+
+    for i in range(len(thrust_acceleration)-1):
+        dt = (thrust_acceleration[i+1, 0]-thrust_acceleration[i, 0])
+        dvdt = np.linalg.norm(thrust_acceleration[i, 1:])
+        dmdt = (1/(Isp*g0)) * m * dvdt
+        m -= dmdt * dt
+
+    return m
 
 
 def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):
@@ -589,3 +607,55 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     fig.set_size_inches(8, 8)
 # Show the plot
     plt.show()
+
+
+
+def objective_per_generation_visualisation(dir=None):
+
+    fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
+    variable_values = np.loadtxt(dir + 'champs_per_gen.dat')
+
+    generation_count = fitness_values[:50, 0]
+    fitness_values = fitness_values[:50, 1:]
+    variable_values = variable_values[:50, 1:]
+    # print(fitness_values)
+    # print(generation_count)
+
+
+    no_of_parameters = len(variable_values[0, :])
+    no_of_int_parameters = 5
+    integer_bounds = (-10, -5)
+    continuous_bounds = (-5.12, 5.12)
+
+    minimum_fitness_value =  no_of_int_parameters**3
+    color_dict = {0 : 'r', 1 : 'b'}
+    color = [color_dict[0] if i < no_of_int_parameters else color_dict[1] for i in
+            range(no_of_parameters)]
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
+    ax1.plot(generation_count, fitness_values)
+    ax1.plot(generation_count, [minimum_fitness_value for i in range(len(generation_count))], c='k',
+            linestyle='--', linewidth=0.8, label='Constraint value')
+    ax1.set_xlabel('Generation count [-]')
+    ax1.set_ylabel(' Function value [-]' )
+    # ax1.set_yscale('log')
+    ax1.legend()
+    ax1.grid()
+
+    for i in range(no_of_parameters):
+        ax2.plot(generation_count, variable_values[:, i], c=color[i])
+    ax2.plot(generation_count, [integer_bounds[0] for i in range(len(generation_count))], c='k',
+            linewidth=0.8, linestyle='--', label='Constraint value')
+    ax2.plot(generation_count, [integer_bounds[1] for i in range(len(generation_count))], c='k',
+            linestyle='--', linewidth=0.8)
+    ax2.plot(generation_count, [continuous_bounds[0] for i in range(len(generation_count))], c='k',
+            linestyle='--', linewidth=0.8)
+    ax2.plot(generation_count, [continuous_bounds[1] for i in range(len(generation_count))], c='k',
+            linestyle='--', linewidth=0.8)
+    ax2.set_xlabel('Generation count [-]')
+    ax2.set_ylabel(' Variable value [-]' )
+    ax2.legend()
+
+    ax2.grid()
+    plt.show()
+
