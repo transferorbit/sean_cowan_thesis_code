@@ -34,8 +34,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     from tudatpy.kernel.astro import element_conversion
     from tudatpy.kernel.trajectory_design import shape_based_thrust
     from tudatpy.kernel.trajectory_design import transfer_trajectory
-    from tudatpy.kernel.interface import spice
-    spice.load_standard_kernels()
+    # from tudatpy.kernel.interface import spice
+    # spice.load_standard_kernels()
     
     
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
@@ -78,20 +78,18 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Problem Setup ###############################################
 ####################################################################
 
-    bound_names= ['Departure date', 'Departure velocity', 'Time of Flight',
-            'Free coefficient', "Number of revolutions"]
-    # test minlp optimization
-    my_problem = pg.rastrigin(5) 
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]',
+            'Free coefficient [-]', "Number of revolutions [-]"]
     
     # testing problem functionality
-    # transfer_body_order = ["Earth", "Mars", "Jupiter"]
-    # free_param_count = 0
-    # num_gen = 2
-    # pop_size = 100
-    # no_of_points = 500
-    # bounds = [[1000*julian_day, 100, 50*julian_day, -10**6, 0],
-    #         [1000*julian_day, 100, 800*julian_day, 10**6, 0]]
-    # subdirectory=  '/test_optimisation'
+    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    free_param_count = 0
+    num_gen = 30
+    pop_size = 500
+    no_of_points = 500
+    bounds = [[1000, 0, 200, -10**4, 0],
+            [1200, 0, 1200, 10**4, 0]]
+    subdirectory=  '/EMJ_2fp_1_10'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -104,16 +102,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 2],
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 2]]
     # subdirectory = '/verification/gondelach_N2'
-    transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 2
-    num_gen = 50
-    pop_size = 30
-    # num_gen = 1
-    # pop_size = 100
-    no_of_points = 500
-    bounds = [[9985*julian_day, 0, 1100*julian_day, -10**4, 4],
-            [9985*julian_day, 0, 1100*julian_day, 10**4, 4]]
-    subdirectory = '/verification/gondelach_N4'
+
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 2
+    # num_gen = 30
+    # pop_size = 300
+    # no_of_points = 500
+    # bounds = [[9985, 0, 1100, -10**4, 2],
+    #         [9985, 0, 1100, 10**4, 2]]
+    # subdirectory = '/verification/gondelach_2fp_N2'
     
     # TGRRoegiers p.116
     # mjd_depart_lb = 58849
@@ -129,14 +126,19 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[9300*julian_day, 150, 1185*julian_day, -10**6, 2],
     #         [9300*julian_day, 150, 1185*julian_day, 10**6, 4]]
     # subdirectory = '/verification/verification_results/'
+
+    # Nathan
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 2
+    # num_gen = 15
+    # pop_size = 300
+    # no_of_points = 500
+    #
+    # bounds = [[10000, 0, 50*julian_day, -10**4, 0], #seconds since J2000
+    #         [10100, 0, 1000*julian_day, 10**4, 6]]
+    # subdirectory=  '/nathan_2fp'
     
     # validation
-    
-    # optimization
-    
-    # making problem
-    
-    # print('Creating problem class')
 
     mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
             transfer_body_order)
@@ -145,29 +147,41 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
             no_of_free_parameters=free_param_count, bounds=bounds)#, planet_kep_states=planet_kep_states)
     # mga_low_thrust_problem.get_system_of_bodies()
-    # prob = my_problem
     prob = pg.problem(mga_low_thrust_problem)
     
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
     number_of_islands = cpu_count
+
 ###################################################################
 # LTTO Optimisation ###############################################
 ###################################################################
 
     my_population = pg.population(prob, size=pop_size, seed=seed)
-    my_algorithm = pg.algorithm(pg.sga(gen=num_gen))
+    my_algorithm = pg.algorithm(pg.sga(gen=1))
     # my_island = pg.mp_island()
     print('Creating archipelago')
     archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
 
-    for _ in range(1): # step between which topology steps are executed
-        print('Evolving ..')
+    list_of_f_dicts = []
+    list_of_x_dicts = []
+    for i in range(num_gen): # step between which topology steps are executed
+        print('Evolving Gen : %i / %i' % (i, num_gen))
         archi.evolve()
         # archi.status
         # archi.wait_check()
+        champs_dict_per_gen = {}
+        champ_f_dict_per_gen = {}
+        for j in range(number_of_islands):
+            champs_dict_per_gen[j] = archi.get_champions_x()[j]
+            champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
+        list_of_x_dicts.append(champs_dict_per_gen)
+        list_of_f_dicts.append(champ_f_dict_per_gen)
+        # champion_fitness_dict_per_gen[i] = archi.get_champions_f()
         archi.wait_check()
     print('Evolution finished')
+    # print(list_of_f_dicts, list_of_x_dicts)
+
 
 
 ###########################################################################
@@ -176,12 +190,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     champions = archi.get_champions_x()
     champion_fitness = archi.get_champions_f()
-    print(champions[0])
 
     champions_dict = {}
     champion_fitness_dict = {}
     thrust_acceleration_list=  []
-    for i in range(len(champions)):
+    for i in range(number_of_islands):
         mga_low_thrust_problem.fitness(champions[i], post_processing=True)
 
         # State history
@@ -223,7 +236,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             auxiliary_info['Delta V,'] = delta_v 
             auxiliary_info['Departure velocity,'] = departure_velocity
             auxiliary_info['MGA Sequence,'] = mga_sequence_characters
-            auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
+            auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                 enumerate(thrust_acceleration.items())])
 
             unique_identifier = "/island_" + str(i) + "/"
@@ -238,7 +251,19 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             champions_dict[i] = champions[i]
             champion_fitness_dict[i] = champion_fitness[i]
             champions_dict[i][0] /= 86400.0
-            champions_dict[i][2] /= 86400.0
+            for x in range(len(transfer_body_order)-1):
+                champions_dict[i][2+x] /= 86400.0
+
+            current_island_f = {}
+            current_island_x = {}
+            unique_identifier = "/island_" + str(i) + "/"
+            for j in range(num_gen):
+                current_island_f[j] = list_of_f_dicts[j][i]
+                current_island_x[j] = list_of_x_dicts[j][i]
+            save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
+                    + subdirectory + unique_identifier)
+            save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
+                    subdirectory + unique_identifier)
 
     if write_results_to_file:
 
@@ -252,9 +277,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:
-                    min = 'LB'
+                    min = ' LB'
                 else:
-                    min = 'UB'
+                    min = ' UB'
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
         # optimisation_characteristics['Bounds'] = bounds
         
