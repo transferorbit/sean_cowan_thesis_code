@@ -97,11 +97,21 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     transfer_body_order = ["Earth", "Mars"]
     free_param_count = 0
     num_gen = 10
-    pop_size = 100
+    pop_size = 30
     no_of_points = 500
-    bounds = [[10025*julian_day, 0, 1050*julian_day, -10**4, 2],
-            [10025*julian_day, 0, 1050*julian_day, 10**4, 2]]
-    subdirectory = '/verification/neldermead_N2'
+    bounds = [[10025, 0, 1050, -10**4, 2],
+            [10025, 0, 1050, 10**4, 2]]
+    subdirectory = '/verification/neldermead_0fp_N2'
+
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 2
+    # num_gen = 10
+    # pop_size = 30
+    # no_of_points = 500
+    # bounds = [[9985, 0, 1100, -10**4, 2],
+    #         [9985, 0, 1100, 10**4, 2]]
+    # subdirectory = '/verification/neldermead_2fp_N2'
+
     # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]
     # subdirectory = '/verification/gondelach'
@@ -113,19 +123,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[(mjd_depart_lb-mjd_2000)*julian_day, 1, 500*julian_day, -10**6, 1],
     #         [(mjd_depart_ub-mjd_2000)*julian_day, 1, 2000*julian_day, 10**6, 4]]
     # subdirectory = '/verification/roegiers_test5/'
-    
-    
-    # bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
-    #         [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
-    # bounds = [[9300*julian_day, 150, 1185*julian_day, -10**6, 2],
-    #         [9300*julian_day, 150, 1185*julian_day, 10**6, 4]]
-    # subdirectory = '/verification/verification_results/'
-    
-    # validation
-    
-    # optimization
-    
-    # making problem
     
     # print('Creating problem class')
 

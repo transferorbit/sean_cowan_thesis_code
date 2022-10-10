@@ -21,8 +21,8 @@ from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
+from tudatpy.kernel.astro import time_conversion
 from tudatpy.kernel.interface import spice
-
 spice.load_standard_kernels()
 
 import mga_low_thrust_utilities as mga_util
@@ -84,20 +84,35 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.transfer_trajectory_object = None
         self.node_times = None
 
-        planetary_radii = {}
-        for i in self.bodies_to_create:
-            planetary_radii[i] = spice.get_average_radius(i)
-        self.planetary_radii = planetary_radii
+        # planetary_radii = {}
+        # for i in self.bodies_to_create:
+        #     planetary_radii[i] = 1e8#spice.get_average_radius(i)
+        # planetary radius from spice from get)
+        self.planetary_radii = {'Sun': 696000000.0, 'Mercury': 2439699.9999999995, 'Venus':
+                6051800.0, 'Earth': 6371008.366666666, 'Mars': 3389526.6666666665, 'Jupiter':
+                69946000.0, 'Saturn': 58300000.0}
+
+    @staticmethod
+    def conv(mjd2000):
+        # mjd2000 = 51544
+        # mjd += mjd2000
+        mjd2000 *= constants.JULIAN_DAY
+        return mjd2000
+        # return time_conversion.julian_day_to_seconds_since_epoch(time_conversion.modified_julian_day_to_julian_day(mjd2000))
 
     def get_bounds(self):
-        departure_date_lb = self.bounds[0][0]
-        departure_date_ub = self.bounds[1][0]
+        departure_date_lb = MGALowThrustTrajectoryOptimizationProblem.conv(self.bounds[0][0])
+        departure_date_ub = MGALowThrustTrajectoryOptimizationProblem.conv(self.bounds[1][0])
+        # departure_date_lb = self.bounds[0][0]
+        # departure_date_ub = self.bounds[1][0]
 
         departure_velocity_lb = self.bounds[0][1]
         departure_velocity_ub = self.bounds[1][1]
 
-        time_of_flight_lb = self.bounds[0][2]
-        time_of_flight_ub = self.bounds[1][2]
+        # time_of_flight_lb = self.bounds[0][2]
+        # time_of_flight_ub = self.bounds[1][2]
+        time_of_flight_lb = MGALowThrustTrajectoryOptimizationProblem.conv(self.bounds[0][2])
+        time_of_flight_ub = MGALowThrustTrajectoryOptimizationProblem.conv(self.bounds[1][2])
 
         free_coefficients_lb = self.bounds[0][3]
         free_coefficients_ub = self.bounds[1][3]
@@ -249,20 +264,17 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 swingby_periapses, incoming_velocities, departure_velocity=departure_velocity,
                 arrival_velocity=self.arrival_velocity)
 
-        if post_processing == False:
-            try:
-                transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+        try:
+            transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+            if post_processing == False:
                 objective = transfer_trajectory_object.delta_v 
-            except RuntimeError as e:
-                print(str(e), "\n")#, "Objective increased by 10**16")
-                objective = 10**16
-
-            # print('Fitness evaluated')
-            return [objective]
-        if post_processing == True:
-            try:
-                transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+            if post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
-            except RuntimeError as e:
-                print(str(e), "\n")#, "Objective increased by 10**16")
+        except RuntimeError as e:
+            # print(str(e), "\n")#, "Objective increased by 10**16")
+            objective = 10**16
+            if post_processing == True:
                 raise
+        if post_processing == False:
+            return [objective]
+            # print('Fitness evaluated')
