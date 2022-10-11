@@ -35,8 +35,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     from tudatpy.kernel.astro import element_conversion
     from tudatpy.kernel.trajectory_design import shape_based_thrust
     from tudatpy.kernel.trajectory_design import transfer_trajectory
-    from tudatpy.kernel.interface import spice
-    spice.load_standard_kernels()
     
     
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
@@ -87,28 +85,30 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     """
     
     # mgso General parameters
-    max_no_of_gas = 2
-    no_of_sequence_recursions = max_no_of_gas # amount of different predefiend islands
+    max_no_of_gas = 0
+    # no_of_sequence_recursions = 1 if max_no_of_gas == 0 else max_no_of_gas # amount of different predefiend islands
+    no_of_sequence_recursions = max_no_of_gas
     max_number_of_exchange_generations = 1 # amount of times it evolves
     # number_of_sequences_per_planet = 4
-    number_of_sequences_per_planet = [3 for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
     # number_of_sequences_per_planet = [1 for i in range(max_no_of_gas)]
     
     ## Specific parameters
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 20
-    pop_size = 500
+    num_gen = 2
+    pop_size = 100
     assert pop_size > 62
     no_of_points = 1000
-    bounds = [[1000, 0, 50, -10**4, 0],
-            [1200, 0, 2000, 10**4, 6]]
-    # print('Departure date bounds : [%d, %d]' %
-    #         (time_conversion.julian_day_to_calendar_date(1000),
-    #     time_conversion.julian_day_to_calendar_date(1200)))
+    bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
+            [9200, 0, 1200, 7000, 2e11, 10**4, 2]]
+    print('Departure date bounds : [%s, %s]' %
+            (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),
+        time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[1][0]) + 51544.5)))
     subdirectory = '/mgso_full_test'
-    shutil.rmtree(output_directory + subdirectory)
+    if os.path.exists(output_directory + subdirectory):
+        shutil.rmtree(output_directory + subdirectory)
     # subdirectory = ''
 
     # num_gen = 1
@@ -117,6 +117,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[10000*julian_day, 100, 50*julian_day, -10**6, 0],
     #         [10000*julian_day, 100, 2000*julian_day, 10**6, 6]]
     # subdirectory = '/island_testing/'
+
     
     topo.run_mgso_optimisation(departure_planet=departure_planet,
                                 arrival_planet=arrival_planet,
@@ -131,5 +132,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                                 no_of_sequence_recursions=no_of_sequence_recursions,
                                 max_number_of_exchange_generations=max_number_of_exchange_generations,
                                 number_of_sequences_per_planet=number_of_sequences_per_planet,
-                                seed=seed)
+                                seed=seed,
+                                write_results_to_file=write_results_to_file)
 

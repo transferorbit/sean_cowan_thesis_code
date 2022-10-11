@@ -18,10 +18,13 @@ import matplotlib.pyplot as plt
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt
+from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
 from trajectory3d import trajectory_3d
+from tudatpy.kernel.interface import spice
+spice.load_standard_kernels()
 
 import io
 import sys
@@ -298,8 +301,10 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     # Departure node
     node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
 
+    assert len(incoming_velocities) == len(swingby_periapses)
+
     # Swingby nodes
-    for i in range(len(transfer_body_order)-2):
+    for i in range(len(transfer_body_order)-2): # no_of_gas
         node_parameters = list()
         node_parameters.append(incoming_velocities[i])
         # node_parameters.append(100)
@@ -474,35 +479,55 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
-def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
-    "Saturn", "Uranus", "Neptune"], ephemeris_type='JPL', planet_kep_states = None):
+def create_modified_system_of_bodies(dpv=None, departure_date=None, central_body_mu=None,
+        bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus",
+            "Neptune"], ephemeris_type='JPL', planet_kep_states = None):
+
     frame_origin = 'SSB'
     frame_orientation = 'ECLIPJ2000'
+    # central_body_mu = 1.3271244e20 # m^3 / s^2
+    # departure_date = dpv()[0]
+    # departure_date = 10000*constants.JULIAN_DAY
+    #
+    # planet_kep_states = [[0, 1, 0, 0, 0, 0], [0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
+    #         77.45779628,     48.33076593],
+    # [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
+    # [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
+    # [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
+    # [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
+    # [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
+    # [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
+    # [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
+    #     131.78422574]]
 
     # this needs spice
+    # print('Before spice data is needed')
     body_list_settings = lambda : \
         environment_setup.get_default_body_settings(bodies=bodies,
                 base_frame_origin=frame_origin, base_frame_orientation=frame_orientation)
+    # print('After spice data is needed')
+    # print(bodies)
     for it, i in enumerate(bodies):
+        # print(it)
         current_body_list_settings = body_list_settings()
         current_body_list_settings.add_empty_settings(i)            
         if ephemeris_type=='JPL':
             current_body_list_settings.get(i).ephemeris_settings = \
             environment_setup.ephemeris.approximate_jpl_model(i)        
-        elif ephemeris_type=='KEPFROMSPICE':
-            current_body_list_settings.get(i).ephemeris_settings = \
-            environment_setup.ephemeris.keplerian_from_spice(i, 
-                    departure_date,
-                    central_body_mu,
-                    frame_origin,
-                    frame_orientation)
-        elif ephemeris_type=='KEPLERIAN':
-            current_body_list_settings.get(i).ephemeris_settings = \
-            environment_setup.ephemeris.keplerian(planet_kep_states[it], 
-                    departure_date,
-                    central_body_mu,
-                    frame_origin,
-                    frame_orientation)
+        # elif ephemeris_type=='KEPFROMSPICE':
+        #     current_body_list_settings.get(i).ephemeris_settings = \
+        #     environment_setup.ephemeris.keplerian_from_spice(i, 
+        #             departure_date,
+        #             central_body_mu,
+        #             frame_origin,
+        #             frame_orientation)
+        # elif ephemeris_type=='KEP':
+        #     current_body_list_settings.get(i).ephemeris_settings = \
+        #     environment_setup.ephemeris.keplerian(planet_kep_states[it], 
+        #             departure_date,
+        #             central_body_mu,
+        #             frame_origin,
+        #             frame_orientation)
 
 
             

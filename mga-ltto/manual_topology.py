@@ -38,7 +38,6 @@ from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
 import mga_low_thrust_utilities as util
 
 current_dir = os.getcwd()
-write_results_to_file = True
 
 class manualTopology:
 
@@ -51,7 +50,7 @@ class manualTopology:
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds)
         problem = pg.problem(mga_low_thrust_object)
-        algorithm = pg.algorithm(pg.gaco(gen=num_gen))
+        algorithm = pg.algorithm(pg.sga(gen=num_gen))
         return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
@@ -204,7 +203,8 @@ def run_mgso_optimisation(departure_planet : str,
                             no_of_sequence_recursions = 1,
                             max_number_of_exchange_generations = 1,
                             number_of_sequences_per_planet : list =  [],
-                            seed : int = 421):
+                            seed : int = 421,
+                            write_results_to_file=False):
 
     planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
     planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]

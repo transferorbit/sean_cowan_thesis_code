@@ -79,17 +79,18 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ####################################################################
 
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]',
-            'Free coefficient [-]', "Number of revolutions [-]"]
+            'Free coefficient [-]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
+            'Number of revolutions [-]']
     
     # testing problem functionality
     transfer_body_order = ["Earth", "Mars", "Jupiter"]
-    free_param_count = 0
+    free_param_count = 2
     num_gen = 30
     pop_size = 500
     no_of_points = 500
-    bounds = [[1000, 0, 200, -10**4, 0],
-            [1200, 0, 1200, 10**4, 0]]
-    subdirectory=  '/EMJ_2fp_1_10'
+    bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
+            [10000, 0, 1200, 7000, 2e11, 10**4, 0]]
+    subdirectory=  '/EMJ_addedparams_test'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -104,13 +105,13 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # subdirectory = '/verification/gondelach_N2'
 
     # transfer_body_order = ["Earth", "Mars"]
-    # free_param_count = 2
+    # free_param_count = 0
     # num_gen = 30
-    # pop_size = 300
+    # pop_size = 1000
     # no_of_points = 500
-    # bounds = [[9985, 0, 1100, -10**4, 2],
-    #         [9985, 0, 1100, 10**4, 2]]
-    # subdirectory = '/verification/gondelach_2fp_N2'
+    # bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2],
+    #         [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
+    # subdirectory = '/verification/addedparams_0fp_N2'
     
     # TGRRoegiers p.116
     # mjd_depart_lb = 58849
@@ -248,15 +249,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             save2txt(auxiliary_info, 'auxiliary_info.dat', output_directory + subdirectory +
                 unique_identifier)
 
-            champions_dict[i] = champions[i]
-            champion_fitness_dict[i] = champion_fitness[i]
-            champions_dict[i][0] /= 86400.0
-            for x in range(len(transfer_body_order)-1):
-                champions_dict[i][2+x] /= 86400.0
-
             current_island_f = {}
             current_island_x = {}
-            unique_identifier = "/island_" + str(i) + "/"
             for j in range(num_gen):
                 current_island_f[j] = list_of_f_dicts[j][i]
                 current_island_x[j] = list_of_x_dicts[j][i]
@@ -264,6 +258,16 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                     + subdirectory + unique_identifier)
             save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
                     subdirectory + unique_identifier)
+
+            champions_dict[i] = champions[i]
+            champion_fitness_dict[i] = champion_fitness[i]
+            champions_dict[i][0] /= 86400.0
+            for x in range(len(transfer_body_order)-1):
+                champions_dict[i][2+x] /= 86400.0
+                # if x != 0:
+                #     champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)] = \
+                #     10**champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)]
+
 
     if write_results_to_file:
 

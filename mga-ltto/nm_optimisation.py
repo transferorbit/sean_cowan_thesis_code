@@ -78,10 +78,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Problem Setup ###############################################
 ####################################################################
 
-    bound_names= ['Departure date', 'Departure velocity', 'Time of Flight',
-            'Free coefficient', "Number of revolutions"]
+    bound_names= ['Departure date', 'Departure velocity', 'Time of Flight', 'Free coefficient',
+            'Incoming velocity', 'Swingby periapsis', 'Number of revolutions']
     # test minlp optimization
-    my_problem = pg.rastrigin(5) 
     
     # testing problem functionality
     # transfer_body_order = ["Earth", "Mars", "Jupiter"]
@@ -94,23 +93,28 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # subdirectory=  '/test_optimisation'
     
     # verification Gondelach
-    transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 0
-    num_gen = 10
-    pop_size = 30
-    no_of_points = 500
-    bounds = [[10025, 0, 1050, -10**4, 2],
-            [10025, 0, 1050, 10**4, 2]]
-    subdirectory = '/verification/neldermead_0fp_N2'
-
     # transfer_body_order = ["Earth", "Mars"]
-    # free_param_count = 2
-    # num_gen = 10
-    # pop_size = 30
+    # free_param_count = 0
+    # num_gen = 20
+    # pop_size = 3000
     # no_of_points = 500
-    # bounds = [[9985, 0, 1100, -10**4, 2],
-    #         [9985, 0, 1100, 10**4, 2]]
-    # subdirectory = '/verification/neldermead_2fp_N2'
+    #
+    # bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2],
+    #         [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
+    # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2],
+    #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
+    # subdirectory = '/verification/neldermead_0fp_jpl'
+
+    transfer_body_order = ["Earth", "Mars"]
+    free_param_count = 2
+    num_gen = 20
+    pop_size = 3000
+    no_of_points = 500
+    # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2],
+    #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
+    bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2],
+            [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
+    subdirectory = '/verification/neldermead_2fp_N2'
 
     # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]
@@ -149,11 +153,20 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     print('Creating archipelago')
     archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
 
-    for _ in range(1): # step between which topology steps are executed
+    list_of_f_dicts = []
+    list_of_x_dicts = []
+    for i in range(1): # step between which topology steps are executed
         print('Evolving ..')
         archi.evolve()
         # archi.status
         # archi.wait_check()
+        champs_dict_per_gen = {}
+        champ_f_dict_per_gen = {}
+        for j in range(number_of_islands):
+            champs_dict_per_gen[j] = archi.get_champions_x()[j]
+            champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
+        list_of_x_dicts.append(champs_dict_per_gen)
+        list_of_f_dicts.append(champ_f_dict_per_gen)
         archi.wait_check()
     print('Evolution finished')
 
@@ -221,6 +234,17 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             save2txt(node_times, 'node_times.dat', output_directory + subdirectory + unique_identifier)
             save2txt(auxiliary_info, 'auxiliary_info.dat', output_directory + subdirectory +
                 unique_identifier)
+
+            current_island_f = {}
+            current_island_x = {}
+            for j in range(num_gen):
+                current_island_f[j] = list_of_f_dicts[j][i]
+                current_island_x[j] = list_of_x_dicts[j][i]
+            save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
+                    + subdirectory + unique_identifier)
+            save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
+                    subdirectory + unique_identifier)
+
 
             champions_dict[i] = champions[i]
             champion_fitness_dict[i] = champion_fitness[i]
