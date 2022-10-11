@@ -18,10 +18,13 @@ import matplotlib.pyplot as plt
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt
+from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
 from trajectory3d import trajectory_3d
+from tudatpy.kernel.interface import spice
+spice.load_standard_kernels()
 
 import io
 import sys
@@ -295,6 +298,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
 
     node_free_parameters = list()
 
+    assert len(incoming_velocities) == len(swingby_periapses)
     # Departure node
     node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
 
@@ -474,8 +478,10 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
-def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
-    "Saturn", "Uranus", "Neptune"], ephemeris_type='JPL', planet_kep_states = None):
+def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun",
+    "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"],
+    ephemeris_type='JPL', planet_kep_states = None):
+
     frame_origin = 'SSB'
     frame_orientation = 'ECLIPJ2000'
 
