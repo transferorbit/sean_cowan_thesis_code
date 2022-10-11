@@ -51,7 +51,7 @@ class manualTopology:
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds)
         problem = pg.problem(mga_low_thrust_object)
-        algorithm = pg.algorithm(pg.gaco(gen=num_gen))
+        algorithm = pg.algorithm(pg.sga(gen=num_gen))
         return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
@@ -257,6 +257,8 @@ def run_mgso_optimisation(departure_planet : str,
     p_bump = False
     for p in range_no_of_sequence_recursions: # gonna be max_no_of_gas
 
+        possible_planets = len(planet_list)
+        combinations_left = possible_planets**(max_no_of_gas-p)# or no_of_sequence_recursions
 
         if p_bump == True:
             p -= 1
@@ -287,8 +289,6 @@ def run_mgso_optimisation(departure_planet : str,
             directtransferbump = 1
         else:
             number_of_islands = number_of_sequences_per_planet[p]*len(planet_list)
-            possible_planets = len(planet_list)
-            combinations_left = possible_planets**(max_no_of_gas-p)# or no_of_sequence_recursions
 
             if number_of_islands >= combinations_left:
                 print('Number of islands from %i to %i' % (number_of_islands, combinations_left))
@@ -365,6 +365,7 @@ def run_mgso_optimisation(departure_planet : str,
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
+            print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
             mga_sequence_characters = \
@@ -399,7 +400,7 @@ def run_mgso_optimisation(departure_planet : str,
                     continue
                 delta_v[it-1] = delta_v.pop(it)
 
-        # print(delta_v, temp_ptbs)
+        print(delta_v, temp_ptbs)
         current_itbs = manualTopology.get_itbs(dv=delta_v, ptbs=temp_ptbs,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence), pc=planet_characters, pl=planet_list)
         

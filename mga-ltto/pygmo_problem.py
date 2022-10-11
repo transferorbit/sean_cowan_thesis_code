@@ -158,7 +158,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for _ in range(self.no_of_legs): # number of revolutions
             upper_bounds.append(number_of_revolutions_ub)
 
-        print(lower_bounds, upper_bounds)
         return (lower_bounds, upper_bounds)
 
     def get_nic(self):
@@ -167,6 +166,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def get_nix(self):
         # return self.no_of_legs + self.total_no_of_free_coefficients # number of revolution parameters
         return self.total_no_of_free_coefficients + self.no_of_legs
+        # return  self.no_of_legs
 
     def get_states_along_trajectory(self, no_of_points) -> dict:
         """
@@ -219,7 +219,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         9..20 - free_coefficients
         20..23 - number of revolutions
         """
-        print("Design Parameters:", design_parameter_vector, "\n")
+        # print("Design Parameters:", design_parameter_vector, "\n")
         self.design_parameter_vector = design_parameter_vector
 
         # parameters
@@ -304,10 +304,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
             if post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
         except RuntimeError as e:
-            print(str(e), "\n")#, "Objective increased by 10**16")
+            # print(str(e), "\n")#, "Objective increased by 10**16")
             objective = 10**16
             if post_processing == True:
                 raise
         if post_processing == False:
             return [objective]
-            print('Fitness evaluated')
+            # print('Fitness evaluated')
