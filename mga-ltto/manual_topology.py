@@ -230,13 +230,22 @@ def run_mgso_optimisation(departure_planet : str,
     # print(len(planet_list)
     evaluated_sequences_results = 'Sequence, Delta V, ToF\n'
     leg_results = 'Leg, Delta V, ToF, #rev\n'
+
+    # border case for max_no_of_gas == 0
+    range_no_of_sequence_recursions = [i for i in range(no_of_sequence_recursions)]
+    if max_no_of_gas == 0:
+        no_of_sequence_recursions = 1
+        range_no_of_sequence_recursions = [0]
+        number_of_sequences_per_planet = [0]
+
+    # variable definitions
     champions_x = {}
     champions_f = {}
     island_problems = {}
     evaluated_sequences_dict = {}
     mga_sequence_characters_list = []
     itbs = []
-    number_of_islands_list = [] # list of number of islands per recursion
+    number_of_islands_array = np.zeros(no_of_sequence_recursions+1, dtype=int) # list of number of islands per recursion
     list_of_lists_of_x_dicts = []# list containing list of dicts of champs per gen
     list_of_lists_of_f_dicts = []
     
@@ -246,7 +255,7 @@ def run_mgso_optimisation(departure_planet : str,
     
     # Loop for number of sequence recursions
     p_bump = False
-    for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
+    for p in range_no_of_sequence_recursions: # gonna be max_no_of_gas
 
         possible_planets = len(planet_list)
         combinations_left = possible_planets**(max_no_of_gas-p)# or no_of_sequence_recursions
@@ -267,6 +276,7 @@ def run_mgso_optimisation(departure_planet : str,
         directtransferbump = 0
         if p == 0:
             number_of_islands = number_of_sequences_per_planet[p]*len(planet_list) + 1
+            print(number_of_islands)
             transfer_body_order = [departure_planet, arrival_planet]
             temp_evaluated_sequences.append(transfer_body_order) 
             temp_ptbs.append([departure_planet])
@@ -285,7 +295,7 @@ def run_mgso_optimisation(departure_planet : str,
                 number_of_islands = combinations_left
 
         print('Number of islands: ', number_of_islands, '\n')
-        number_of_islands_list.append(number_of_islands)
+        number_of_islands_array[p] = number_of_islands
         if p == 0:
             print(transfer_body_order)
         for i in range(number_of_islands - directtransferbump):
@@ -325,7 +335,7 @@ def run_mgso_optimisation(departure_planet : str,
             # archi.wait_check()
             champs_dict_per_gen = {}
             champ_f_dict_per_gen = {}
-            for j in range(number_of_islands_list[p]):
+            for j in range(number_of_islands_array[p]):
                 champs_dict_per_gen[j] = archi.get_champions_x()[j]
                 champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
             list_of_x_dicts.append(champs_dict_per_gen)
@@ -335,7 +345,7 @@ def run_mgso_optimisation(departure_planet : str,
         list_of_lists_of_x_dicts.append(list_of_x_dicts)
         list_of_lists_of_f_dicts.append(list_of_f_dicts)
         print('Evolution finished')
-        # print('Number of islands this iteration', number_of_islands_list[p])
+        # print('Number of islands this iteration', number_of_islands_array[p])
         # print('champ_f_dict_per_gen : ', champ_f_dict_per_gen)
         # print('list_of_f_dicts : ', list_of_f_dicts)
 
@@ -355,6 +365,7 @@ def run_mgso_optimisation(departure_planet : str,
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
+            print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
             mga_sequence_characters = \
@@ -378,7 +389,7 @@ def run_mgso_optimisation(departure_planet : str,
             # than YN
 
         ### Define ITBS ###
-        if p == 0:
+        if p == range_no_of_sequence_recursions[0]:
             # print(delta_v, temp_ptbs)
             dt_delta_v = delta_v[0]
             dt_sequence = temp_ptbs[0]
@@ -389,7 +400,7 @@ def run_mgso_optimisation(departure_planet : str,
                     continue
                 delta_v[it-1] = delta_v.pop(it)
 
-        # print(delta_v, temp_ptbs)
+        print(delta_v, temp_ptbs)
         current_itbs = manualTopology.get_itbs(dv=delta_v, ptbs=temp_ptbs,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence), pc=planet_characters, pl=planet_list)
         
@@ -435,12 +446,12 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(leg_results)
             file_object.close()
 
-    for layer in range(no_of_sequence_recursions): # 2
+    for layer in range_no_of_sequence_recursions: # 2
         layer_folder = '/layer_%i' % (layer)
         champions_dict = {}
         champion_fitness_dict = {}
         # for i in range(len(champions_x[layer])):
-        for i in range(number_of_islands_list[layer]):
+        for i in range(number_of_islands_array[layer]):
             # print("Champion: ", champions[i])
             mga_low_thrust_problem = island_problems[layer][i]
             # print(champions_x)

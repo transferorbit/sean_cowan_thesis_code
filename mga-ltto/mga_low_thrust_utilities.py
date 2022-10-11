@@ -298,6 +298,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
 
     node_free_parameters = list()
 
+    assert len(incoming_velocities) == len(swingby_periapses)
     # Departure node
     node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
 
@@ -318,7 +319,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_free_parameters.append(node_parameters)
 
     # Arrival node
-    node_free_parameters.append(np.array([arrival_velocity, 0, 0]))
+    node_free_parameters.append(np.array([arrival_velocity, 0, 0], dtype=float))
     
     return node_free_parameters
 
@@ -479,10 +480,9 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
 
     return axial_velocity_shaping_functions
 
-def create_modified_system_of_bodies(dpv=None, departure_date=None, central_body_mu=None,
-        bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus",
-            "Neptune"], ephemeris_type='JPL', planet_kep_states = None):
-
+def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun",
+    "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"],
+    ephemeris_type='JPL', planet_kep_states = None):
     frame_origin = 'SSB'
     frame_orientation = 'ECLIPJ2000'
     # central_body_mu = 1.3271244e20 # m^3 / s^2
@@ -514,20 +514,20 @@ def create_modified_system_of_bodies(dpv=None, departure_date=None, central_body
         if ephemeris_type=='JPL':
             current_body_list_settings.get(i).ephemeris_settings = \
             environment_setup.ephemeris.approximate_jpl_model(i)        
-        # elif ephemeris_type=='KEPFROMSPICE':
-        #     current_body_list_settings.get(i).ephemeris_settings = \
-        #     environment_setup.ephemeris.keplerian_from_spice(i, 
-        #             departure_date,
-        #             central_body_mu,
-        #             frame_origin,
-        #             frame_orientation)
-        # elif ephemeris_type=='KEP':
-        #     current_body_list_settings.get(i).ephemeris_settings = \
-        #     environment_setup.ephemeris.keplerian(planet_kep_states[it], 
-        #             departure_date,
-        #             central_body_mu,
-        #             frame_origin,
-        #             frame_orientation)
+        elif ephemeris_type=='KEPFROMSPICE':
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian_from_spice(i, 
+                    departure_date,
+                    central_body_mu,
+                    frame_origin,
+                    frame_orientation)
+        elif ephemeris_type=='KEP':
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian(planet_kep_states[it], 
+                    departure_date,
+                    central_body_mu,
+                    frame_origin,
+                    frame_orientation)
 
 
             

@@ -125,7 +125,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         number_of_revolutions_lb = self.bounds[0][6]
         number_of_revolutions_ub = self.bounds[1][6]
-        # print(self.bounds)
 
         lower_bounds = [departure_date_lb] # departure date
         lower_bounds.append(departure_velocity_lb) # departure velocity # FIXED
@@ -139,7 +138,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
             lower_bounds.append(free_coefficients_lb)
         for _ in range(self.no_of_legs): # number of revolutions
             lower_bounds.append(number_of_revolutions_lb)
-
 
         upper_bounds = [departure_date_ub] # departure date
         upper_bounds.append(departure_velocity_ub) # departure velocity
@@ -162,7 +160,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_nix(self):
         # free coefficients, number of revolutions
-        # print(2 * self.no_of_gas + self.total_no_of_free_coefficients + self.no_of_legs)
         return self.total_no_of_free_coefficients + self.no_of_legs 
 
     def get_states_along_trajectory(self, no_of_points) -> dict:
@@ -209,8 +206,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         """
         Assuming no_of_gas == 2 & #fc == 2
-        1 - departure_date
-        0 - departure velocity
+        0 - departure_date
+        1 - departure velocity
         2..5 - time of flights
         5..7 - incoming velocities
         7..9 - swingby periapses
@@ -273,9 +270,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for i, body in enumerate(self.transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
+        # swingby_periapses = np.array([planetary_radii_sequence[i] + self.swingby_altitude for i in
+        #    range(self.no_of_gas)]) # defined depending on problem
         swingby_periapses_array = np.array([planetary_radii_sequence[i] + swingby_periapses[i] for i in
             range(self.no_of_gas)]) # defined depending on problem
-        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)]) 
+        # incoming_velocities = np.array([2000 for _ in range(self.no_of_gas)]) 
+        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
 
         # node times
         self.node_times = mga_util.get_node_times(self.transfer_body_order, departure_date, time_of_flights)

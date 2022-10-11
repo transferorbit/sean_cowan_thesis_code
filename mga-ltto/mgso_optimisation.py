@@ -5,6 +5,8 @@ Date Created: 26-07-2022
 
 This module performs the optimization calculations using the help modules from mga-low-thrust-utilities.py and
 pygmo-utilities.py
+This module is the child of optimization_runs.py which performed the optimization until mid
+September 2022
 '''
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
@@ -86,23 +88,20 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     
     # mgso General parameters
     max_no_of_gas = 0
-    # no_of_sequence_recursions = 1 if max_no_of_gas == 0 else max_no_of_gas # amount of different predefiend islands
-    no_of_sequence_recursions = max_no_of_gas
+    no_of_sequence_recursions = 1
     max_number_of_exchange_generations = 1 # amount of times it evolves
-    # number_of_sequences_per_planet = 4
     number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
-    # number_of_sequences_per_planet = [1 for i in range(max_no_of_gas)]
     
     ## Specific parameters
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 2
+    num_gen = 1
     pop_size = 100
     assert pop_size > 62
     no_of_points = 1000
     bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
-            [9200, 0, 1200, 7000, 2e11, 10**4, 2]]
+            [9200, 0, 1200, 7000, 2e11, 10**4, 4]]
     print('Departure date bounds : [%s, %s]' %
             (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),
         time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[1][0]) + 51544.5)))

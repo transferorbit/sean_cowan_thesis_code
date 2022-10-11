@@ -78,15 +78,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Problem Setup ###############################################
 ####################################################################
 
-    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]',
-            'Free coefficient [-]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-            'Number of revolutions [-]']
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+            'Free coefficient [-]', 'Number of revolutions [-]']
     
     # testing problem functionality
     transfer_body_order = ["Earth", "Mars", "Jupiter"]
     free_param_count = 2
-    num_gen = 30
-    pop_size = 500
+    num_gen = 1
+    pop_size = 100
     no_of_points = 500
     bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
             [10000, 0, 1200, 7000, 2e11, 10**4, 0]]
