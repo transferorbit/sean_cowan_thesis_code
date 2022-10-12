@@ -139,6 +139,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for _ in range(self.no_of_legs): # number of revolutions
             lower_bounds.append(number_of_revolutions_lb)
 
+
         upper_bounds = [departure_date_ub] # departure date
         upper_bounds.append(departure_velocity_ub) # departure velocity
 

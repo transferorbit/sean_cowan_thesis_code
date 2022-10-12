@@ -113,6 +113,8 @@ class manualTopology:
     def get_leg_specifics(mga_sequence : str, champion_x : list, delta_v_per_leg : list,
             number_of_free_coefficients : int = 0) -> str:
         """
+        This function changes when the optimisation changes
+
         'EMMJ' EM MM MJ
         EM, dV, ToF, #rev
         MM, dV, ToF, #rev
@@ -121,11 +123,14 @@ class manualTopology:
         leg_information = ""
         chars = [i for i in mga_sequence]
         number_of_legs = len(chars) - 1
+        # print(chars, number_of_legs, champion_x)
         for i in range(number_of_legs):
             current_leg = chars[i] + chars[i+1]
             current_dV = delta_v_per_leg[i]
             current_tof = champion_x[2+i] / 86400
-            current_rev = champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * number_of_legs + i]
+            # current_rev = champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * number_of_legs + i]
+            current_rev = champion_x[len(champion_x) - number_of_legs + i]
+            # print(current_rev)
             leg_information += "%s, %d, %d, %i\n" % (current_leg, current_dV, current_tof, current_rev)
         return leg_information
 
@@ -210,7 +215,8 @@ def run_mgso_optimisation(departure_planet : str,
     planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
     
     # Remove excess planets above target planet (except for depature)
-    planet_list = manualTopology.remove_excess_planets(planet_list, departure_planet, arrival_planet)
+    planet_list = manualTopology.remove_excess_planets(planet_list, departure_planet,
+        arrival_planet) if max_no_of_gas != 0 else [0]
     planet_characters = manualTopology.remove_excess_planets(planet_characters, departure_planet, arrival_planet)
     unique_identifier = '/topology_database'
 
@@ -232,10 +238,10 @@ def run_mgso_optimisation(departure_planet : str,
     leg_results = 'Leg, Delta V, ToF, #rev\n'
 
     # border case for max_no_of_gas == 0
-    range_no_of_sequence_recursions = [i for i in range(no_of_sequence_recursions)]
+    # range_no_of_sequence_recursions = [i for i in range(no_of_sequence_recursions)]
     if max_no_of_gas == 0:
-        no_of_sequence_recursions = 1
-        range_no_of_sequence_recursions = [0]
+    #     no_of_sequence_recursions = 1
+    #     range_no_of_sequence_recursions = [0]
         number_of_sequences_per_planet = [0]
 
     # variable definitions
@@ -255,7 +261,7 @@ def run_mgso_optimisation(departure_planet : str,
     
     # Loop for number of sequence recursions
     p_bump = False
-    for p in range_no_of_sequence_recursions: # gonna be max_no_of_gas
+    for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
 
         possible_planets = len(planet_list)
         combinations_left = possible_planets**(max_no_of_gas-p)# or no_of_sequence_recursions
@@ -276,7 +282,6 @@ def run_mgso_optimisation(departure_planet : str,
         directtransferbump = 0
         if p == 0:
             number_of_islands = number_of_sequences_per_planet[p]*len(planet_list) + 1
-            print(number_of_islands)
             transfer_body_order = [departure_planet, arrival_planet]
             temp_evaluated_sequences.append(transfer_body_order) 
             temp_ptbs.append([departure_planet])
@@ -365,7 +370,7 @@ def run_mgso_optimisation(departure_planet : str,
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
-            print(delta_v, delta_v_per_leg, tof)
+            # print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
             mga_sequence_characters = \
@@ -387,11 +392,13 @@ def run_mgso_optimisation(departure_planet : str,
             # we have island_problms in a list
             # deltav per leg weighted average based on how far away the transfer is (EM is stricter
             # than YN
+        if max_no_of_gas == 0:
+            break
 
         ### Define ITBS ###
-        if p == range_no_of_sequence_recursions[0]:
-            # print(delta_v, temp_ptbs)
-            dt_delta_v = delta_v[0]
+        if p == 0:
+            # Remove direct transfer from the determination of best itbs
+            dt_delta_v = delta_v[0] # dt is direct transfer
             dt_sequence = temp_ptbs[0]
             temp_ptbs.pop(0)
             delta_v.pop(0)
@@ -446,7 +453,7 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(leg_results)
             file_object.close()
 
-    for layer in range_no_of_sequence_recursions: # 2
+    for layer in range(no_of_sequence_recursions): # 2
         layer_folder = '/layer_%i' % (layer)
         champions_dict = {}
         champion_fitness_dict = {}
