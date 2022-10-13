@@ -106,15 +106,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # subdirectory = '/verification/neldermead_0fp_jpl'
 
     transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 2
-    num_gen = 20
-    pop_size = 3000
+    free_param_count = 0
+    num_gen = 1 #nelder mead doesn't need multiple generations
+    pop_size = 100
     no_of_points = 500
-    # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2],
+    # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2], #2fp
     #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
-    bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2],
+    bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2], #0fp
             [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
-    subdirectory = '/verification/neldermead_2fp_N2'
+    subdirectory = '/verification/neldermead_2fp_N2' #mbf is manual base functions
 
     # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]
@@ -135,7 +135,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     mga_low_thrust_problem = \
     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-            no_of_free_parameters=free_param_count, bounds=bounds)#, planet_kep_states=planet_kep_states)
+            no_of_free_parameters=free_param_count, bounds=bounds, manual_base_functions=True)#, planet_kep_states=planet_kep_states)
     # mga_low_thrust_problem.get_system_of_bodies()
     # prob = my_problem
     prob = pg.problem(mga_low_thrust_problem)
@@ -155,7 +155,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     list_of_f_dicts = []
     list_of_x_dicts = []
-    for i in range(1): # step between which topology steps are executed
+    for i in range(num_gen): # step between which topology steps are executed
         print('Evolving ..')
         archi.evolve()
         # archi.status

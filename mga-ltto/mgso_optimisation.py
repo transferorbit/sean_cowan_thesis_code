@@ -87,10 +87,12 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     """
     
     # mgso General parameters
-    max_no_of_gas = 0
+    max_no_of_gas = 2
     no_of_sequence_recursions = 1
     # max_number_of_exchange_generations = 1 # amount of times it evolves
-    number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
+    manual_base_functions = False
+    leg_exchange = False
     
     ## Specific parameters
     departure_planet = "Earth"
@@ -132,5 +134,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                                 # max_number_of_exchange_generations=max_number_of_exchange_generations,
                                 number_of_sequences_per_planet=number_of_sequences_per_planet,
                                 seed=seed,
-                                write_results_to_file=write_results_to_file)
+                                write_results_to_file=write_results_to_file,
+                                manual_base_functions=manual_base_functions,
+                                leg_exchange=leg_exchange)
 

@@ -45,7 +45,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     swingby_altitude=200000000, #2e5 km
                     departure_velocity=2000, 
                     arrival_velocity=0,
-                    planet_kep_states = None):
+                    planet_kep_states = None,
+                    manual_base_functions=False):
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -69,9 +70,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
         #         "Uranus", "Neptune"] 
-        self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
-        self.central_body = 'Sun'
-        self.central_body_mu = 1.3271244e20 # m^3 / s^2
+        # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
+        # self.central_body = 'Sun'
+        # self.central_body_mu = 1.3271244e20 # m^3 / s^2
 
         # self.system_of_bodies = lambda :  mga_util.create_modified_system_of_bodies(self.bounds[0][0], # departure date
         #     self.central_body_mu, bodies=self.bodies_to_create, ephemeris_type='JPL',
@@ -89,6 +90,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.planetary_radii = {'Sun': 696000000.0, 'Mercury': 2439699.9999999995, 'Venus':
                 6051800.0, 'Earth': 6371008.366666666, 'Mars': 3389526.6666666665, 'Jupiter':
                 69946000.0, 'Saturn': 58300000.0}
+
+        self.manual_base_functions = manual_base_functions
 
     def mjd2000_to_seconds(self, mjd2000):
         # mjd2000 = 51544
@@ -265,6 +268,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                                                             bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
+                                                            manual_base_functions=self.manual_base_functions,
                                                             number_of_revolutions=number_of_revolutions)
 
         planetary_radii_sequence = np.zeros(self.no_of_gas)

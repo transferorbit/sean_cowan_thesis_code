@@ -44,27 +44,43 @@ class manualTopology:
     def __init__(self) -> None:
         pass
 
-    @staticmethod
-    def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size):
-        mga_low_thrust_object = \
-        MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-                no_of_free_parameters=free_param_count, bounds=bounds)
-        problem = pg.problem(mga_low_thrust_object)
-        algorithm = pg.algorithm(pg.sga(gen=num_gen))
-        return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
+    # @staticmethod
+    # def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size):
+    #     mga_low_thrust_object = \
+    #     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+    #             no_of_free_parameters=free_param_count, bounds=bounds)
+    #     problem = pg.problem(mga_low_thrust_object)
+    #     algorithm = pg.algorithm(pg.sga(gen=num_gen))
+    #     return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
-    def create_island_2(transfer_body_order, free_param_count, bounds, num_gen, pop_size):
-    # Create islands with population adding rather than problem creating and then random population
-    # initialization
+    def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size,
+            manual_individuals, predefined_legs = [], manual_base_functions=False):
+        """
+        Function that can create an island with completely random individuals or with partially
+        predefined individuals that were found to be high fitness
+        """
         no_of_predefined_individuals = len(predefined_legs)
         no_of_random_individuals = pop_size - no_of_predefined_individuals
-        population = \
-        pg.population(prob=MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_trajectory,
-            no_of_free_parameters=free_param_count, bounds=bounds), size=no_of_random_individuals)
-        for i in range(no_of_predefined_individuals):
-            # tof = 
-            population.push_back()
+        mga_low_thrust_problem = \
+        MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+            no_of_free_parameters=free_param_count, bounds=bounds, manual_base_functions=manual_base_functions)
+        algorithm = pg.algorithm(pg.sga(gen=num_gen))
+
+        if manual_individuals:
+            population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
+            for i in range(no_of_predefined_individuals):
+                # tof = predefined_legs[][]
+                design_parameter_vector = np.array([0, 0, 0])
+
+                population.push_back(design_parameter_vector)
+        else:
+            population = pg.population(prob=mga_low_thrust_problem, size=pop_size)
+
+
+        return pg.island(algo=algorithm, pop=population, udi=pg.mp_island()), mga_low_thrust_problem
+
+
 
     @staticmethod
     def create_random_transfer_body_order(arrival_planet, possible_planets, seed=None, max_no_of_gas=6) -> list:
@@ -108,31 +124,6 @@ class manualTopology:
         for i in range(number_of_truncations):
             planet_list.pop()
         return planet_list
-
-    @staticmethod
-    def get_leg_specifics(mga_sequence : str, champion_x : list, delta_v_per_leg : list,
-            number_of_free_coefficients : int = 0) -> str:
-        """
-        This function changes when the optimisation changes
-
-        'EMMJ' EM MM MJ
-        EM, dV, ToF, #rev
-        MM, dV, ToF, #rev
-        MJ, dV, ToF, #rev
-        """
-        leg_information = ""
-        chars = [i for i in mga_sequence]
-        number_of_legs = len(chars) - 1
-        # print(chars, number_of_legs, champion_x)
-        for i in range(number_of_legs):
-            current_leg = chars[i] + chars[i+1]
-            current_dV = delta_v_per_leg[i]
-            current_tof = champion_x[2+i] / 86400
-            # current_rev = champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * number_of_legs + i]
-            current_rev = champion_x[len(champion_x) - number_of_legs + i]
-            # print(current_rev)
-            leg_information += "%s, %d, %d, %i\n" % (current_leg, current_dV, current_tof, current_rev)
-        return leg_information
 
     @staticmethod
     def get_itbs(dv : dict=None, ptbs : dict=None, type_of_selection : str="max", pc : list = None,
@@ -195,6 +186,48 @@ class manualTopology:
 
             return itbs
 
+class separateLegMechanics:
+
+    def __init__(self, mga_sequence_characters, champion_x, delta_v_per_leg) -> None:
+        self.mga_sequence_characters = mga_sequence_characters
+        self.champion_x = champion_x
+        self.delta_v_per_leg = delta_v_per_leg
+
+
+    def get_list_of_legs(self):
+        chars = [i for i in self.mga_sequence_characters]
+        number_of_legs = len(chars) - 1
+        list_of_legs = []
+        for i in range(number_of_legs):
+            list_of_legs.append(chars[i] + chars[i+1])
+        return list_of_legs
+
+    def get_best_legs(self):
+        pass
+
+    def get_leg_specifics(self) -> str:
+        """
+        This function changes when the optimisation changes
+
+        'EMMJ' EM MM MJ
+        EM, dV, ToF, #rev
+        MM, dV, ToF, #rev
+        MJ, dV, ToF, #rev
+        """
+        leg_information = ""
+        chars = [i for i in self.mga_sequence_characters]
+        number_of_legs = len(chars) - 1
+        # print(chars, number_of_legs, self.champion_x)
+        for i in range(number_of_legs):
+            current_leg = chars[i] + chars[i+1]
+            current_dV = self.delta_v_per_leg[i]
+            current_tof = self.champion_x[2+i] / 86400
+            # current_rev = self.champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * number_of_legs + i]
+            current_rev = self.champion_x[len(self.champion_x) - number_of_legs + i]
+            # print(current_rev)
+            leg_information += "%s, %d, %d, %i\n" % (current_leg, current_dV, current_tof, current_rev)
+        return leg_information
+
 def run_mgso_optimisation(departure_planet : str,
                             arrival_planet : str,
                             free_param_count : int,
@@ -202,14 +235,15 @@ def run_mgso_optimisation(departure_planet : str,
                             pop_size : int,
                             no_of_points : int,
                             bounds : list,
-                            output_directory : str,
-                            subdirectory : str,
+                            output_directory : str = '',
+                            subdirectory : str = '',
                             max_no_of_gas = 1,
                             no_of_sequence_recursions = 1,
-                            max_number_of_exchange_generations = 1,
                             number_of_sequences_per_planet : list =  [],
                             seed : int = 421,
-                            write_results_to_file=False):
+                            write_results_to_file=False,
+                            manual_base_functions=False,
+                            leg_exchange = False):
 
     planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
     planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
@@ -220,6 +254,8 @@ def run_mgso_optimisation(departure_planet : str,
     planet_characters = manualTopology.remove_excess_planets(planet_characters, departure_planet, arrival_planet)
     unique_identifier = '/topology_database'
 
+    # TODO : replace with list of lists
+    
     evaluated_sequences_database = output_directory + subdirectory + unique_identifier +  '/evaluated_sequences_database.txt'
     separate_leg_database = output_directory + subdirectory +  unique_identifier +  '/separate_leg_database.txt'
     
@@ -288,7 +324,8 @@ def run_mgso_optimisation(departure_planet : str,
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
-                    pop_size=pop_size)
+                    pop_size=pop_size, manual_individuals=False, predefined_legs=[],
+                    manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
             directtransferbump = 1
@@ -324,8 +361,9 @@ def run_mgso_optimisation(departure_planet : str,
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p=0 ^^
-                    pop_size=pop_size)
+                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
+                    pop_size=pop_size, manual_individuals=False, predefined_legs=[],
+                    manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
@@ -384,8 +422,9 @@ def run_mgso_optimisation(departure_planet : str,
             evaluated_sequences_dict[p][j] = current_sequence_result
 
             # Save separate leg information
-            current_sequence_leg_results = manualTopology.get_leg_specifics(mga_sequence_characters, champions_x[p][j],
-                    delta_v_per_leg[j], number_of_free_coefficients=free_param_count)
+            current_sequence_leg_mechanics_object = separateLegMechanics(mga_sequence_characters,
+                    champions_x[p][j], delta_v_per_leg[j])
+            current_sequence_leg_results = current_sequence_leg_mechanics_object.get_leg_specifics()
             leg_results += current_sequence_leg_results
 
             # check auxiliary help for good legs -> SOLVE PICKLE ERROR

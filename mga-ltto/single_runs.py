@@ -66,14 +66,13 @@ transfer_body_order = ["Earth", "Mars"]
 # MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
 #         no_of_free_parameters=2)
 
-#2fp that recreates the result
-design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 1044.0, 1630.0, 28.0, 622.0, 348.0,
-    -2770.0, 2.0])
+#0fp that recreates the result
+design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 2.0])
 mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
         transfer_body_order)
 mga_low_thrust_problem = \
 MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-        no_of_free_parameters=2)
+        no_of_free_parameters=0)
 print(time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(10025.0
     + 51544.5)))
 
