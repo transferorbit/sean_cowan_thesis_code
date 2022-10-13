@@ -9,8 +9,7 @@ This module is the child of optimization_runs.py which performed the optimizatio
 September 2022
 '''
 
-if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
-# https://stackoverflow.com/questions/419163/what-does-if-name-main-do
+if __name__ == '__main__': 
 
 ###########################################################################
 # IMPORT STATEMENTS #######################################################
@@ -38,13 +37,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     from tudatpy.kernel.trajectory_design import shape_based_thrust
     from tudatpy.kernel.trajectory_design import transfer_trajectory
     
-    
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
     import mga_low_thrust_utilities as util
     import manual_topology as topo
-    
-    current_dir = os.getcwd()
-    output_directory = current_dir + '/pp_mgso'
     
 ###########################################################################
 # General parameters ######################################################
@@ -52,28 +47,13 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     
     """
     Number of generations increases the amount of time spent in parallel computing the different islands
-    Number of evolutions requires redefining the islands which requires more time on single thread.
+    Number of recursions requires redefining the islands which requires more time on single thread.
     Population size; unknown
     """
-    
+
+    current_dir = os.getcwd()
+    output_directory = current_dir + '/pp_mgso'
     julian_day = constants.JULIAN_DAY
-    
-    seed = 421
-    
-    # bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
-    # central_body_mu = 1.3271244e20 # m^3 / s^2
-    #
-    # planet_kep_states = []
-    # for i in bodies_to_create:
-    #     current_cartesian_elements = spice.get_body_cartesian_state_at_epoch(i,
-    #             "Sun",
-    #             "ECLIPJ2000",
-    #             'None',
-    #             bounds[0][0])
-    #     planet_kep_states.append(element_conversion.cartesian_to_keplerian(current_cartesian_elements,
-    #         central_body_mu))
-    #
-    # print(planet_kep_states)
 
 ####################################################################
 # MGSO Problem Setup ###############################################
@@ -84,15 +64,13 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    
-    # mgso General parameters
+    write_results_to_file = True
     max_no_of_gas = 2
     no_of_sequence_recursions = 1
-    # max_number_of_exchange_generations = 1 # amount of times it evolves
     number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
     manual_base_functions = False
     leg_exchange = False
-    write_results_to_file = True
+    seed = 421
     
     ## Specific parameters
     departure_planet = "Earth"
@@ -100,7 +78,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     free_param_count = 2
     num_gen = 1
     pop_size = 100
-    # assert pop_size > 62
+    # assert pop_size > 62 #only for gaco
     no_of_points = 1000
     bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
             [9200, 0, 1200, 7000, 2e11, 10**4, 4]]
@@ -110,15 +88,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     subdirectory = '/2ga_test'
     if os.path.exists(output_directory + subdirectory):
         shutil.rmtree(output_directory + subdirectory)
-    # subdirectory = ''
-
-    # num_gen = 1
-    # pop_size = 100
-    # no_of_points = 1000
-    # bounds = [[10000*julian_day, 100, 50*julian_day, -10**6, 0],
-    #         [10000*julian_day, 100, 2000*julian_day, 10**6, 6]]
-    # subdirectory = '/island_testing/'
-
     
     topo.run_mgso_optimisation(departure_planet=departure_planet,
                                 arrival_planet=arrival_planet,

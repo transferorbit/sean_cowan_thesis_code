@@ -55,7 +55,7 @@ class manualTopology:
 
     @staticmethod
     def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size,
-            manual_individuals, leg_database = [], manual_base_functions=False):
+            leg_exchange, leg_database = [], manual_base_functions=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
@@ -67,7 +67,7 @@ class manualTopology:
             no_of_free_parameters=free_param_count, bounds=bounds, manual_base_functions=manual_base_functions)
         algorithm = pg.algorithm(pg.sga(gen=num_gen))
 
-        if manual_individuals:
+        if leg_exchange:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
             for i in range(no_of_predefined_individuals):
                 # tof = leg_database[][]
@@ -81,10 +81,86 @@ class manualTopology:
         return pg.island(algo=algorithm, pop=population, udi=pg.mp_island()), mga_low_thrust_problem
     
     @staticmethod
-    def create_archipelago(number_of_islands, transfer_body_order_array, planet_list,
-            departure_planet, arrival_planet, free_param_count, bounds, manual_individuals,
-            manual_base_functions):
-        pass
+    def create_archipelago(iteration,
+                            departure_planet,
+                            arrival_planet, 
+                            free_param_count, 
+                            pop_size,
+                            bounds,
+                            max_no_of_gas,
+                            number_of_sequences_per_planet,
+                            # transfer_body_order_array, 
+                            planet_list, 
+                            leg_exchange,
+                            manual_base_functions, 
+                            seed):
+
+        current_max_no_of_gas = max_no_of_gas - iteration
+        current_island_problems = []
+        temp_evaluated_sequences = []
+        temp_ptbs = []
+
+        possible_planets = len(planet_list)
+        combinations_left = possible_planets**(max_no_of_gas-iteration)# or no_of_sequence_recursions
+
+        print('Creating archipelago')
+        archi = pg.archipelago(n=0, seed=seed)
+
+        # Add islands with pre-defined sequences
+        directtransferbump = 0
+        if iteration== 0:
+            number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list) + 1
+            transfer_body_order = [departure_planet, arrival_planet]
+            temp_evaluated_sequences.append(transfer_body_order) 
+            temp_ptbs.append([departure_planet])
+            island_to_be_added, current_island_problem = \
+            manualTopology.create_island(transfer_body_order=transfer_body_order,
+                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
+                    pop_size=pop_size, leg_exchange=leg_exchange,
+                    manual_base_functions=manual_base_functions)
+            current_island_problems.append(current_island_problem)
+            archi.push_back(island_to_be_added)
+            directtransferbump = 1
+        else:
+            number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list)
+
+            if number_of_islands >= combinations_left:
+                print('Number of islands from %i to %i' % (number_of_islands, combinations_left))
+                number_of_islands = combinations_left
+
+        print('Number of islands: ', number_of_islands, '\n')
+        if iteration== 0:
+            print(transfer_body_order)
+        for i in range(number_of_islands - directtransferbump):
+            ptbs = [departure_planet]
+            random_sequence = []
+            # can add seed argument but that does not work yet as intended
+            random_sequence = manualTopology.create_random_transfer_body_order(
+                    arrival_planet=arrival_planet, possible_planets=possible_planets,
+                    max_no_of_gas=current_max_no_of_gas)
+
+            if iteration== 0:
+                ptbs += [planet_list[i % len(planet_list)]]
+            else:
+                # [i] so that each island can start with its own predefined
+                ptbs += itbs[i % len(planet_list)] + [planet_list[i % len(planet_list)]]
+
+            temp_ptbs.append(ptbs)
+            transfer_body_order = ptbs + random_sequence
+            temp_evaluated_sequences.append(transfer_body_order) 
+
+            print(transfer_body_order)
+            island_to_be_added, current_island_problem = \
+            manualTopology.create_island(transfer_body_order=transfer_body_order,
+                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! ^^
+                    pop_size=pop_size, leg_exchange=leg_exchange, leg_database=[],
+                    manual_base_functions=manual_base_functions)
+            current_island_problems.append(current_island_problem)
+            archi.push_back(island_to_be_added)
+
+        return temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi
+         
+
 
 
 
@@ -316,77 +392,32 @@ def run_mgso_optimisation(departure_planet : str,
 ###########################################################################
     
     # Loop for number of sequence recursions
-    p_bump = False
+    # p_bump = False
     for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
-
-        possible_planets = len(planet_list)
-        combinations_left = possible_planets**(max_no_of_gas-p)# or no_of_sequence_recursions
-
-        if p_bump == True:
-            p -= 1
-            p_bump = False
+    
+    #     if p_bump == True:
+    #         p -= 1
+    #         p_bump = False
         print('Iteration: ', p, '\n')
         # Size of random sequence decreases
-        current_max_no_of_gas = max_no_of_gas - p
-        current_island_problems = []
-        temp_evaluated_sequences = []
-        temp_ptbs = []
-        print('Creating archipelago')
-        archi = pg.archipelago(n=0, seed=seed)
 
-        # Add islands with pre-defined sequences
-        directtransferbump = 0
-        if p == 0:
-            number_of_islands = number_of_sequences_per_planet[p]*len(planet_list) + 1
-            transfer_body_order = [departure_planet, arrival_planet]
-            temp_evaluated_sequences.append(transfer_body_order) 
-            temp_ptbs.append([departure_planet])
-            island_to_be_added, current_island_problem = \
-            manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
-                    pop_size=pop_size, manual_individuals=False,
-                    manual_base_functions=manual_base_functions)
-            current_island_problems.append(current_island_problem)
-            archi.push_back(island_to_be_added)
-            directtransferbump = 1
-        else:
-            number_of_islands = number_of_sequences_per_planet[p]*len(planet_list)
+        # Creation of the archipelago
+        temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi = \
+        manualTopology.create_archipelago(p,
+                                        departure_planet,
+                                        arrival_planet, 
+                                        free_param_count, 
+                                        pop_size,
+                                        bounds,
+                                        max_no_of_gas,
+                                        number_of_sequences_per_planet,
+                                        # transfer_body_order_array, 
+                                        planet_list, 
+                                        leg_exchange,
+                                        manual_base_functions, 
+                                        seed)
 
-            if number_of_islands >= combinations_left:
-                print('Number of islands from %i to %i' % (number_of_islands, combinations_left))
-                number_of_islands = combinations_left
-
-        print('Number of islands: ', number_of_islands, '\n')
         number_of_islands_array[p] = number_of_islands
-        if p == 0:
-            print(transfer_body_order)
-        for i in range(number_of_islands - directtransferbump):
-            ptbs = [departure_planet]
-            random_sequence = []
-            # can add seed argument but that does not work yet as intended
-            random_sequence = manualTopology.create_random_transfer_body_order(
-                    arrival_planet=arrival_planet, possible_planets=possible_planets,
-                    max_no_of_gas=current_max_no_of_gas)
-
-            if p == 0:
-                ptbs += [planet_list[i % len(planet_list)]]
-            else:
-                # [i] so that each island can start with its own predefined
-                ptbs += itbs[i % len(planet_list)] + [planet_list[i % len(planet_list)]]
-
-            temp_ptbs.append(ptbs)
-            transfer_body_order = ptbs + random_sequence
-            temp_evaluated_sequences.append(transfer_body_order) 
-
-            print(transfer_body_order)
-            island_to_be_added, current_island_problem = \
-            manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! ^^
-                    pop_size=pop_size, manual_individuals=False, leg_database=[],
-                    manual_base_functions=manual_base_functions)
-            current_island_problems.append(current_island_problem)
-            archi.push_back(island_to_be_added)
-
         island_problems[p] = current_island_problems
 
         list_of_f_dicts = []
