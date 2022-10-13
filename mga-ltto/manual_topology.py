@@ -55,12 +55,12 @@ class manualTopology:
 
     @staticmethod
     def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size,
-            manual_individuals, predefined_legs = [], manual_base_functions=False):
+            manual_individuals, leg_database = [], manual_base_functions=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
         """
-        no_of_predefined_individuals = len(predefined_legs)
+        no_of_predefined_individuals = len(leg_database)
         no_of_random_individuals = pop_size - no_of_predefined_individuals
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
@@ -70,7 +70,7 @@ class manualTopology:
         if manual_individuals:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
             for i in range(no_of_predefined_individuals):
-                # tof = predefined_legs[][]
+                # tof = leg_database[][]
                 design_parameter_vector = np.array([0, 0, 0])
 
                 population.push_back(design_parameter_vector)
@@ -79,6 +79,12 @@ class manualTopology:
 
 
         return pg.island(algo=algorithm, pop=population, udi=pg.mp_island()), mga_low_thrust_problem
+    
+    @staticmethod
+    def create_archipelago(number_of_islands, transfer_body_order_array, planet_list,
+            departure_planet, arrival_planet, free_param_count, bounds, manual_individuals,
+            manual_base_functions):
+        pass
 
 
 
@@ -193,40 +199,51 @@ class separateLegMechanics:
         self.champion_x = champion_x
         self.delta_v_per_leg = delta_v_per_leg
 
-
-    def get_list_of_legs(self):
         chars = [i for i in self.mga_sequence_characters]
-        number_of_legs = len(chars) - 1
-        list_of_legs = []
-        for i in range(number_of_legs):
-            list_of_legs.append(chars[i] + chars[i+1])
-        return list_of_legs
+        self.number_of_legs = len(chars) - 1
+
+        dict_of_legs = {}
+        for i in range(self.number_of_legs):
+            dict_of_legs[chars[i] + chars[i+1]] = i
+        self.dict_of_legs = dict_of_legs
 
     def get_best_legs(self):
         pass
 
-    def get_leg_specifics(self) -> str:
+    def get_leg_specifics(self, leg_string) -> str:
         """
-        This function changes when the optimisation changes
+        This function returns the leg specifics one any given leg string
 
-        'EMMJ' EM MM MJ
-        EM, dV, ToF, #rev
-        MM, dV, ToF, #rev
-        MJ, dV, ToF, #rev
+        Example
+        -------
+        Input : 'EM'
+        Returns : [dV, ToF, #rev]
         """
-        leg_information = ""
-        chars = [i for i in self.mga_sequence_characters]
-        number_of_legs = len(chars) - 1
-        # print(chars, number_of_legs, self.champion_x)
-        for i in range(number_of_legs):
-            current_leg = chars[i] + chars[i+1]
-            current_dV = self.delta_v_per_leg[i]
-            current_tof = self.champion_x[2+i] / 86400
-            # current_rev = self.champion_x[2 + number_of_legs + number_of_free_coefficients * 3 * number_of_legs + i]
-            current_rev = self.champion_x[len(self.champion_x) - number_of_legs + i]
-            # print(current_rev)
-            leg_information += "%s, %d, %d, %i\n" % (current_leg, current_dV, current_tof, current_rev)
-        return leg_information
+        index = self.dict_of_legs[leg_string]
+
+        current_dV = self.delta_v_per_leg[index]
+        current_tof = self.champion_x[2+index] / 86400
+        current_rev = self.champion_x[len(self.champion_x) - self.number_of_legs + index]
+        current_leg_results = [leg_string, current_dV, current_tof, current_rev]
+        return current_leg_results
+
+    def get_sequence_leg_specifics(self):
+        """
+        This function returns a list of lists containing the information of whole sequence
+        Example
+        -------
+        Input : 'EMMJ'
+        Returns : [[EM, dV, ToF, #rev]
+        [MM, dV, ToF, #rev]
+        [MJ, dV, ToF, #rev]]
+        """
+        sequence_results = []
+        for leg_string in self.dict_of_legs.keys():
+            current_leg_specifics = self.get_leg_specifics(leg_string)
+            sequence_results.append(current_leg_specifics)
+
+        return sequence_results
+
 
 def run_mgso_optimisation(departure_planet : str,
                             arrival_planet : str,
@@ -256,15 +273,19 @@ def run_mgso_optimisation(departure_planet : str,
 
     # TODO : replace with list of lists
     
-    evaluated_sequences_database = output_directory + subdirectory + unique_identifier +  '/evaluated_sequences_database.txt'
-    separate_leg_database = output_directory + subdirectory +  unique_identifier +  '/separate_leg_database.txt'
-    
-    if not os.path.exists(output_directory + subdirectory + unique_identifier):
-        os.makedirs(output_directory + subdirectory + unique_identifier)
-    if not os.path.exists(evaluated_sequences_database):
-        open(evaluated_sequences_database, 'a+').close()
-    if not os.path.exists(separate_leg_database):
-        open(separate_leg_database, 'a+').close()
+    if write_results_to_file:
+        evaluated_seq_database_file = output_directory + subdirectory + unique_identifier +  '/evaluated_sequences_database.txt'
+        separate_leg_database_file = output_directory + subdirectory +  unique_identifier +  '/separate_leg_database.txt'
+        
+        if not os.path.exists(output_directory + subdirectory + unique_identifier):
+            os.makedirs(output_directory + subdirectory + unique_identifier)
+        if not os.path.exists(evaluated_seq_database_file):
+            open(evaluated_seq_database_file, 'a+').close()
+        if not os.path.exists(separate_leg_database_file):
+            open(separate_leg_database_file, 'a+').close()
+
+    evaluated_sequences_database = [[], []]
+    separate_leg_database = [[], []]
 
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
@@ -285,7 +306,6 @@ def run_mgso_optimisation(departure_planet : str,
     champions_f = {}
     island_problems = {}
     evaluated_sequences_dict = {}
-    mga_sequence_characters_list = []
     itbs = []
     number_of_islands_array = np.zeros(no_of_sequence_recursions+1, dtype=int) # list of number of islands per recursion
     list_of_lists_of_x_dicts = []# list containing list of dicts of champs per gen
@@ -324,7 +344,7 @@ def run_mgso_optimisation(departure_planet : str,
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
-                    pop_size=pop_size, manual_individuals=False, predefined_legs=[],
+                    pop_size=pop_size, manual_individuals=False,
                     manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
@@ -361,8 +381,8 @@ def run_mgso_optimisation(departure_planet : str,
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
-                    pop_size=pop_size, manual_individuals=False, predefined_legs=[],
+                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! ^^
+                    pop_size=pop_size, manual_individuals=False, leg_database=[],
                     manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
@@ -414,19 +434,23 @@ def run_mgso_optimisation(departure_planet : str,
             mga_sequence_characters = \
                     util.transfer_body_order_conversion.get_mga_characters_from_list(
                                     temp_evaluated_sequences[j])
-            mga_sequence_characters_list.append(mga_sequence_characters)
-            current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400]
-            current_sequence_result_string = " %s, %d, %d\n" % (current_sequence_result[0],
-                    current_sequence_result[1], current_sequence_result[2])
-            evaluated_sequences_results += current_sequence_result_string
+            current_sequence_result = [delta_v[j], tof[j] / 86400]
+            evaluated_sequences_results += " %d, %d\n" % tuple(current_sequence_result) 
+            evaluated_sequences_database[0].append(mga_sequence_characters)
+            evaluated_sequences_database[1].append(current_sequence_result)
+
             evaluated_sequences_dict[p][j] = current_sequence_result
 
             # Save separate leg information
             current_sequence_leg_mechanics_object = separateLegMechanics(mga_sequence_characters,
                     champions_x[p][j], delta_v_per_leg[j])
-            current_sequence_leg_results = current_sequence_leg_mechanics_object.get_leg_specifics()
-            leg_results += current_sequence_leg_results
+            current_sequence_leg_results = current_sequence_leg_mechanics_object.get_sequence_leg_specifics()
+            for leg in range(len(current_sequence_leg_results)):
+                leg_results += "%s, %d, %d, %i\n" % tuple(current_sequence_leg_results[leg])
+                separate_leg_database[0].append(current_sequence_leg_results[leg][0])
+                separate_leg_database[1].append(current_sequence_leg_results[leg][1:])
 
+        # print(evaluated_sequences_database, separate_leg_database)
             # check auxiliary help for good legs -> SOLVE PICKLE ERROR
             # we have island_problms in a list
             # deltav per leg weighted average based on how far away the transfer is (EM is stricter
@@ -482,14 +506,11 @@ def run_mgso_optimisation(departure_planet : str,
 
 # Saving the trajectories for post-processing
     if write_results_to_file:
-        # with open(evaluated_sequences_database, 'r+') as file_object:
-        #     file_object.write(evaluated_sequences_results)
-        #     file_object.close()
-        with open(evaluated_sequences_database, 'r+') as file_object:
+        with open(evaluated_seq_database_file, 'r+') as file_object:
             file_object.write(evaluated_sequences_results)
             file_object.close()
 
-        with open(separate_leg_database, 'r+') as file_object:
+        with open(separate_leg_database_file, 'r+') as file_object:
             file_object.write(leg_results)
             file_object.close()
 
@@ -543,7 +564,7 @@ def run_mgso_optimisation(departure_planet : str,
                 auxiliary_info['Delta V,'] = delta_v 
                 auxiliary_info['Departure velocity,'] = departure_velocity
                 auxiliary_info['MGA Sequence,'] = \
-                mga_sequence_characters_list[layer*len(champions_x[layer]) + i]
+                evaluated_sequences_database[0][layer*len(champions_x[layer]) + i]
                 auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
                 #evaluated_sequences_dict[p][j][0]

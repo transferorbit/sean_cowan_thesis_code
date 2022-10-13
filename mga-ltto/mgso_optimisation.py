@@ -45,7 +45,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     
     current_dir = os.getcwd()
     output_directory = current_dir + '/pp_mgso'
-    write_results_to_file = True
     
 ###########################################################################
 # General parameters ######################################################
@@ -93,13 +92,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
     manual_base_functions = False
     leg_exchange = False
+    write_results_to_file = True
     
     ## Specific parameters
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 3
-    pop_size = 30
+    num_gen = 1
+    pop_size = 100
     # assert pop_size > 62
     no_of_points = 1000
     bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
@@ -107,7 +107,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     print('Departure date bounds : [%s, %s]' %
             (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),
         time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[1][0]) + 51544.5)))
-    subdirectory = '/0ga_case'
+    subdirectory = '/2ga_test'
     if os.path.exists(output_directory + subdirectory):
         shutil.rmtree(output_directory + subdirectory)
     # subdirectory = ''

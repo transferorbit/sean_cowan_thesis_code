@@ -1,18 +1,19 @@
 *.log
-*.txt
 *.json
 
-mga-ltto/deprecated/*
-mga-ltto/pp_*/*
+
+mga-ltto/__pycache__
+mga-ltto/deprecated
 mga-ltto/test_optimization_results/*
-mga-ltto/topology_database/*
-mga-ltto/verification/verification_results/*
 mga-ltto/verification/.DS*
-mga-ltto/__pycache__/*
+/* mga-ltto/topology_database/* */
+/* mga-ltto/verification/verification_results/* */
+/* mga-ltto/pp_*/* */
 
 mga-ltto-old/**
 testing/**
-tudatpy-examples/**
+tudatpy-examples
 test*.py
+error.txt
 
 
