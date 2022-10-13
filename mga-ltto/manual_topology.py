@@ -344,9 +344,9 @@ def run_mgso_optimisation(departure_planet : str,
             ptbs = [departure_planet]
             random_sequence = []
             # can add seed argument but that does not work yet as intended
-            random_sequence = \
-                    manualTopology.create_random_transfer_body_order(
-                            arrival_planet=arrival_planet, possible_planets=possible_planets, max_no_of_gas=current_max_no_of_gas)
+            random_sequence = manualTopology.create_random_transfer_body_order(
+                    arrival_planet=arrival_planet, possible_planets=possible_planets,
+                    max_no_of_gas=current_max_no_of_gas)
 
             if p == 0:
                 ptbs += [planet_list[i % len(planet_list)]]
@@ -448,7 +448,8 @@ def run_mgso_optimisation(departure_planet : str,
 
         print(delta_v, temp_ptbs)
         current_itbs = manualTopology.get_itbs(dv=delta_v, ptbs=temp_ptbs,
-            type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence), pc=planet_characters, pl=planet_list)
+            type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence),
+            pc=planet_characters, pl=planet_list)
         
         # print(current_itbs)
         if p == 0:
