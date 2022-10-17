@@ -82,14 +82,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'Free coefficient [-]', 'Number of revolutions [-]']
     
     # testing problem functionality
-    # transfer_body_order = ["Earth", "Mars", "Jupiter"]
-    # free_param_count = 2
-    # num_gen = 1
-    # pop_size = 100
-    # no_of_points = 500
-    # bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
-    #         [10000, 0, 1200, 7000, 2e11, 10**4, 0]]
-    # subdirectory=  '/EMJ_addedparams_test'
+    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    free_param_count = 2
+    num_gen = 30
+    pop_size = 1000
+    no_of_points = 500
+    bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
+            [12000, 0, 1200, 7000, 2e11, 10**4, 3]]
+    subdirectory=  '/EMJ_test'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -103,16 +103,16 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 2]]
     # subdirectory = '/verification/gondelach_N2'
 
-    transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 0
-    num_gen = 30
-    pop_size = 500
-    no_of_points = 500
-    bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2], #0fp
-            [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 0
+    # num_gen = 30
+    # pop_size = 500
+    # no_of_points = 500
+    # bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2], #0fp
+    #         [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
     # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2], #2fp
     #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
-    subdirectory = '/verification/ltto_0fp_planstates'
+    # subdirectory = '/verification/ltto_0fp_planstates'
     
     # TGRRoegiers p.116
     # mjd_depart_lb = 58849

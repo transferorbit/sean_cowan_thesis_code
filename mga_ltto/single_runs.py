@@ -51,7 +51,7 @@ no_of_points=500
 #     free_coefficients[5], 0.0])
 
 # 0 fp
-transfer_body_order = ["Earth", "Mars"]
+# transfer_body_order = ["Earth", "Mars"]
 # design_parameter_vector =np.array([1199.988419679548, 0.0, 282.9013364921598, 906.5959220524712, 0.0, 0.0])
 # mga_low_thrust_problem = \
 # MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
@@ -61,25 +61,35 @@ transfer_body_order = ["Earth", "Mars"]
 # design_parameter_vector=  np.array([1197.3079260152658, 0.0, 262.41762550207926, 1105.3748080547718,
 #     7727.0,7189.0, -6947.0, 8690.0, 9236.0, -9382.0, -9968.0, 3883.0, -8402.0, -6677.0, 2385.0,
 #     -84.0, 0.0, 0.0])
-#
-# mga_low_thrust_problem = \
-# MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-#         no_of_free_parameters=2)
+transfer_body_order=  ['Earth', 'Mars', 'Mercury', 'Mercury', 'Jupiter']
+design_parameter_vector = np.array([798144938.5175248, 0.0, 34438826.5744251, 72151028.85329694,
+    102918049.60361323, 90408666.78799471, 96.25866185034238, 4082.5018127125654,
+    2105.4589341361825, 10.064195086589267, 2.6415739555067135, 2.856660323144302, 4570.0, 4659.0,
+    3271.0, 2083.0, 2374.0, -2007.0, -2344.0, 7582.0, -116.0, 6927.0, 6251.0, 3491.0, -8115.0,
+    -2350.0, -4790.0, -4855.0, 8799.0, 5799.0, 994.0, -6532.0, 6399.0, -195.0, 3851.0, 876.0, 1.0,
+    1.0, 0.0, 0.0])
 
-#0fp that recreates the result
-design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 2.0])
 mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
         transfer_body_order)
 mga_low_thrust_problem = \
 MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-        no_of_free_parameters=0)
-print(time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(10025.0
-    + 51544.5)))
+        no_of_free_parameters=2)
+
+#0fp that recreates the result
+# transfer_body_order = ["Earth", "Mars"]
+# design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 2.0])
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
+# mga_low_thrust_problem = \
+# MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+#         no_of_free_parameters=0, manual_base_functions=True)
+# print(time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(10025.0
+#     + 51544.5)))
 
 
-index_list = [0, 2]
-for i in index_list:
-    design_parameter_vector[i] *= julian_day
+# index_list = [0, 2, 3, 4, 5]
+# for i in index_list:
+#     design_parameter_vector[i] *= julian_day
 unique_identifier = '/EM_verification'
 
 mga_low_thrust_problem.fitness(design_parameter_vector, post_processing=True)
