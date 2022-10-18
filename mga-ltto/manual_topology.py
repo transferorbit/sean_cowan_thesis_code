@@ -480,18 +480,18 @@ def run_mgso_optimisation(departure_planet : str,
             break
 
         ### Define ITBS ###
+        print(delta_v, temp_ptbs)
         if p == 0:
-#             # Remove direct transfer from the determination of best itbs
             dt_delta_v = delta_v[0] # dt is direct transfer
             dt_sequence = temp_ptbs[0]
-#             temp_ptbs.pop(0)
-#             delta_v.pop(0)
-#             for it in list(delta_v):
-#                 if it == 0:
-#                     continue
-#                 delta_v[it-1] = delta_v.pop(it)
+            temp_ptbs.pop(0) # Remove direct transfer from the determination of best itbs
+            delta_v.pop(0)
+            for it in list(delta_v): #move all indices up by one
+                if it == 0:
+                    continue
+                delta_v[it-1] = delta_v.pop(it)
 
-        # print(delta_v, temp_ptbs)
+        print(delta_v, temp_ptbs)
         current_itbs = manualTopology.get_itbs(dv=delta_v, ptbs=temp_ptbs,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence),
             pc=planet_characters, pl=planet_list)

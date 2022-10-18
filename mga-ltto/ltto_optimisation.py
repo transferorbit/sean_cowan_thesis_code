@@ -82,14 +82,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'Free coefficient [-]', 'Number of revolutions [-]']
     
     # testing problem functionality
-    transfer_body_order = ["Earth", "Mars", "Jupiter", "Saturn"]
+    transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
     free_param_count = 2
-    num_gen = 30
-    pop_size = 2000
+    num_gen = 100
+    pop_size = 500
     no_of_points = 500
-    bounds = [[5000, 0, 200, 0, 2e2, -10**4, 0],
-            [10000, 5000, 1500, 5000, 2e9, 10**4, 2]]
-    subdirectory=  '/tudat_example_EMJS'
+    bounds = [[3300, 0, 50, 0, 2e2, -10**4, 0],
+            [4600, 3000, 500, 9000, 2e9, 10**4, 2]]
+    subdirectory=  '/tudat_example_EEVVYY_2'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]

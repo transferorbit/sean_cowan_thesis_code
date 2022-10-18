@@ -19,7 +19,7 @@ spice.load_standard_kernels()
 import mga_low_thrust_utilities as mga_util
 from trajectory3d import trajectory_3d
 
-data_directory = "pp_ltto/tudat_example_EMJS/island_1/"
+data_directory = "pp_ltto/tudat_example_EEVVYY/island_2/"
 # data_directory = "pp_ltto/EMJ_checknode_2fp/island_0/"
 mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
 
