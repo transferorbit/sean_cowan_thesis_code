@@ -283,7 +283,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
 
         # node times
-        self.node_times = mga_util.get_node_times(self.transfer_body_order, departure_date, time_of_flights)
+        self.node_times = mga_util.get_node_times(departure_date, time_of_flights)
         # print(node_times)
 
         # leg free parameters 

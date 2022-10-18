@@ -22,9 +22,10 @@ from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
-from trajectory3d import trajectory_3d
 from tudatpy.kernel.interface import spice
 spice.load_standard_kernels()
+
+from trajectory3d import trajectory_3d
 
 import io
 import sys
@@ -79,7 +80,7 @@ class transfer_body_order_conversion:
     def get_transfer_body_list(transfer_body_integers: np.ndarray, strip=True) -> list:
         """
         Input : np.array([2, 2, 3, 5, 0, 0, 0, 0])
-        Output : ["Venus", "Venus", "Earth", "Mercury"]
+        Output : ["Venus", "Venus", "Earth", "Jupiter"]
         """
         body_dict = {0: "Null",
                 1: "Mercury",
@@ -137,9 +138,45 @@ class transfer_body_order_conversion:
                 'U' : "Uranus",
                 'N' : "Neptune"}
 
-        character_list = character_string.split()
+        character_list = [i for i in character_string]
 
         return [character_dict[i] for i in character_list]
+
+    @staticmethod
+    def get_list_of_legs_from_characters(mga_sequence_characters):
+        """
+        This functions takes the string of characters and returns a list of the separate legs
+
+        Parameters
+        -----------
+        mga_string : str
+
+        Returns
+        --------
+        List[str]
+
+        """
+
+        chars = [i for i in mga_sequence_characters]
+        number_of_legs = len(chars) - 1
+
+        list_of_legs = []
+        for i in range(number_of_legs):
+            list_of_legs.append(chars[i] + chars[i+1])
+
+        return list_of_legs
+
+    def get_dict_of_legs_from_characters(mga_sequence_characters):
+        chars = [i for i in mga_sequence_characters]
+        number_of_legs = len(chars) - 1
+
+        dict_of_legs = {}
+        for i in range(number_of_legs):
+            dict_of_legs[chars[i] + chars[i+1]] = i
+
+        return dict_of_legs
+
+
 
 def get_low_thrust_transfer_object(transfer_body_order : list,
                                         time_of_flight : np.ndarray,
@@ -269,8 +306,7 @@ def get_low_thrust_transfer_object_automated(transfer_body_order : list,
     return transfer_trajectory_object
 
 
-def get_node_times(transfer_body_order: list,
-                    departure_date: float,
+def get_node_times(departure_date: float,
                     time_of_flight: np.ndarray) -> list:
     """
     Forms array of node times used for the 'evaluate' function of the transferTrajectory class.
@@ -575,7 +611,7 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
     # print(bodies)
     for it, i in enumerate(bodies):
         # print(it)
-        current_body_list_settings = body_list_settings()
+        current_body_list_settings = body_list_settings() #cannot be moved out of scope yet.
         current_body_list_settings.add_empty_settings(i)            
         if ephemeris_type=='JPL':
             current_body_list_settings.get(i).ephemeris_settings = \

@@ -1,10 +1,10 @@
 '''
 Author: Sean Cowan
 Purpose: MSc Thesis
-Date Created: 03-10-2022
+Date Created: 26-07-2022
 
-This module attempts to verify the hodographic shaping method with the Nelder Mead method from
-Pygmo, which should converge to similar results
+This module performs the optimization calculations using the help modules from mga-low-thrust-utilities.py and
+pygmo-utilities.py
 '''
 
 if __name__ == '__main__': #to prevent this code from running if this file is not the source file.
@@ -34,8 +34,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     from tudatpy.kernel.astro import element_conversion
     from tudatpy.kernel.trajectory_design import shape_based_thrust
     from tudatpy.kernel.trajectory_design import transfer_trajectory
-    from tudatpy.kernel.interface import spice
-    spice.load_standard_kernels()
+    # from tudatpy.kernel.interface import spice
+    # spice.load_standard_kernels()
     
     
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
@@ -78,47 +78,49 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Problem Setup ###############################################
 ####################################################################
 
-    bound_names= ['Departure date', 'Departure velocity', 'Time of Flight', 'Free coefficient',
-            'Incoming velocity', 'Swingby periapsis', 'Number of revolutions']
-    # test minlp optimization
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+            'Free coefficient [-]', 'Number of revolutions [-]']
     
     # testing problem functionality
-    # transfer_body_order = ["Earth", "Mars", "Jupiter"]
-    # free_param_count = 0
-    # num_gen = 2
-    # pop_size = 100
+    # transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
+    # free_param_count = 2
+    # num_gen = 100
+    # pop_size = 500
     # no_of_points = 500
-    # bounds = [[1000*julian_day, 100, 50*julian_day, -10**6, 0],
-    #         [1000*julian_day, 100, 800*julian_day, 10**6, 0]]
-    # subdirectory=  '/test_optimisation'
+    # bounds = [[3300, 0, 50, 0, 2e2, -10**4, 0],
+    #         [4600, 3000, 500, 9000, 2e9, 10**4, 2]]
+    # subdirectory=  '/tudat_example_EEVVYY_2'
+    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    free_param_count = 2
+    num_gen = 30
+    pop_size = 1000
+    no_of_points = 500
+    bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
+            [12000, 0, 1200, 7000, 2e11, 10**4, 3]]
+    subdirectory=  '/EMJ_test'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
-    # free_param_count = 0
-    # num_gen = 20
-    # pop_size = 3000
+    # free_param_count = 2
+    # num_gen = 100
+    # pop_size = 30
+    # num_gen = 1
+    # pop_size = 100
     # no_of_points = 500
-    #
-    # bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2],
-    #         [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
-    # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2],
-    #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
-    # subdirectory = '/verification/neldermead_0fp_jpl'
+    # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 2],
+    #         [10225*julian_day, 0, 2000*julian_day, 10**4, 2]]
+    # subdirectory = '/verification/gondelach_N2'
 
-    transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 0
-    num_gen = 1 #nelder mead doesn't need multiple generations
-    pop_size = 100
-    no_of_points = 500
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 0
+    # num_gen = 30
+    # pop_size = 500
+    # no_of_points = 500
+    # bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2], #0fp
+    #         [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
     # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2], #2fp
     #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
-    bounds = [[10025, 0, 1050, 0, 2e2, -10**4, 2], #0fp
-            [10025, 0, 1050, 7000, 2e11, 10**4, 2]]
-    subdirectory = '/verification/neldermead_2fp_N2' #mbf is manual base functions
-
-    # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
-    #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]
-    # subdirectory = '/verification/gondelach'
+    # subdirectory = '/verification/ltto_0fp_planstates'
     
     # TGRRoegiers p.116
     # mjd_depart_lb = 58849
@@ -128,27 +130,45 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #         [(mjd_depart_ub-mjd_2000)*julian_day, 1, 2000*julian_day, 10**6, 4]]
     # subdirectory = '/verification/roegiers_test5/'
     
-    # print('Creating problem class')
+    
+    # bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
+    #         [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
+    # bounds = [[9300*julian_day, 150, 1185*julian_day, -10**6, 2],
+    #         [9300*julian_day, 150, 1185*julian_day, 10**6, 4]]
+    # subdirectory = '/verification/verification_results/'
+
+    # Nathan
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 2
+    # num_gen = 15
+    # pop_size = 300
+    # no_of_points = 500
+    #
+    # bounds = [[10000, 0, 50*julian_day, -10**4, 0], #seconds since J2000
+    #         [10100, 0, 1000*julian_day, 10**4, 6]]
+    # subdirectory=  '/nathan_2fp'
+    
+    # validation
 
     mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
             transfer_body_order)
 
     mga_low_thrust_problem = \
     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-            no_of_free_parameters=free_param_count, bounds=bounds, manual_base_functions=True)#, planet_kep_states=planet_kep_states)
+            no_of_free_parameters=free_param_count, bounds=bounds)#, planet_kep_states=planet_kep_states)
     # mga_low_thrust_problem.get_system_of_bodies()
-    # prob = my_problem
     prob = pg.problem(mga_low_thrust_problem)
     
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
     number_of_islands = cpu_count
+
 ###################################################################
 # LTTO Optimisation ###############################################
 ###################################################################
 
     my_population = pg.population(prob, size=pop_size, seed=seed)
-    my_algorithm = pg.algorithm(pg.nlopt(solver='neldermead'))
+    my_algorithm = pg.algorithm(pg.sga(gen=1))
     # my_island = pg.mp_island()
     print('Creating archipelago')
     archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
@@ -156,7 +176,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     list_of_f_dicts = []
     list_of_x_dicts = []
     for i in range(num_gen): # step between which topology steps are executed
-        print('Evolving ..')
+        print('Evolving Gen : %i / %i' % (i, num_gen))
         archi.evolve()
         # archi.status
         # archi.wait_check()
@@ -167,8 +187,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
         list_of_x_dicts.append(champs_dict_per_gen)
         list_of_f_dicts.append(champ_f_dict_per_gen)
+        # champion_fitness_dict_per_gen[i] = archi.get_champions_f()
         archi.wait_check()
     print('Evolution finished')
+    # print(list_of_f_dicts, list_of_x_dicts)
+
 
 
 ###########################################################################
@@ -177,11 +200,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     champions = archi.get_champions_x()
     champion_fitness = archi.get_champions_f()
-    print(champions[0])
 
     champions_dict = {}
     champion_fitness_dict = {}
-    for i in range(len(champions)):
+    thrust_acceleration_list=  []
+    for i in range(number_of_islands):
         mga_low_thrust_problem.fitness(champions[i], post_processing=True)
 
         # State history
@@ -223,7 +246,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             auxiliary_info['Delta V,'] = delta_v 
             auxiliary_info['Departure velocity,'] = departure_velocity
             auxiliary_info['MGA Sequence,'] = mga_sequence_characters
-            auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
+            auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                 enumerate(thrust_acceleration.items())])
 
             unique_identifier = "/island_" + str(i) + "/"
@@ -245,9 +268,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
                     subdirectory + unique_identifier)
 
-
             champions_dict[i] = champions[i]
             champion_fitness_dict[i] = champion_fitness[i]
+            champions_dict[i][0] /= 86400.0
+            for x in range(len(transfer_body_order)-1):
+                champions_dict[i][2+x] /= 86400.0
+                # if x != 0:
+                #     champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)] = \
+                #     10**champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)]
+
 
     if write_results_to_file:
 
@@ -261,9 +290,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:
-                    min = 'LB'
+                    min = ' LB'
                 else:
-                    min = 'UB'
+                    min = ' UB'
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
         # optimisation_characteristics['Bounds'] = bounds
         
@@ -276,4 +305,3 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         unique_identifier = ""
         save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
                 subdirectory + unique_identifier)
-

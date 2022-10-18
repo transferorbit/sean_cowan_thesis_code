@@ -20,7 +20,6 @@ if __name__ == '__main__':
     import os
     import pygmo as pg
     import multiprocessing as mp
-    import shutil
     
     # If conda environment does not work
     # import sys
@@ -64,12 +63,14 @@ if __name__ == '__main__':
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    write_results_to_file = False
-    max_no_of_gas = 1
-    no_of_sequence_recursions = 1
-    number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
+    write_results_to_file = True
+    subdirectory = '/new_island_test'
+    max_no_of_gas = 4
+    no_of_sequence_recursions = 4
+    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
+    elitist_fraction = 0.1
     manual_base_functions = False
-    leg_exchange = False
+    leg_exchange = True
     seed = 421
     
     ## Specific parameters
@@ -82,12 +83,10 @@ if __name__ == '__main__':
     no_of_points = 1000
     bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
             [9200, 0, 1200, 7000, 2e11, 10**4, 4]]
+
     print('Departure date bounds : [%s, %s]' %
             (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),
         time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[1][0]) + 51544.5)))
-    subdirectory = '/2ga_test'
-    if os.path.exists(output_directory + subdirectory):
-        shutil.rmtree(output_directory + subdirectory)
     
     topo.run_mgso_optimisation(departure_planet=departure_planet,
                                 arrival_planet=arrival_planet,
@@ -100,7 +99,7 @@ if __name__ == '__main__':
                                 subdirectory=subdirectory,
                                 max_no_of_gas=max_no_of_gas,
                                 no_of_sequence_recursions=no_of_sequence_recursions,
-                                # max_number_of_exchange_generations=max_number_of_exchange_generations,
+                                elitist_fraction=elitist_fraction,
                                 number_of_sequences_per_planet=number_of_sequences_per_planet,
                                 seed=seed,
                                 write_results_to_file=write_results_to_file,

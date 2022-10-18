@@ -2,13 +2,13 @@
 *.json
 
 
-mga-ltto/__pycache__
-mga-ltto/deprecated
-mga-ltto/test_optimization_results/*
-mga-ltto/verification/.DS*
-/* mga-ltto/topology_database/* */
-/* mga-ltto/verification/verification_results/* */
-/* mga-ltto/pp_*/* */
+mga_ltto/__pycache__
+mga_ltto/deprecated
+mga_ltto/test_optimization_results/*
+mga_ltto/verification/.DS*
+/* mga_ltto/topology_database/* */
+/* mga_ltto/verification/verification_results/* */
+/* mga_ltto/pp_*/* */
 
 mga-ltto-old/**
 testing/**
