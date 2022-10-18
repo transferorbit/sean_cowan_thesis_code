@@ -50,37 +50,62 @@ no_of_points=500
 #     free_coefficients[1], free_coefficients[2], free_coefficients[3], free_coefficients[4],
 #     free_coefficients[5], 0.0])
 
-# 0 fp
-transfer_body_order = ["Earth", "Mars"]
-# design_parameter_vector =np.array([1199.988419679548, 0.0, 282.9013364921598, 906.5959220524712, 0.0, 0.0])
+# transfer_body_order = ["Earth", "Mars", "Venus", "Venus", "Jupiter"]
+# design_parameter_vector = np.array([793293955.8355129, 0.0, 100037080.39505903, 24027527.630540058,
+#     41415785.19754335, 75680409.92923114, 769.608647936012, 3116.227712819472, 1682.9766433373895,
+#     2.7405905638652768, 8.649480070012665, 6.332816720721828, -1970.0, -3373.0, -1933.0, -2111.0,
+#     129.0, -8323.0, -3463.0, 2150.0, 8385.0, -7920.0, -9419.0, -5465.0, -794.0, -3013.0, 7457.0,
+#     -1115.0, -3748.0, -7115.0, 3578.0, 8028.0, -3360.0, 1090.0, -6401.0, -5072.0, 2.0, 0.0, 2.0,
+#     0.0])
 # mga_low_thrust_problem = \
 # MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-#         no_of_free_parameters=0)
+#         no_of_free_parameters=2)
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
 
-# 2fp
-# design_parameter_vector=  np.array([1197.3079260152658, 0.0, 262.41762550207926, 1105.3748080547718,
-#     7727.0,7189.0, -6947.0, 8690.0, 9236.0, -9382.0, -9968.0, 3883.0, -8402.0, -6677.0, 2385.0,
-#     -84.0, 0.0, 0.0])
+# transfer_body_order = ["Earth", "Mars", "Earth", "Jupiter"]
+# design_parameter_vector = np.array([825888649.2573633, 0.0, 78190321.22839531, 33290229.75152632,
+#     95076967.72102702, 46.6838926237002, 3074.131807921915, 5.565627663196208, 8.1171557568468,
+#     139.0, 6131.0, -2622.0, -6300.0, -299.0, -1731.0, 289.0, -1641.0, 6984.0, 3438.0, 1587.0,
+#     1885.0, -9917.0, -8114.0, -2667.0, 5548.0, 7637.0, -9544.0, 1.0, 0.0, 0.0])
 #
 # mga_low_thrust_problem = \
 # MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
 #         no_of_free_parameters=2)
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
 
-#0fp that recreates the result
-design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 2.0])
-mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
-        transfer_body_order)
+transfer_body_order = ["Earth", "Mars", "Jupiter", "Saturn"]
+design_parameter_vector=  np.array([432637767.0582297, 0.0, 37617329.41815525, 114454633.09842438,
+    127173280.30168964, 1822.2404419599536, 8.387164987550776, 8.565347514555263,
+    6.7719118763726485, 815.0, 6658.0, -8652.0, 6169.0, -7799.0, -7583.0, -9202.0, 6315.0, -9730.0,
+    -1006.0, -6841.0, 1749.0, 6079.0, -2752.0, -8547.0, 2211.0, -6901.0, 7974.0, 0.0, 0.0, 0.0])
 mga_low_thrust_problem = \
 MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-        no_of_free_parameters=0)
+        no_of_free_parameters=2)
+mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+        transfer_body_order)
+
+# design_parameter_vector = np.array([9558.896403441706, 0.0, 904.9805697730939, 385.30358508711015,
+#     1100.4278671415163, 1183.979987813652, 3074.131807921915, 5.565627663196208, 8.129202206701256,
+#     -804.0, 5232.0, -3612.0, -6300.0, -299.0, -1731.0, -2587.0, -6648.0, 6984.0, 3438.0, -3043.0,
+#     -1027.0, -8283.0, -8114.0, -2667.0, 7128.0, 2473.0, -1471.0, 1.0, 0.0, 0.0])
+
+#0fp that recreates the result
+# design_parameter_vector = np.array([10025.0, 0.0, 1050.0, 2.0])
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
+# mga_low_thrust_problem = \
+# MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+#         no_of_free_parameters=0)
 print(time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(10025.0
     + 51544.5)))
 
 
-index_list = [0, 2]
-for i in index_list:
-    design_parameter_vector[i] *= julian_day
-unique_identifier = '/EM_verification'
+# index_list = [0, 2, 3, 4]
+# for i in index_list:
+#     design_parameter_vector[i] *= julian_day
+unique_identifier = '/tudat_example_EMJS'
 
 mga_low_thrust_problem.fitness(design_parameter_vector, post_processing=True)
 

@@ -89,6 +89,7 @@ class manualTopology:
                             bounds,
                             max_no_of_gas,
                             number_of_sequences_per_planet,
+                            itbs,
                             # transfer_body_order_array, 
                             planet_list, 
                             leg_exchange,
@@ -107,53 +108,42 @@ class manualTopology:
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
-        directtransferbump = 0
         if iteration== 0:
             number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list) + 1
-            transfer_body_order = [departure_planet, arrival_planet]
-            temp_evaluated_sequences.append(transfer_body_order) 
-            temp_ptbs.append([departure_planet])
-            island_to_be_added, current_island_problem = \
-            manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! vv
-                    pop_size=pop_size, leg_exchange=leg_exchange,
-                    manual_base_functions=manual_base_functions)
-            current_island_problems.append(current_island_problem)
-            archi.push_back(island_to_be_added)
             directtransferbump = 1
         else:
             number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list)
+            directtransferbump = 0
 
+            # keep number of islands to a maximum if combinatorial space is small enough
             if number_of_islands >= combinations_left:
                 print('Number of islands from %i to %i' % (number_of_islands, combinations_left))
                 number_of_islands = combinations_left
 
         print('Number of islands: ', number_of_islands, '\n')
-        if iteration== 0:
-            print(transfer_body_order)
-        for i in range(number_of_islands - directtransferbump):
-            ptbs = [departure_planet]
-            random_sequence = []
-            # can add seed argument but that does not work yet as intended
-            random_sequence = manualTopology.create_random_transfer_body_order(
-                    arrival_planet=arrival_planet, possible_planets=possible_planets,
-                    max_no_of_gas=current_max_no_of_gas)
+        for i in range(number_of_islands):
 
-            if iteration== 0:
-                ptbs += [planet_list[i % len(planet_list)]]
+            if i == 0 and iteration == 0:
+                transfer_body_order = [departure_planet, arrival_planet]
             else:
                 # [i] so that each island can start with its own predefined
-                ptbs += itbs[i % len(planet_list)] + [planet_list[i % len(planet_list)]]
+                add_itbs = itbs[(i-directtransferbump) % len(planet_list)] if iteration != 0 else []
+                ptbs = [departure_planet] + add_itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
 
-            temp_ptbs.append(ptbs)
-            transfer_body_order = ptbs + random_sequence
-            temp_evaluated_sequences.append(transfer_body_order) 
+                # can add seed argument but that does not work yet as intended
+                random_sequence = manualTopology.create_random_transfer_body_order(
+                        arrival_planet=arrival_planet, possible_planets=possible_planets,
+                        max_no_of_gas=current_max_no_of_gas)
 
+                temp_ptbs.append(ptbs)
+                transfer_body_order = ptbs + random_sequence
+
+            temp_evaluated_sequences.append(transfer_body_order)
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! ^^
-                    pop_size=pop_size, leg_exchange=leg_exchange, leg_database=[],
+                    pop_size=pop_size, leg_exchange=leg_exchange, 
                     manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
@@ -248,8 +238,7 @@ class manualTopology:
             ### Get statistics
             quantities = ['max', 'min', 'mean', 'median']
             ptbs_stats = np.zeros((no_of_possible_planets, len(quantities))) 
-            for i, j in sequence_delta_v_value_dict.items():
-                print
+            for j in sequence_delta_v_value_dict.values():
                 current_max = np.max(j)
                 current_min = np.min(j)
                 current_mean = np.mean(j)
@@ -411,9 +400,10 @@ def run_mgso_optimisation(departure_planet : str,
                                         bounds,
                                         max_no_of_gas,
                                         number_of_sequences_per_planet,
-                                        # transfer_body_order_array, 
+                                        itbs,
                                         planet_list, 
                                         leg_exchange,
+                                        # leg_database,
                                         manual_base_functions, 
                                         seed)
 
@@ -466,7 +456,7 @@ def run_mgso_optimisation(departure_planet : str,
                     util.transfer_body_order_conversion.get_mga_characters_from_list(
                                     temp_evaluated_sequences[j])
             current_sequence_result = [delta_v[j], tof[j] / 86400]
-            evaluated_sequences_results += " %d, %d\n" % tuple(current_sequence_result) 
+            evaluated_sequences_results += f"{mga_sequence_characters}, {current_sequence_result[0]}, {current_sequence_result[1]}\n"
             evaluated_sequences_database[0].append(mga_sequence_characters)
             evaluated_sequences_database[1].append(current_sequence_result)
 
@@ -491,22 +481,22 @@ def run_mgso_optimisation(departure_planet : str,
 
         ### Define ITBS ###
         if p == 0:
-            # Remove direct transfer from the determination of best itbs
+#             # Remove direct transfer from the determination of best itbs
             dt_delta_v = delta_v[0] # dt is direct transfer
             dt_sequence = temp_ptbs[0]
-            temp_ptbs.pop(0)
-            delta_v.pop(0)
-            for it in list(delta_v):
-                if it == 0:
-                    continue
-                delta_v[it-1] = delta_v.pop(it)
+#             temp_ptbs.pop(0)
+#             delta_v.pop(0)
+#             for it in list(delta_v):
+#                 if it == 0:
+#                     continue
+#                 delta_v[it-1] = delta_v.pop(it)
 
-        print(delta_v, temp_ptbs)
+        # print(delta_v, temp_ptbs)
         current_itbs = manualTopology.get_itbs(dv=delta_v, ptbs=temp_ptbs,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence),
             pc=planet_characters, pl=planet_list)
         
-        # print(current_itbs)
+        print(current_itbs)
         if p == 0:
             # itbs.append(current_itbs)
             itbs = current_itbs
@@ -545,15 +535,15 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(leg_results)
             file_object.close()
 
+    addition = 0
     for layer in range(no_of_sequence_recursions): # 2
-        layer_folder = '/layer_%i' % (layer)
+        layer_folder = f'/layer_{layer}'
         champions_dict = {}
         champion_fitness_dict = {}
         # for i in range(len(champions_x[layer])):
         for i in range(number_of_islands_array[layer]):
             # print("Champion: ", champions[i])
             mga_low_thrust_problem = island_problems[layer][i]
-            # print(champions_x)
             mga_low_thrust_problem.fitness(champions_x[layer][i], post_processing=True) # 2 is one loop
     
             # State history
@@ -595,7 +585,7 @@ def run_mgso_optimisation(departure_planet : str,
                 auxiliary_info['Delta V,'] = delta_v 
                 auxiliary_info['Departure velocity,'] = departure_velocity
                 auxiliary_info['MGA Sequence,'] = \
-                evaluated_sequences_database[0][layer*len(champions_x[layer]) + i]
+                evaluated_sequences_database[0][addition + i]
                 auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
                 #evaluated_sequences_dict[p][j][0]
@@ -623,6 +613,8 @@ def run_mgso_optimisation(departure_planet : str,
                 champions_dict[i] = champions_x[layer][i]
                 champion_fitness_dict[i] = champions_f[layer][i]
         
+        #Per layer add the indices
+        addition += number_of_islands_array[layer]
         if write_results_to_file:
             # print(champions_dict)
             # unique_identifier = "/champions/"

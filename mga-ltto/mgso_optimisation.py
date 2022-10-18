@@ -64,10 +64,10 @@ if __name__ == '__main__':
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    write_results_to_file = True
-    max_no_of_gas = 2
+    write_results_to_file = False
+    max_no_of_gas = 1
     no_of_sequence_recursions = 1
-    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
     manual_base_functions = False
     leg_exchange = False
     seed = 421
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 1
+    num_gen = 2
     pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
