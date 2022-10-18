@@ -64,12 +64,13 @@ if __name__ == '__main__':
     MGSA - Multiple Gravity Assist Sequence
     """
     write_results_to_file = True
-    subdirectory = '/2ga_test'
-    max_no_of_gas = 2
-    no_of_sequence_recursions = 1
+    subdirectory = '/new_island_test'
+    max_no_of_gas = 4
+    no_of_sequence_recursions = 4
     number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
+    elitist_fraction = 0.1
     manual_base_functions = False
-    leg_exchange = False
+    leg_exchange = True
     seed = 421
     
     ## Specific parameters
@@ -98,7 +99,7 @@ if __name__ == '__main__':
                                 subdirectory=subdirectory,
                                 max_no_of_gas=max_no_of_gas,
                                 no_of_sequence_recursions=no_of_sequence_recursions,
-                                # max_number_of_exchange_generations=max_number_of_exchange_generations,
+                                elitist_fraction=elitist_fraction,
                                 number_of_sequences_per_planet=number_of_sequences_per_planet,
                                 seed=seed,
                                 write_results_to_file=write_results_to_file,

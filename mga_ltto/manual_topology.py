@@ -55,41 +55,47 @@ class manualTopology:
     #     return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
-    def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size,
+    def create_island(iteration, transfer_body_order, free_param_count, bounds, num_gen, pop_size,
             leg_exchange, leg_database, manual_base_functions=False, elitist_fraction=0.1):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
         """
-        no_of_predefined_individuals = pop_size * elitist_fraction
-        no_of_random_individuals = pop_size - no_of_predefined_individuals
+        no_of_random_individuals = int(pop_size * (1-elitist_fraction)) if iteration != 0 else \
+        pop_size
+        no_of_predefined_individuals = pop_size - no_of_random_individuals
 
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-            no_of_free_parameters=free_param_count, bounds=bounds, manual_base_functions=manual_base_functions)
+                no_of_free_parameters=free_param_count, bounds=bounds,
+                manual_base_functions=manual_base_functions)
         algorithm = pg.algorithm(pg.sga(gen=num_gen))
 
         if leg_exchange:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
-
-
             island_mga_characters = \
             util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order)
-            island_leg_dict = util.transfer_body_order_conversion.get_dict_of_legs_from_chars(island_mga_characters)
+            island_leg_dict = \
+            util.transfer_body_order_conversion.get_dict_of_legs_from_characters(island_mga_characters)
 
-            for leg, leg_number in enumerate(island_leg_dict.items()): 
-                leg_data = legDatabaseMechanics.get_leg_data_from_database(leg)
+            pre_design_parameter_vectors = []
+            for _ in range(no_of_predefined_individuals):
+                pre_design_parameter_vectors.append(population.random_decision_vector())
+            # for leg_number, leg in enumerate(island_leg_dict): 
+            for leg, leg_number in island_leg_dict.items(): 
+                if leg_database == [[], []]: #exit if 1st iteration where leg_database is empty
+                    break
+                leg_data = legDatabaseMechanics.get_leg_data_from_database(leg, leg_database)
                 filtered_legs = legDatabaseMechanics.get_filtered_legs(leg_data,
                         no_of_predefined_individuals)
-                design_parameter_vectors= \
-                legDatabaseMechanics.get_dpv_from_leg_specifics(filtered_legs, transfer_body_order,
-                        free_param_count)
+                pre_design_parameter_vectors = \
+                legDatabaseMechanics.get_dpv_from_leg_specifics(pre_design_parameter_vectors,
+                        filtered_legs, transfer_body_order, free_param_count, leg_number)
             
                 for i in range(no_of_predefined_individuals):
-                    population.push_back(design_parameter_vectors[i])
+                    population.push_back(pre_design_parameter_vectors[i])
         else:
             population = pg.population(prob=mga_low_thrust_problem, size=pop_size)
-
 
         return pg.island(algo=algorithm, pop=population, udi=pg.mp_island()), mga_low_thrust_problem
     
@@ -107,6 +113,7 @@ class manualTopology:
                             leg_exchange,
                             leg_database,
                             manual_base_functions, 
+                            elitist_fraction,
                             seed):
 
         current_max_no_of_gas = max_no_of_gas - iteration
@@ -118,13 +125,23 @@ class manualTopology:
         combinations_left = possible_planets**(max_no_of_gas-iteration)# or no_of_sequence_recursions
 
         print('Creating archipelago')
+        print('Leg exchange enabled') if leg_exchange == True else None
+
+        no_of_random_individuals = int(pop_size * (1-elitist_fraction)) if iteration != 0 else \
+        pop_size
+        no_of_predefined_individuals = pop_size - no_of_random_individuals
+        print('Number of random individuals : ', no_of_random_individuals)
+        print('Number of predefined individuals : ', no_of_predefined_individuals)
+
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
         if iteration== 0:
             number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list) + 1
+            directtransferbump = 1
         else:
             number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list)
+            directtransferbump = 0
 
             # keep number of islands to a maximum if combinatorial space is small enough
             if number_of_islands >= combinations_left:
@@ -133,27 +150,25 @@ class manualTopology:
 
         print('Number of islands: ', number_of_islands, '\n')
         for i in range(number_of_islands):
-
-            if i == 0:
+            if i == 0 and iteration == 0:
                 transfer_body_order = [departure_planet, arrival_planet]
+                ptbs = [departure_planet]
             else:
                 # [i] so that each island can start with its own predefined
-                add_itbs = itbs[(i-1) % len(planet_list)] if iteration != 0 else []
-                ptbs = [departure_planet] + add_itbs + [planet_list[(i-1) % len(planet_list)]]
-
+                add_itbs = itbs[(i-directtransferbump) % len(planet_list)] if iteration != 0 else []
+                ptbs = [departure_planet] + add_itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
                 # can add seed argument but that does not work yet as intended
                 random_sequence = manualTopology.create_random_transfer_body_order(
                         arrival_planet=arrival_planet, possible_planets=possible_planets,
                         max_no_of_gas=current_max_no_of_gas)
-
-                temp_ptbs.append(ptbs)
                 transfer_body_order = ptbs + random_sequence
 
+            temp_ptbs.append(ptbs)
             temp_evaluated_sequences.append(transfer_body_order) 
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
-            manualTopology.create_island(transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1, #check also p! ^^
+            manualTopology.create_island(iteration=iteration, transfer_body_order=transfer_body_order,
+                    free_param_count=free_param_count, bounds=bounds, num_gen=1,
                     pop_size=pop_size, leg_exchange=leg_exchange, leg_database=leg_database,
                     manual_base_functions=manual_base_functions)
             current_island_problems.append(current_island_problem)
@@ -341,10 +356,10 @@ class legDatabaseMechanics:
         leg_data = []
         for it, database_leg in enumerate(leg_database[0]):
             if database_leg == leg:
-                delta_v = leg_database[1][it][1]
-                tof = leg_database[1][it][2]
-                rev = leg_database[1][it][3]
-                leg_data.append(delta_v, tof, rev)
+                delta_v = leg_database[1][it][0]
+                tof = leg_database[1][it][1]
+                rev = leg_database[1][it][2]
+                leg_data.append(np.array([delta_v, tof, rev]))
 
         return leg_data
 
@@ -368,15 +383,41 @@ class legDatabaseMechanics:
         """
 
         leg_specific_database.sort(key=lambda dpv: dpv[0]) # sort in ascending order
-        leg_specific_database = leg_specific_database[:no_of_predefined_individuals]
-        print(leg_specific_database)
+
+        #limit to amount of predefined individuals
+        leg_specific_database = leg_specific_database[:no_of_predefined_individuals] 
+        # print(leg_specific_database)
 
         return leg_specific_database
 
 
     @staticmethod
-    def get_dpv_from_leg_specifics(filtered_legs, transfer_body_order, free_param_count):
-        for leg_info in filtered_legs:
+    def get_dpv_from_leg_specifics(pre_dpv, filtered_legs, transfer_body_order, free_param_count,
+            leg_count):
+        """
+        This function takes the filtered dpv variables and inputs them into otherwise random design
+        parameter vectors.
+        Filtered legs content based on get_sequence_leg_specifics function:
+        0 - dV
+        1 - ToF
+        2 - #rev
+
+        Parameters
+        -----------
+
+        filtered_legs : List[np.array]
+        transfer_body_order : List[str]
+        free_param_count : 2
+        populaton : pg.population
+        """
+        no_of_legs = len(transfer_body_order) - 1
+        no_of_gas = len(transfer_body_order) - 2
+        # only loop over available leg information, if not legs exist, then just return the pre_dpv
+        #the first x pre_dpv vectors are edited.
+        for it, leg_info in enumerate(filtered_legs):
+            pre_dpv[it][2 + leg_count] = leg_info[1]
+            pre_dpv[it][2 + no_of_legs + 2 * no_of_gas + free_param_count * 3 * no_of_legs + leg_count] = leg_info[2]
+        return pre_dpv
 
 
 
@@ -393,6 +434,7 @@ def run_mgso_optimisation(departure_planet : str,
                             subdirectory : str = '',
                             max_no_of_gas = 1,
                             no_of_sequence_recursions = 1,
+                            elitist_fraction=0.1,
                             number_of_sequences_per_planet : list =  [],
                             seed : int = 421,
                             write_results_to_file=False,
@@ -474,7 +516,9 @@ def run_mgso_optimisation(departure_planet : str,
                                         # transfer_body_order_array, 
                                         planet_list, 
                                         leg_exchange,
+                                        separate_leg_database,
                                         manual_base_functions, 
+                                        elitist_fraction,
                                         seed)
 
         number_of_islands_array[p] = number_of_islands
@@ -526,7 +570,7 @@ def run_mgso_optimisation(departure_planet : str,
                     util.transfer_body_order_conversion.get_mga_characters_from_list(
                                     temp_evaluated_sequences[j])
             current_sequence_result = [delta_v[j], tof[j] / 86400]
-            evaluated_sequences_results += "%d, %d\n" % tuple(current_sequence_result) 
+            evaluated_sequences_results += f"{mga_sequence_characters}, {current_sequence_result[0]}, {current_sequence_result[1]}\n"
             evaluated_sequences_database[0].append(mga_sequence_characters)
             evaluated_sequences_database[1].append(current_sequence_result)
 
@@ -537,7 +581,8 @@ def run_mgso_optimisation(departure_planet : str,
                     champions_x[p][j], delta_v_per_leg[j])
             current_sequence_leg_results = current_sequence_leg_mechanics_object.get_sequence_leg_specifics()
             for leg in range(len(current_sequence_leg_results)):
-                leg_results += "%d, %d, %i\n" % tuple(current_sequence_leg_results[leg])
+                leg_results += "%s, %d, %d, %i\n" % tuple(current_sequence_leg_results[leg]) # only values
+                # print(leg_results)
                 separate_leg_database[0].append(current_sequence_leg_results[leg][0])
                 separate_leg_database[1].append(current_sequence_leg_results[leg][1:])
 
@@ -554,8 +599,8 @@ def run_mgso_optimisation(departure_planet : str,
             # Remove direct transfer from the determination of best itbs
             dt_delta_v = delta_v[0] # dt is direct transfer
             dt_sequence = temp_ptbs[0]
-            temp_ptbs.pop(0)
             delta_v.pop(0)
+            temp_ptbs.pop(0)
             for it in list(delta_v):
                 if it == 0:
                     continue
@@ -566,7 +611,7 @@ def run_mgso_optimisation(departure_planet : str,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence),
             pc=planet_characters, pl=planet_list)
         
-        # print(current_itbs)
+        print('Current Initial Target Body Sequence : ', current_itbs)
         if p == 0:
             # itbs.append(current_itbs)
             itbs = current_itbs
@@ -605,8 +650,9 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(leg_results)
             file_object.close()
 
+    addition = 0
     for layer in range(no_of_sequence_recursions): # 2
-        layer_folder = '/layer_%i' % (layer)
+        layer_folder = f'/layer_{layer}'
         champions_dict = {}
         champion_fitness_dict = {}
         # for i in range(len(champions_x[layer])):
@@ -655,7 +701,7 @@ def run_mgso_optimisation(departure_planet : str,
                 auxiliary_info['Delta V,'] = delta_v 
                 auxiliary_info['Departure velocity,'] = departure_velocity
                 auxiliary_info['MGA Sequence,'] = \
-                evaluated_sequences_database[0][layer*len(champions_x[layer]) + i]
+                evaluated_sequences_database[0][addition + i]
                 auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
                 #evaluated_sequences_dict[p][j][0]
@@ -683,6 +729,7 @@ def run_mgso_optimisation(departure_planet : str,
                 champions_dict[i] = champions_x[layer][i]
                 champion_fitness_dict[i] = champions_f[layer][i]
         
+        addition += number_of_islands_array[layer]
         if write_results_to_file:
             # print(champions_dict)
             # unique_identifier = "/champions/"

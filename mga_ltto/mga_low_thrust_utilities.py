@@ -25,7 +25,7 @@ from tudatpy.kernel.trajectory_design import transfer_trajectory
 from tudatpy.kernel.interface import spice
 spice.load_standard_kernels()
 
-from mga_ltto.trajectory3d import trajectory_3d
+from trajectory3d import trajectory_3d
 
 import io
 import sys
@@ -306,8 +306,7 @@ def get_low_thrust_transfer_object_automated(transfer_body_order : list,
     return transfer_trajectory_object
 
 
-def get_node_times(transfer_body_order: list,
-                    departure_date: float,
+def get_node_times(departure_date: float,
                     time_of_flight: np.ndarray) -> list:
     """
     Forms array of node times used for the 'evaluate' function of the transferTrajectory class.
