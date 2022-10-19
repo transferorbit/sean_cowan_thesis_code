@@ -3,6 +3,7 @@
 
 
 mga_ltto/__pycache__
+mga_ltto/src/__pycache__/*
 mga_ltto/deprecated
 mga_ltto/test_optimization_results/*
 mga_ltto/verification/.DS*
@@ -10,6 +11,7 @@ mga_ltto/verification/.DS*
 /* mga_ltto/verification/verification_results/* */
 /* mga_ltto/pp_*/* */
 
+mga-ltto-old/
 mga-ltto-old/**
 testing/**
 tudatpy-examples

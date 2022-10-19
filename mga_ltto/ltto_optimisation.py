@@ -19,6 +19,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     import os
     import pygmo as pg
     import multiprocessing as mp
+    import sys
     
     # If conda environment does not work
     # import sys
@@ -38,6 +39,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # spice.load_standard_kernels()
     
     
+    sys.path.append('../mga_ltto/src/')
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
     import mga_low_thrust_utilities as util
     

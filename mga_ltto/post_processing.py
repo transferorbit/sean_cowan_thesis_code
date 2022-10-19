@@ -9,6 +9,7 @@ This module performs post processing actions to visualize the optimized results.
 # IMPORT STATEMENTS #######################################################
 ###########################################################################
 
+import sys
 
 # General imports
 # import sys
@@ -16,6 +17,8 @@ This module performs post processing actions to visualize the optimized results.
 
 from tudatpy.kernel.interface import spice
 spice.load_standard_kernels()
+
+sys.path.append('../mga_ltto/src/')
 import mga_low_thrust_utilities as mga_util
 from trajectory3d import trajectory_3d
 

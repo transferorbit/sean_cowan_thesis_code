@@ -20,6 +20,7 @@ if __name__ == '__main__':
     import os
     import pygmo as pg
     import multiprocessing as mp
+    import sys
     
     # If conda environment does not work
     # import sys
@@ -36,6 +37,7 @@ if __name__ == '__main__':
     from tudatpy.kernel.trajectory_design import shape_based_thrust
     from tudatpy.kernel.trajectory_design import transfer_trajectory
     
+    sys.path.append('../mga_ltto/src/')
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
     import mga_low_thrust_utilities as util
     import manual_topology as topo
@@ -81,8 +83,8 @@ if __name__ == '__main__':
     pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
-    bounds = [[9000, 0, 200, 0, 2e2, -10**4, 0],
-            [9200, 0, 1200, 7000, 2e11, 10**4, 4]]
+    bounds = [[6000, 0, 200, 0, 2e2, -10**4, 0],
+            [6200, 0, 1200, 7000, 2e11, 10**4, 4]]
 
     print('Departure date bounds : [%s, %s]' %
             (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),

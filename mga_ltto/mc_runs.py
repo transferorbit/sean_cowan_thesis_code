@@ -13,12 +13,14 @@ This modules performs a monte carlo analysis on design parameters.
 import numpy as np
 import os
 import random
+import sys
 
 # Tudatpy imports
 import tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 
+sys.path.append('../mga_ltto/src/')
 import mga_low_thrust_utilities as util
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
 
