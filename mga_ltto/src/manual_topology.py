@@ -425,6 +425,8 @@ class legDatabaseMechanics:
 def run_mgso_optimisation(departure_planet : str,
                             arrival_planet : str,
                             free_param_count : int,
+                            Isp : int,
+                            m0 : int,
                             num_gen : int,
                             pop_size : int,
                             no_of_points : int,
@@ -666,7 +668,9 @@ def run_mgso_optimisation(departure_planet : str,
             # Thrust acceleration
             thrust_acceleration = \
             mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
-    
+
+            mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+        
             # Node times
             node_times_list = mga_low_thrust_problem.node_times
             node_times_days_list = [i / constants.JULIAN_DAY for i in node_times_list]
@@ -699,9 +703,10 @@ def run_mgso_optimisation(departure_planet : str,
                 auxiliary_info['Departure velocity,'] = departure_velocity
                 auxiliary_info['MGA Sequence,'] = \
                 evaluated_sequences_database[0][addition + i]
-                auxiliary_info['Maximum thrust'] = np.max([np.linalg.norm(j[1:]) for _, j in
+                auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
-                #evaluated_sequences_dict[p][j][0]
+                auxiliary_info['Delivery mass,'] = delivery_mass
+
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
                 save2txt(state_history, 'state_history.dat', output_directory + subdirectory +

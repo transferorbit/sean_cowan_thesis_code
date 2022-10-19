@@ -93,13 +93,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #         [4600, 3000, 500, 9000, 2e9, 10**4, 2]]
     # subdirectory=  '/tudat_example_EEVVYY_2'
     transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    Isp = 3200
+    m0 = 1300
     free_param_count = 2
-    num_gen = 30
-    pop_size = 1000
+    num_gen = 100
+    pop_size = 500
     no_of_points = 500
-    bounds = [[10000, 0, 200, 0, 2e2, -10**4, 0],
-            [12000, 0, 1200, 7000, 2e11, 10**4, 3]]
-    subdirectory=  '/EMJ_test'
+    bounds = [[10000, 0, 200, 300, 2e2, -10**4, 0],
+            [12000, 0, 1200, 7000, 2e9, 10**4, 2]]
+    subdirectory=  '/EMJ_long'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -217,6 +219,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         thrust_acceleration = \
         mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
 
+        mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+
         # Node times
         node_times_list = mga_low_thrust_problem.node_times
         node_times_days_list = [i / constants.JULIAN_DAY for i in node_times_list]
@@ -250,6 +254,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             auxiliary_info['MGA Sequence,'] = mga_sequence_characters
             auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                 enumerate(thrust_acceleration.items())])
+            auxiliary_info['Delivery mass,'] = delivery_mass
 
             unique_identifier = "/island_" + str(i) + "/"
             save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
@@ -272,9 +277,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
             champions_dict[i] = champions[i]
             champion_fitness_dict[i] = champion_fitness[i]
-            champions_dict[i][0] /= 86400.0
-            for x in range(len(transfer_body_order)-1):
-                champions_dict[i][2+x] /= 86400.0
+            # champions_dict[i][0] /= 86400.0
+            # for x in range(len(transfer_body_order)-1):
+            #     champions_dict[i][2+x] /= 86400.0
                 # if x != 0:
                 #     champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)] = \
                 #     10**champions_dict[i][2 + len(transfer_body_order)-1 + (x-1)]

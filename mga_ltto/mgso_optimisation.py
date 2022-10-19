@@ -41,6 +41,7 @@ if __name__ == '__main__':
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
     import mga_low_thrust_utilities as util
     import manual_topology as topo
+    from date_conversion import dateConversion
     
 ###########################################################################
 # General parameters ######################################################
@@ -76,6 +77,8 @@ if __name__ == '__main__':
     seed = 421
     
     ## Specific parameters
+    Isp = 3200
+    m0 = 1300
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
@@ -86,13 +89,15 @@ if __name__ == '__main__':
     bounds = [[6000, 0, 200, 0, 2e2, -10**4, 0],
             [6200, 0, 1200, 7000, 2e11, 10**4, 4]]
 
-    print('Departure date bounds : [%s, %s]' %
-            (time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[0][0] + 51544.5)),
-        time_conversion.julian_day_to_calendar_date(time_conversion.modified_julian_day_to_julian_day(bounds[1][0]) + 51544.5)))
+    caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
+    caldateub = dateConversion(bounds[1][0]).mjd_to_date()
+    print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
     
     topo.run_mgso_optimisation(departure_planet=departure_planet,
                                 arrival_planet=arrival_planet,
                                 free_param_count=free_param_count,
+                                Isp=Isp,
+                                m0=m0,
                                 num_gen=num_gen,
                                 pop_size=pop_size,
                                 no_of_points=no_of_points,

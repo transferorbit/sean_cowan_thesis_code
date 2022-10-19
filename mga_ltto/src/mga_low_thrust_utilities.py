@@ -639,19 +639,24 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
     # self.system_of_bodies = lambda : system_of_bodies
 
 
-def get_delivery_mass(thrust_acceleration, Isp, m0, g0=9.81):
-    # Isp = 4000
-    # g0 = 9.81
-    # m = 1300
-    m = m0
+def get_mass_propagation(thrust_acceleration : dict, Isp, m0, g0=9.81):
 
-    for i in range(len(thrust_acceleration)-1):
-        dt = (thrust_acceleration[i+1, 0]-thrust_acceleration[i, 0])
-        dvdt = np.linalg.norm(thrust_acceleration[i, 1:])
+    m = m0
+    time_history = np.array(list(thrust_acceleration.keys()))
+    thrust_acceleration = np.array(list(thrust_acceleration.values()))
+    mass_history = {}
+
+    mass_history[time_history[0]] = m0
+    for it, thrust in enumerate(thrust_acceleration):
+        if it == len(thrust_acceleration)-1:
+            break
+        dt = time_history[it+1] - time_history[it]
+        dvdt = np.linalg.norm(thrust)
         dmdt = (1/(Isp*g0)) * m * dvdt
         m -= dmdt * dt
+        mass_history[time_history[it+1]] = m
 
-    return m
+    return mass_history, mass_history[time_history[-2]]
 
 
 def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):

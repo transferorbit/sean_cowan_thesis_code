@@ -58,24 +58,39 @@ no_of_points=500
 # mga_low_thrust_problem = \
 # MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
 #         no_of_free_parameters=0)
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
+
+#EMJ 2fp
+Isp = 3000
+m0 = 1300
+transfer_body_order = ["Earth", "Mars", "Jupiter"]
+design_parameter_vector = np.array([ 900525711.786143, 0.0, 69181163.50817049, 101650320.36332642,
+    2541.500771560418, 9.575103719627307, 1607.0, 8074.0, -8768.0, -1224.0, -3123.0, 5325.0,
+    -9147.0, -4187.0, -9772.0, -5821.0, 2269.0, 2448.0, 1.0, 0.0])
+mga_low_thrust_problem = \
+MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+        no_of_free_parameters=2)
+mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+        transfer_body_order)
 
 # 2fp
 # design_parameter_vector=  np.array([1197.3079260152658, 0.0, 262.41762550207926, 1105.3748080547718,
 #     7727.0,7189.0, -6947.0, 8690.0, 9236.0, -9382.0, -9968.0, 3883.0, -8402.0, -6677.0, 2385.0,
 #     -84.0, 0.0, 0.0])
-transfer_body_order=  ['Earth', 'Mars', 'Mercury', 'Mercury', 'Jupiter']
-design_parameter_vector = np.array([798144938.5175248, 0.0, 34438826.5744251, 72151028.85329694,
-    102918049.60361323, 90408666.78799471, 96.25866185034238, 4082.5018127125654,
-    2105.4589341361825, 10.064195086589267, 2.6415739555067135, 2.856660323144302, 4570.0, 4659.0,
-    3271.0, 2083.0, 2374.0, -2007.0, -2344.0, 7582.0, -116.0, 6927.0, 6251.0, 3491.0, -8115.0,
-    -2350.0, -4790.0, -4855.0, 8799.0, 5799.0, 994.0, -6532.0, 6399.0, -195.0, 3851.0, 876.0, 1.0,
-    1.0, 0.0, 0.0])
-
-mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
-        transfer_body_order)
-mga_low_thrust_problem = \
-MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-        no_of_free_parameters=2)
+# transfer_body_order=  ['Earth', 'Mars', 'Mercury', 'Mercury', 'Jupiter']
+# design_parameter_vector = np.array([798144938.5175248, 0.0, 34438826.5744251, 72151028.85329694,
+#     102918049.60361323, 90408666.78799471, 96.25866185034238, 4082.5018127125654,
+#     2105.4589341361825, 10.064195086589267, 2.6415739555067135, 2.856660323144302, 4570.0, 4659.0,
+#     3271.0, 2083.0, 2374.0, -2007.0, -2344.0, 7582.0, -116.0, 6927.0, 6251.0, 3491.0, -8115.0,
+#     -2350.0, -4790.0, -4855.0, 8799.0, 5799.0, 994.0, -6532.0, 6399.0, -195.0, 3851.0, 876.0, 1.0,
+#     1.0, 0.0, 0.0])
+#
+# mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+#         transfer_body_order)
+# mga_low_thrust_problem = \
+# MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+#         no_of_free_parameters=2)
 
 #0fp that recreates the result
 # transfer_body_order = ["Earth", "Mars"]
@@ -99,10 +114,14 @@ mga_low_thrust_problem.fitness(design_parameter_vector, post_processing=True)
 ### Post processing ###
 state_history = \
 mga_low_thrust_problem.transfer_trajectory_object.states_along_trajectory(no_of_points)
+# print(state_history)
 
 # Thrust acceleration
 thrust_acceleration = \
 mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+# print(thrust_acceleration)
+mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+print(m0, delivery_mass)
 
 # Node times
 node_times_list = mga_low_thrust_problem.node_times
