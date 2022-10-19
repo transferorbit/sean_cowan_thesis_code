@@ -86,8 +86,8 @@ if __name__ == '__main__':
     pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
-    bounds = [[6000, 0, 200, 0, 2e2, -10**4, 0],
-            [6200, 0, 1200, 7000, 2e11, 10**4, 4]]
+    bounds = [[6000, 0, 0, 200, 0, 2e2, -10**4, 0],
+            [6200, 0, 0, 1200, 7000, 2e11, 10**4, 4]]
 
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()

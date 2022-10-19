@@ -80,7 +80,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Problem Setup ###############################################
 ####################################################################
 
-    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
             'Free coefficient [-]', 'Number of revolutions [-]']
     
     # testing problem functionality
@@ -96,11 +97,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     Isp = 3200
     m0 = 1300
     free_param_count = 2
-    num_gen = 100
-    pop_size = 500
+    num_gen = 30
+    pop_size = 100
     no_of_points = 500
-    bounds = [[10000, 0, 200, 300, 2e2, -10**4, 0],
-            [12000, 0, 1200, 7000, 2e9, 10**4, 2]]
+    bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
+            [12000, 0, 0, 1200, 7000, 2e9, 10**4, 2]]
     subdirectory=  '/EMJ_long'
     
     # verification Gondelach

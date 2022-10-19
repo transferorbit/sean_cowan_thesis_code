@@ -159,9 +159,8 @@ class manualTopology:
                 ptbs = [departure_planet] + add_itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
                 # can add seed argument but that does not work yet as intended
                 random_sequence = manualTopology.create_random_transfer_body_order(
-                        arrival_planet=arrival_planet, possible_planets=possible_planets,
-                        max_no_of_gas=current_max_no_of_gas)
-                transfer_body_order = ptbs + random_sequence
+                        possible_planets=possible_planets, max_no_of_gas=current_max_no_of_gas)
+                transfer_body_order = ptbs + random_sequence + arrival_planet
 
             temp_ptbs.append(ptbs)
             temp_evaluated_sequences.append(transfer_body_order) 
@@ -177,7 +176,7 @@ class manualTopology:
         return temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi
 
     @staticmethod
-    def create_random_transfer_body_order(arrival_planet, possible_planets, seed=None, max_no_of_gas=6) -> list:
+    def create_random_transfer_body_order(possible_planets, seed=None, max_no_of_gas=6) -> list:
 
         # transfer_body_order.append(predefined_sequence) if predefined_sequence != [] else None #?
         # create random sequence of numbers with max_no_of_gas length
@@ -187,8 +186,6 @@ class manualTopology:
 
         # transform that into transfer_body_order
         transfer_body_strings = util.transfer_body_order_conversion.get_transfer_body_list(sequence_digits)
-        transfer_body_strings.append(arrival_planet)
-
         return transfer_body_strings
 
     def add_sequence_to_database(self):

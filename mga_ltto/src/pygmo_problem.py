@@ -112,25 +112,30 @@ class MGALowThrustTrajectoryOptimizationProblem:
         departure_velocity_lb = self.bounds[0][1]
         departure_velocity_ub = self.bounds[1][1]
 
+        arrival_velocity_lb = self.bounds[0][2]
+        arrival_velocity_ub = self.bounds[1][2]
+
         # time_of_flight_lb = self.bounds[0][2]
         # time_of_flight_ub = self.bounds[1][2]
-        time_of_flight_lb = self.mjd2000_to_seconds(self.bounds[0][2])
-        time_of_flight_ub = self.mjd2000_to_seconds(self.bounds[1][2])
+        time_of_flight_lb = self.mjd2000_to_seconds(self.bounds[0][3])
+        time_of_flight_ub = self.mjd2000_to_seconds(self.bounds[1][3])
 
-        incoming_velocity_lb = self.bounds[0][3]
-        incoming_velocity_ub = self.bounds[1][3]
+        incoming_velocity_lb = self.bounds[0][4]
+        incoming_velocity_ub = self.bounds[1][4]
 
-        swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][4])
-        swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][4])
+        swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
+        swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
 
-        free_coefficients_lb = self.bounds[0][5]
-        free_coefficients_ub = self.bounds[1][5]
+        free_coefficients_lb = self.bounds[0][6]
+        free_coefficients_ub = self.bounds[1][6]
 
-        number_of_revolutions_lb = self.bounds[0][6]
-        number_of_revolutions_ub = self.bounds[1][6]
+        number_of_revolutions_lb = self.bounds[0][7]
+        number_of_revolutions_ub = self.bounds[1][7]
 
         lower_bounds = [departure_date_lb] # departure date
         lower_bounds.append(departure_velocity_lb) # departure velocity # FIXED
+        lower_bounds.append(arrival_velocity_lb) # departure velocity # FIXED
+
         for _ in range(self.no_of_legs): # time of flight
             lower_bounds.append(time_of_flight_lb) 
         for _ in range(self.no_of_gas):
@@ -145,6 +150,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         upper_bounds = [departure_date_ub] # departure date
         upper_bounds.append(departure_velocity_ub) # departure velocity
+        upper_bounds.append(arrival_velocity_ub) # departure velocity
 
         for _ in range(self.no_of_legs): # time of flight
             upper_bounds.append(time_of_flight_ub)
@@ -212,11 +218,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
         Assuming no_of_gas == 2 & #fc == 2
         0 - departure_date
         1 - departure velocity
-        2..5 - time of flights
-        5..7 - incoming velocities
-        7..9 - swingby periapses
-        9..20 - free_coefficients
-        20..23 - number of revolutions
+        2 - arrival velocity
+        3..6 - time of flights
+        6..8 - incoming velocities
+        8..10 - swingby periapses
+        10..29 - free_coefficients
+        29..32 - number of revolutions
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
         self.design_parameter_vector = design_parameter_vector
@@ -229,7 +236,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         target_elements = (self.target_semi_major_axis, self.target_eccentricity) 
 
         # indexes
-        time_of_flight_index = 2 + self.no_of_legs
+        time_of_flight_index = 3 + self.no_of_legs
         incoming_velocity_index = time_of_flight_index + self.no_of_gas
         swingby_periapsis_index = incoming_velocity_index + self.no_of_gas
         free_coefficient_index = swingby_periapsis_index + self.total_no_of_free_coefficients
@@ -242,8 +249,11 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # departure velocity
         departure_velocity = design_parameter_vector[1] 
 
+        # arrival velocity
+        arrival_velocity = design_parameter_vector[2] 
+
         # time of flight
-        time_of_flights = design_parameter_vector[2:time_of_flight_index]
+        time_of_flights = design_parameter_vector[3:time_of_flight_index]
 
         # incoming velocities
         incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index]
@@ -295,7 +305,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # node free parameters
         node_free_parameters = mga_util.get_node_free_parameters(self.transfer_body_order,
                 swingby_periapses_array, incoming_velocity_array, departure_velocity=departure_velocity,
-                arrival_velocity=self.arrival_velocity)
+                arrival_velocity=arrival_velocity)
 
         try:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
