@@ -160,7 +160,7 @@ class manualTopology:
                 # can add seed argument but that does not work yet as intended
                 random_sequence = manualTopology.create_random_transfer_body_order(
                         possible_planets=possible_planets, max_no_of_gas=current_max_no_of_gas)
-                transfer_body_order = ptbs + random_sequence + arrival_planet
+                transfer_body_order = ptbs + random_sequence + [arrival_planet]
 
             temp_ptbs.append(ptbs)
             temp_evaluated_sequences.append(transfer_body_order) 

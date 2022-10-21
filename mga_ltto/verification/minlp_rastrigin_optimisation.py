@@ -77,26 +77,30 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]',
             'Free coefficient [-]', "Number of revolutions [-]"]
 
+    no_of_points = 500
     # verification optimisation paramters
     # test minlp optimization
-    my_problem = pg.minlp_rastrigin(5,5) 
-    # my_problem=  pg.rastrigin(5)
-    num_gen = 300
-    pop_size = 3000
-    no_of_points = 500
-    subdirectory = '/minlp_rastrigin'
+    # my_problem = pg.minlp_rastrigin(5,5) 
+    # num_gen = 100
+    # pop_size = 30000
+    # subdirectory = '/minlp_rastrigin'
+    my_problem = pg.ackley(6)
+    print(my_problem.best_known())
+    num_gen = 1
+    pop_size = 300000
+    subdirectory = '/neldermead_rastrigin'
 
     prob = my_problem #optimisation verification
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
-    number_of_islands = cpu_count
+    number_of_islands = 1
 ###################################################################
 # LTTO Optimisation ###############################################
 ###################################################################
 
     my_population = pg.population(prob, size=pop_size, seed=seed)
-    my_algorithm = pg.algorithm(pg.sga(gen=1))
-    # my_island = pg.mp_island()
+    my_algorithm = pg.algorithm(pg.nlopt(solver='neldermead'))
+    # my_algorithm = pg.algorithm(pg.sga(gen=1))
     print('Creating archipelago')
     archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
 

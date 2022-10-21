@@ -609,13 +609,19 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
                 base_frame_origin=frame_origin, base_frame_orientation=frame_orientation)
     # print('After spice data is needed')
     # print(bodies)
+    current_body_list_settings = body_list_settings() #cannot be moved out of scope yet.
     for it, i in enumerate(bodies):
         # print(it)
-        current_body_list_settings = body_list_settings() #cannot be moved out of scope yet.
-        current_body_list_settings.add_empty_settings(i)            
+        # current_body_list_settings.add_empty_settings(i)            
         if ephemeris_type=='JPL':
-            current_body_list_settings.get(i).ephemeris_settings = \
-            environment_setup.ephemeris.approximate_jpl_model(i)        
+            if i == "Sun":
+                central_body_mu = 1.3271244e20 # m^3 / s^2
+                current_body_list_settings.get(i).ephemeris_settings = \
+                environment_setup.ephemeris.keplerian([0, 0, 0, 0, 0, 0], 1000*constants.JULIAN_DAY,
+                        central_body_mu, 'SSB', frame_orientation)
+            else:
+                current_body_list_settings.get(i).ephemeris_settings = \
+                environment_setup.ephemeris.approximate_jpl_model(i)        
         elif ephemeris_type=='KEPFROMSPICE':
             current_body_list_settings.get(i).ephemeris_settings = \
             environment_setup.ephemeris.keplerian_from_spice(i, 
@@ -630,10 +636,22 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
                     central_body_mu,
                     frame_origin,
                     frame_orientation)
+        elif ephemeris_type=='NEW':
+            current_body_list_settings = environment_setup.BodyListSettings(frame_origin, frame_orientation)
+            for i in bodies:
+                current_body_list_settings.add_empty_settings(i)            
+                if i == "Sun":
+                    central_body_mu = 1.3271244e20 # m^3 / s^2
+                    current_body_list_settings.get(i).ephemeris_settings = \
+                    environment_setup.ephemeris.keplerian([0, 0, 0, 0, 0, 0], 1000*constants.JULIAN_DAY,
+                            central_body_mu, 'SSB', frame_orientation)
+                else:
+                    current_body_list_settings.get(i).ephemeris_settings = \
+                    environment_setup.ephemeris.approximate_jpl_model(i)        
 
 
             
-        # print(current_body_list_settings.get(i).ephemeris_settings)
+    # print(current_body_list_settings.get("Mars").ephemeris_settings)
 
     return environment_setup.create_system_of_bodies(current_body_list_settings)
     # self.system_of_bodies = lambda : system_of_bodies

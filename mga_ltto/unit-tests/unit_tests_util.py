@@ -8,9 +8,11 @@ This module performs unit tests for the mga_low_thrust_utilities file.
 
 # General imports
 import sys
-sys.path.append('../')
+
 from tudatpy.kernel import constants
-import mga_ltto.mga_low_thrust_utilities as util
+
+sys.path.append('../src/')
+import mga_low_thrust_utilities as util
 import unittest as unit
 import numpy as np
 

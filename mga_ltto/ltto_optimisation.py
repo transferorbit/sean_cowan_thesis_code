@@ -97,12 +97,12 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     Isp = 3200
     m0 = 1300
     free_param_count = 2
-    num_gen = 30
+    num_gen = 3
     pop_size = 100
     no_of_points = 500
     bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
             [12000, 0, 0, 1200, 7000, 2e9, 10**4, 2]]
-    subdirectory=  '/EMJ_long'
+    subdirectory=  '/EMJ_test_bodies'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
