@@ -67,7 +67,7 @@ if __name__ == '__main__':
     MGSA - Multiple Gravity Assist Sequence
     """
     write_results_to_file = False
-    subdirectory = '/morante_verification_MO'
+    subdirectory = '/morante_testing_MO'
     max_no_of_gas = 3
     no_of_sequence_recursions = 3
     number_of_sequences_per_planet = [8 for _ in range(max_no_of_gas)]
@@ -76,6 +76,7 @@ if __name__ == '__main__':
     leg_exchange = True
     seed = 421
     possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
+    mo_optimisation = True
     # possible_ga_planets = None
     
     ## Specific parameters
@@ -84,16 +85,16 @@ if __name__ == '__main__':
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 50
-    pop_size = 200
-    # num_gen = 1
-    # pop_size = 100
+    # num_gen = 50
+    # pop_size = 200
+    num_gen = 1
+    pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
         'Free coefficient [-]', 'Number of revolutions [-]']
-    bounds = [[10592.5, 2000, 0, 100, 0, 2e5, -10**4, 0],
+    bounds = [[10592.5, 1999.999999, 0, 100, 0, 2e5, -10**4, 0],
             [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 4]]
 
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
@@ -120,5 +121,6 @@ if __name__ == '__main__':
                                 write_results_to_file=write_results_to_file,
                                 manual_base_functions=manual_base_functions,
                                 leg_exchange=leg_exchange,
-                                top_x_sequences =20)
+                                top_x_sequences =20,
+                                mo_optimisation=mo_optimisation)
 

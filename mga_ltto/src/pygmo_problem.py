@@ -46,7 +46,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     departure_velocity=2000, 
                     arrival_velocity=0,
                     planet_kep_states = None,
-                    manual_base_functions=False):
+                    manual_base_functions=False,
+                    mo_optimisation=False):
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -67,6 +68,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.swingby_altitude = swingby_altitude
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
+        self.mo_optimisation = mo_optimisation
 
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
         #         "Uranus", "Neptune"] 
@@ -164,6 +166,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
             upper_bounds.append(number_of_revolutions_ub)
 
         return (lower_bounds, upper_bounds)
+
+    def get_nobj(self):
+        if self.mo_optimisation:
+            return 2
+        else:
+            return 1
 
     def get_nic(self):
         return 0
@@ -309,15 +317,21 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         try:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
-            if post_processing == False:
-                objective = transfer_trajectory_object.delta_v 
-            if post_processing == True:
+            if post_processing == False and self.mo_optimisation == False:
+                objective = [transfer_trajectory_object.delta_v]
+            elif post_processing == False and self.mo_optimisation == True:
+                objective = [transfer_trajectory_object.delta_v,
+                        transfer_trajectory_object.time_of_flight]
+            elif post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
         except RuntimeError as e:
             # print(str(e), "\n")#, "Objective increased by 10**16")
-            objective = 10**16
+            if self.mo_optimisation == False:
+                objective = [10**16]
+            else:
+                objective = [10**16, 10**16]
             if post_processing == True:
                 raise
         if post_processing == False:
-            return [objective]
+            return objective
             # print('Fitness evaluated')

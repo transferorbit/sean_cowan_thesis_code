@@ -56,8 +56,17 @@ class manualTopology:
     #     return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
 
     @staticmethod
-    def create_island(iteration, transfer_body_order, free_param_count, bounds, num_gen, pop_size,
-            leg_exchange, leg_database, manual_base_functions=False, elitist_fraction=0.1):
+    def create_island(iteration, 
+                        transfer_body_order, 
+                        free_param_count, 
+                        bounds, 
+                        num_gen, 
+                        pop_size,
+                        leg_exchange, 
+                        leg_database, 
+                        manual_base_functions=False, 
+                        elitist_fraction=0.1,
+                        mo_optimisation=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
@@ -69,8 +78,11 @@ class manualTopology:
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds,
-                manual_base_functions=manual_base_functions)
-        algorithm = pg.algorithm(pg.sga(gen=num_gen))
+                manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation)
+        if not mo_optimisation:
+            algorithm = pg.algorithm(pg.sga(gen=num_gen))
+        else:
+            algorithm = pg.algorithm(pg.nsga2(gen=num_gen))
 
         if leg_exchange:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
@@ -118,7 +130,8 @@ class manualTopology:
                             leg_database,
                             manual_base_functions, 
                             elitist_fraction,
-                            seed):
+                            seed,
+                            mo_optimisation):
 
         current_max_no_of_gas = max_no_of_gas - iteration
         current_island_problems = []
@@ -173,7 +186,7 @@ class manualTopology:
             manualTopology.create_island(iteration=iteration, transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=1,
                     pop_size=pop_size, leg_exchange=leg_exchange, leg_database=leg_database,
-                    manual_base_functions=manual_base_functions)
+                    manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
@@ -457,7 +470,8 @@ def run_mgso_optimisation(departure_planet : str,
                             write_results_to_file=False,
                             manual_base_functions=False,
                             leg_exchange = False,
-                            top_x_sequences = 10):
+                            top_x_sequences = 10,
+                            mo_optimisation=False):
 
     # if os.path.exists(output_directory + subdirectory):
     #     shutil.rmtree(output_directory + subdirectory)
@@ -560,7 +574,8 @@ def run_mgso_optimisation(departure_planet : str,
                                         separate_leg_database,
                                         manual_base_functions, 
                                         elitist_fraction,
-                                        seed)
+                                        seed,
+                                        mo_optimisation)
 
         number_of_islands_array[p] = number_of_islands
         island_problems[p] = current_island_problems
@@ -572,25 +587,28 @@ def run_mgso_optimisation(departure_planet : str,
             archi.evolve()
             # archi.status
             # archi.wait_check()
-            champs_dict_per_gen = {}
-            champ_f_dict_per_gen = {}
-            for j in range(number_of_islands_array[p]):
-                champs_dict_per_gen[j] = archi.get_champions_x()[j]
-                champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
-            list_of_x_dicts.append(champs_dict_per_gen)
-            list_of_f_dicts.append(champ_f_dict_per_gen)
+            if not mo_optimisation:
+                champs_dict_per_gen = {}
+                champ_f_dict_per_gen = {}
+                for j in range(number_of_islands_array[p]):
+                        champs_dict_per_gen[j] = archi.get_champions_x()[j]
+                        champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
+                list_of_x_dicts.append(champs_dict_per_gen)
+                list_of_f_dicts.append(champ_f_dict_per_gen)
             archi.wait_check()
 
-        list_of_lists_of_x_dicts.append(list_of_x_dicts)
-        list_of_lists_of_f_dicts.append(list_of_f_dicts)
+        if not mo_optimisation:
+            list_of_lists_of_x_dicts.append(list_of_x_dicts)
+            list_of_lists_of_f_dicts.append(list_of_f_dicts)
         print('Evolution finished')
         # print('Number of islands this iteration', number_of_islands_array[p])
         # print('champ_f_dict_per_gen : ', champ_f_dict_per_gen)
         # print('list_of_f_dicts : ', list_of_f_dicts)
 
     ### Algorithm for next island generation ###
-        champions_x[p] = archi.get_champions_x() # 2, no_of_islands 
-        champions_f[p] = archi.get_champions_f()
+        if not mo_optimisation:
+            champions_x[p] = archi.get_champions_x() # 2, no_of_islands 
+            champions_f[p] = archi.get_champions_f()
 
         # Write mga sequences to evaluated sequence database file
         delta_v = {}
@@ -599,6 +617,11 @@ def run_mgso_optimisation(departure_planet : str,
         evaluated_sequences_dict[p] = [[] for _ in range(number_of_islands)]
 
         for j in range(number_of_islands):
+
+            if mo_optimisation:
+                break
+                # island_problems[p][j]
+
             # define delta v to be used for evaluation of best sequence
             island_problems[p][j].fitness(champions_x[p][j], post_processing=True)
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
