@@ -17,6 +17,7 @@ import pygmo as pg
 import multiprocessing as mp
 import random
 import shutil
+import json
 
 # Tudatpy imports
 # Still necessary to implement most recent version of the code
@@ -83,9 +84,12 @@ class manualTopology:
                 pre_design_parameter_vectors.append(population.random_decision_vector())
             # for leg_number, leg in enumerate(island_leg_dict): 
             for leg, leg_number in island_leg_dict.items(): 
-                if leg_database == [[], []]: #exit if 1st iteration where leg_database is empty
+                # print(leg, leg_number)
+                if leg_database == []: #exit if 1st iteration where leg_database is empty
                     break
+                # print(leg_database)
                 leg_data = legDatabaseMechanics.get_leg_data_from_database(leg, leg_database)
+                # print(leg_data)
                 filtered_legs = legDatabaseMechanics.get_filtered_legs(leg_data,
                         no_of_predefined_individuals)
                 pre_design_parameter_vectors = \
@@ -121,8 +125,8 @@ class manualTopology:
         temp_evaluated_sequences = []
         temp_ptbs = []
 
-        possible_planets = len(planet_list)
-        combinations_left = possible_planets**(max_no_of_gas-iteration)# or no_of_sequence_recursions
+        no_of_possible_planets = len(planet_list)
+        combinations_left = no_of_possible_planets**(max_no_of_gas-iteration)# or no_of_sequence_recursions
 
         print('Creating archipelago')
         print('Leg exchange enabled') if leg_exchange == True else None
@@ -136,11 +140,11 @@ class manualTopology:
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
-        if iteration== 0:
-            number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list) + 1
+        if iteration == 0:
+            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)+1) + 1
             directtransferbump = 1
         else:
-            number_of_islands = number_of_sequences_per_planet[iteration]*len(planet_list)
+            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)+1)
             directtransferbump = 0
 
             # keep number of islands to a maximum if combinatorial space is small enough
@@ -159,7 +163,7 @@ class manualTopology:
                 ptbs = [departure_planet] + add_itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
                 # can add seed argument but that does not work yet as intended
                 random_sequence = manualTopology.create_random_transfer_body_order(
-                        possible_planets=possible_planets, max_no_of_gas=current_max_no_of_gas)
+                        possible_planets=planet_list, max_no_of_gas=current_max_no_of_gas)
                 transfer_body_order = ptbs + random_sequence + [arrival_planet]
 
             temp_ptbs.append(ptbs)
@@ -178,15 +182,28 @@ class manualTopology:
     @staticmethod
     def create_random_transfer_body_order(possible_planets, seed=None, max_no_of_gas=6) -> list:
 
+        body_dict = {0: "Null",
+                1: "Mercury",
+                2: "Venus",
+                3: "Earth",
+                4: "Mars",
+                5: "Jupiter",
+                6: "Saturn",
+                7: "Uranus",
+                8: "Neptune"}
+
         # transfer_body_order.append(predefined_sequence) if predefined_sequence != [] else None #?
         # create random sequence of numbers with max_no_of_gas length
         random.seed(seed)
         sequence_length = random.randrange(0, max_no_of_gas)
-        sequence_digits = [random.randrange(1, (1 + possible_planets)) for _ in range(sequence_length)]
+        sequence_digits = [random.randrange(0, len(possible_planets)) for _ in
+                range(sequence_length)]
+        transfer_body_list = [possible_planets[i] for i in sequence_digits]
 
         # transform that into transfer_body_order
-        transfer_body_strings = util.transfer_body_order_conversion.get_transfer_body_list(sequence_digits)
-        return transfer_body_strings
+        # transfer_body_list = \
+        # util.transfer_body_order_conversion.get_transfer_body_list(sequence_digits)
+        return transfer_body_list
 
     def add_sequence_to_database(self):
         pass
@@ -254,6 +271,7 @@ class manualTopology:
 
                 sequence_delta_v_value_dict[i] = list_of_delta_v_for_current_pc
 
+            # print('all_values', sequence_delta_v_value_dict)
             ### Get statistics
             quantities = ['max', 'min', 'mean', 'median']
             ptbs_stats = np.zeros((no_of_possible_planets, len(quantities))) 
@@ -265,10 +283,10 @@ class manualTopology:
                 # print(current_max, current_min, current_mean, current_median)
                 ptbs_stats[i, :] = np.array([current_max, current_min, current_mean,
                     current_median])
-            # print(ptbs_stats)
+            # print('ptbs_stats', ptbs_stats)
 
             ### Determine scalarization (what is an optimal combination of statistical quantities
-            arg_min = np.argmin(ptbs_stats[:,1])
+            arg_min = np.argmin(ptbs_stats[:,1]) # take minimum
             local_char = pc[arg_min]
             itbs = [util.transfer_body_order_conversion.get_mga_list_from_characters(local_char) for _ in
                 range (no_of_possible_planets)]
@@ -303,7 +321,7 @@ class separateLegMechanics:
         index = self.dict_of_legs[leg_string]
 
         current_dV = self.delta_v_per_leg[index]
-        current_tof = self.champion_x[2+index] / 86400
+        current_tof = self.champion_x[3+index] / 86400
         current_rev = self.champion_x[len(self.champion_x) - self.number_of_legs + index]
         current_leg_results = [leg_string, current_dV, current_tof, current_rev]
         return current_leg_results
@@ -333,7 +351,7 @@ class legDatabaseMechanics:
         # self.leg_database = leg_data
 
     @staticmethod
-    def get_leg_data_from_database(leg, leg_database):
+    def get_leg_data_from_database(leg_to_compare, leg_database):
         """
         This function takes the leg_database and creates a list of results specific to that leg. 
         Returns list of leg specific design parameter vectors
@@ -341,7 +359,7 @@ class legDatabaseMechanics:
         Parameters
         -----------
 
-        leg_database : List[List[str], List[np.array]]
+        leg_database : List[str, float, float, int]
         leg : str
 
         Returns
@@ -350,11 +368,11 @@ class legDatabaseMechanics:
         List[np.array]
         """
         leg_data = []
-        for it, database_leg in enumerate(leg_database[0]):
-            if database_leg == leg:
-                delta_v = leg_database[1][it][0]
-                tof = leg_database[1][it][1]
-                rev = leg_database[1][it][2]
+        for leg_specific_data in leg_database:
+            if leg_specific_data[0] == leg_to_compare:
+                delta_v = leg_specific_data[1]
+                tof = leg_specific_data[2]
+                rev = leg_specific_data[3]
                 leg_data.append(np.array([delta_v, tof, rev]))
 
         return leg_data
@@ -430,6 +448,7 @@ def run_mgso_optimisation(departure_planet : str,
                             bounds : list,
                             output_directory : str = '',
                             subdirectory : str = '',
+                            possible_ga_planets : list = None,
                             max_no_of_gas = 1,
                             no_of_sequence_recursions = 1,
                             elitist_fraction=0.1,
@@ -437,41 +456,66 @@ def run_mgso_optimisation(departure_planet : str,
                             seed : int = 421,
                             write_results_to_file=False,
                             manual_base_functions=False,
-                            leg_exchange = False):
+                            leg_exchange = False,
+                            top_x_sequences = 10):
 
     # if os.path.exists(output_directory + subdirectory):
     #     shutil.rmtree(output_directory + subdirectory)
 
-    planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
-    planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
+    if possible_ga_planets != None:
+        planet_list = possible_ga_planets
+        planet_characters = \
+        util.transfer_body_order_conversion.get_mga_character_list_from_list(planet_list)
+        print('Possible GA planets constrained')
+    else:
+        planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
+        planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
+        # Remove excess planets above target planet (except for depature)
+        planet_list = manualTopology.remove_excess_planets(planet_list, departure_planet,
+            arrival_planet) if max_no_of_gas != 0 else [0]
+        planet_characters = manualTopology.remove_excess_planets(planet_characters, departure_planet, arrival_planet)
+        print(f'GA planets limited to planets within {arrival_planet}')
     
-    # Remove excess planets above target planet (except for depature)
-    planet_list = manualTopology.remove_excess_planets(planet_list, departure_planet,
-        arrival_planet) if max_no_of_gas != 0 else [0]
-    planet_characters = manualTopology.remove_excess_planets(planet_characters, departure_planet, arrival_planet)
+    combinations_total = (len(planet_list)+1)**(max_no_of_gas)# or no_of_sequence_recursions
+    combinations_evaluated=  number_of_sequences_per_planet[0]*len(planet_list)*no_of_sequence_recursions
+    print(f'The combinational coverage that will be achieved {combinations_evaluated} / {combinations_total}')
     unique_identifier = '/topology_database'
 
     # TODO : replace with list of lists
     
     if write_results_to_file:
         evaluated_seq_database_file = output_directory + subdirectory + unique_identifier +  '/evaluated_sequences_database.txt'
+        sorted_evaluated_seq_database_file = output_directory + subdirectory + '/sorted_evaluated_sequences_database.txt'
         separate_leg_database_file = output_directory + subdirectory +  unique_identifier +  '/separate_leg_database.txt'
         
         if not os.path.exists(output_directory + subdirectory + unique_identifier):
             os.makedirs(output_directory + subdirectory + unique_identifier)
+
         if not os.path.exists(evaluated_seq_database_file):
             open(evaluated_seq_database_file, 'a+').close()
+        else:
+            os.remove(evaluated_seq_database_file)
+
         if not os.path.exists(separate_leg_database_file):
             open(separate_leg_database_file, 'a+').close()
+        else:
+            os.remove(separate_leg_database_file)
 
-    evaluated_sequences_database = [[], []]
-    separate_leg_database = [[], []]
+        if not os.path.exists(sorted_evaluated_seq_database_file):
+            open(sorted_evaluated_seq_database_file, 'a+').close()
+        else:
+            os.remove(sorted_evaluated_seq_database_file)
+
+    # evaluated_sequences_database = [[], []]
+    # separate_leg_database = [[], []]
+    evaluated_sequences_database = []
+    separate_leg_database = []
 
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
 
     # print(len(planet_list)
-    evaluated_sequences_results = 'Sequence, Delta V, ToF\n'
+    evaluated_sequences_results = 'Sequence, Delta V, ToF, Delivery Mass Fraction \n'
     leg_results = 'Leg, Delta V, ToF, #rev\n'
 
     # border case for max_no_of_gas == 0
@@ -560,28 +604,37 @@ def run_mgso_optimisation(departure_planet : str,
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
+            thrust_acceleration = \
+            island_problems[p][j].transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+
+            mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
             # print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
             mga_sequence_characters = \
                     util.transfer_body_order_conversion.get_mga_characters_from_list(
                                     temp_evaluated_sequences[j])
-            current_sequence_result = [delta_v[j], tof[j] / 86400]
-            evaluated_sequences_results += f"{mga_sequence_characters}, {current_sequence_result[0]}, {current_sequence_result[1]}\n"
-            evaluated_sequences_database[0].append(mga_sequence_characters)
-            evaluated_sequences_database[1].append(current_sequence_result)
+            current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400,
+                    delivery_mass / m0]
+            evaluated_sequences_results += "%s, %d, %d, %f\n" % tuple(current_sequence_result)
+            # evaluated_sequences_database[0].append(mga_sequence_characters)
+            # evaluated_sequences_database[1].append(current_sequence_result)
+            evaluated_sequences_database.append(current_sequence_result)
 
             evaluated_sequences_dict[p][j] = current_sequence_result
 
             # Save separate leg information
             current_sequence_leg_mechanics_object = separateLegMechanics(mga_sequence_characters,
                     champions_x[p][j], delta_v_per_leg[j])
-            current_sequence_leg_results = current_sequence_leg_mechanics_object.get_sequence_leg_specifics()
-            for leg in range(len(current_sequence_leg_results)):
-                leg_results += "%s, %d, %d, %i\n" % tuple(current_sequence_leg_results[leg]) # only values
+            current_sequence_leg_results = \
+            current_sequence_leg_mechanics_object.get_sequence_leg_specifics()
+            # print(current_sequence_leg_results)
+            for leg in current_sequence_leg_results:
+                leg_results += "%s, %d, %d, %d\n" % tuple(leg) # only values
                 # print(leg_results)
-                separate_leg_database[0].append(current_sequence_leg_results[leg][0])
-                separate_leg_database[1].append(current_sequence_leg_results[leg][1:])
+                # separate_leg_database[0].append(current_sequence_leg_results[leg][0])
+                # separate_leg_database[1].append(current_sequence_leg_results[leg][1:])
+                separate_leg_database.append(leg)
 
         # print(evaluated_sequences_database, separate_leg_database)
             # check auxiliary help for good legs -> SOLVE PICKLE ERROR
@@ -592,7 +645,7 @@ def run_mgso_optimisation(departure_planet : str,
             break
 
         ### Define ITBS ###
-        print(delta_v, temp_ptbs)
+        # print(delta_v, temp_ptbs)
         if p == 0:
             dt_delta_v = delta_v[0] # dt is direct transfer
             dt_sequence = temp_ptbs[0]
@@ -608,7 +661,7 @@ def run_mgso_optimisation(departure_planet : str,
             type_of_selection="proportional", dt_tuple=(dt_delta_v, dt_sequence),
             pc=planet_characters, pl=planet_list)
         
-        print('Current Initial Target Body Sequence : ', current_itbs)
+        # print('Current Initial Target Body Sequence : ', current_itbs)
         if p == 0:
             # itbs.append(current_itbs)
             itbs = current_itbs
@@ -633,18 +686,35 @@ def run_mgso_optimisation(departure_planet : str,
     ##########################################
     ##########################################
 
+
 ###########################################################################
 # Post processing #########################################################
 ###########################################################################
 
 # Saving the trajectories for post-processing
     if write_results_to_file:
-        with open(evaluated_seq_database_file, 'r+') as file_object:
+        print(evaluated_sequences_database)
+        with open(evaluated_seq_database_file, 'w') as file_object:
+            # print(evaluated_sequences_database)
+            # json.dump(evaluated_sequences_results, file_object)
             file_object.write(evaluated_sequences_results)
             file_object.close()
 
-        with open(separate_leg_database_file, 'r+') as file_object:
+        with open(separate_leg_database_file, 'w') as file_object:
+            # json.dump(leg_results, file_object)
             file_object.write(leg_results)
+            file_object.close()
+
+        # evaluate sorted database
+        unsorted_evaluated_sequences_database = evaluated_sequences_database.copy()
+        evaluated_sequences_database.sort(key=lambda elem : elem[1])
+        sorted_evaluated_sequences_database = evaluated_sequences_database.copy()
+        sorted_evaluated_sequences_results = 'Sequence, Delta V, ToF, Delivery Mass Fraction\n'
+        for i in evaluated_sequences_database:
+            sorted_evaluated_sequences_results += "%s, %d, %d, %f\n" % tuple(i)
+
+        with open(sorted_evaluated_seq_database_file, 'w') as file_object:
+            file_object.write(sorted_evaluated_sequences_results)
             file_object.close()
 
     addition = 0
@@ -698,11 +768,14 @@ def run_mgso_optimisation(departure_planet : str,
                     departure_velocity -= delta_v_per_leg[j]
                 auxiliary_info['Delta V,'] = delta_v 
                 auxiliary_info['Departure velocity,'] = departure_velocity
+                # print(addition, i)
+                print(unsorted_evaluated_sequences_database[addition + i][0])
                 auxiliary_info['MGA Sequence,'] = \
-                evaluated_sequences_database[0][addition + i]
+                unsorted_evaluated_sequences_database[addition + i][0]
                 auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
                 auxiliary_info['Delivery mass,'] = delivery_mass
+                auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
 
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
@@ -730,15 +803,32 @@ def run_mgso_optimisation(departure_planet : str,
         
         #Per layer add the indices
         addition += number_of_islands_array[layer]
-        if write_results_to_file:
-            # print(champions_dict)
-            # unique_identifier = "/champions/"
-            # file_object = open("%schampions.dat" % (output_directory + unique_identifier), 'a+')
-            # file_object.write(champions_x[layer][i])
-            # file_object.close("%schampions.dat" % (output_directory + unique_identifier))
-            #
-            # file_object = open("%schampions_fitness.dat" % (output_directory + unique_identifier), 'a+')
-            # file_object.write(champions_f[layer][i])
-            # file_object.close("%schampions_fitness.dat" % (output_directory + unique_identifier))
-            pass
-    
+    if write_results_to_file:
+        bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
+            'Free coefficient [-]', 'Number of revolutions [-]']
+
+        optimisation_characteristics = {}
+        # optimisation_characteristics['Transfer body order,'] = mga_sequence_characters
+        optimisation_characteristics['Free parameter count,'] = free_param_count
+        optimisation_characteristics['Number of generations,'] = num_gen
+        optimisation_characteristics['Population size,'] = pop_size
+        optimisation_characteristics['CPU count,'] = cpu_count
+        optimisation_characteristics['Number of islands,'] = number_of_islands
+        for j in range(len(bounds[0])):
+            for k in range(len(bounds)):
+                if k == 0:
+                    min = ' LB'
+                else:
+                    min = ' UB'
+                optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
+        # optimisation_characteristics['Bounds'] = bounds
+        
+        # This should be for the statistics, we already save all information per
+        unique_identifier = ""
+        save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
+                subdirectory + unique_identifier)
+        
+        # with open(evaluated_seq_database_file, 'r+') as file_object:
+        #     file_object.write(evaluated_sequences_results)
+        #     file_object.close()

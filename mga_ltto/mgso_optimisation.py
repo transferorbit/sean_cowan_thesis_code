@@ -23,8 +23,8 @@ if __name__ == '__main__':
     import sys
     
     # If conda environment does not work
-    # import sys
-    # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+    import sys
+    sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     
     import tudatpy
     from tudatpy.io import save2txt
@@ -66,28 +66,35 @@ if __name__ == '__main__':
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    write_results_to_file = True
-    subdirectory = '/new_island_test'
-    max_no_of_gas = 4
-    no_of_sequence_recursions = 4
-    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
-    elitist_fraction = 0.1
+    write_results_to_file = False
+    subdirectory = '/morante_verification_MO'
+    max_no_of_gas = 3
+    no_of_sequence_recursions = 3
+    number_of_sequences_per_planet = [8 for _ in range(max_no_of_gas)]
+    elitist_fraction = 0.3
     manual_base_functions = False
     leg_exchange = True
     seed = 421
+    possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
+    # possible_ga_planets = None
     
     ## Specific parameters
-    Isp = 3200
-    m0 = 1300
+    Isp = 3000
+    m0 = 360
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 2
-    pop_size = 100
+    num_gen = 50
+    pop_size = 200
+    # num_gen = 1
+    # pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
-    bounds = [[6000, 0, 0, 200, 0, 2e2, -10**4, 0],
-            [6200, 0, 0, 1200, 7000, 2e11, 10**4, 4]]
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+        'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
+        'Free coefficient [-]', 'Number of revolutions [-]']
+    bounds = [[10592.5, 2000, 0, 100, 0, 2e5, -10**4, 0],
+            [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 4]]
 
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()
@@ -104,6 +111,7 @@ if __name__ == '__main__':
                                 bounds=bounds,
                                 output_directory=output_directory,
                                 subdirectory=subdirectory,
+                                possible_ga_planets=possible_ga_planets,
                                 max_no_of_gas=max_no_of_gas,
                                 no_of_sequence_recursions=no_of_sequence_recursions,
                                 elitist_fraction=elitist_fraction,
@@ -111,5 +119,6 @@ if __name__ == '__main__':
                                 seed=seed,
                                 write_results_to_file=write_results_to_file,
                                 manual_base_functions=manual_base_functions,
-                                leg_exchange=leg_exchange)
+                                leg_exchange=leg_exchange,
+                                top_x_sequences =20)
 

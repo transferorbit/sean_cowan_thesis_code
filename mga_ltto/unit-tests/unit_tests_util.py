@@ -70,6 +70,13 @@ class unitTestsUtilities(unit.TestCase):
                 strip=False)
         self.assertEqual(output, expected_output)
 
+    def test_get_mga_character_list_from_list(self):
+        transfer_body_list = ["Venus", "Venus", "Earth", "Jupiter"]
+        expected_output = ['V', 'V', 'E', 'J']
+        output = \
+        util.transfer_body_order_conversion.get_mga_character_list_from_list(transfer_body_list)
+        self.assertEqual(output, expected_output)
+
     def test_get_mga_characters_from_list(self):
         transfer_body_list = ["Venus", "Venus", "Earth", "Jupiter"]
         expected_output = 'VVEJ'
