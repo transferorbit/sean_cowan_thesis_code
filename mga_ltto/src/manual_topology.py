@@ -71,18 +71,32 @@ class manualTopology:
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
         """
-        no_of_random_individuals = int(pop_size * (1-elitist_fraction)) if iteration != 0 else \
-        pop_size
-        no_of_predefined_individuals = pop_size - no_of_random_individuals
-
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds,
                 manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation)
+
+        no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
+        no_of_random_individuals = pop_size - no_of_predefined_individuals
+        pop_size_calc = lambda x, y: x + y
         if not mo_optimisation:
             algorithm = pg.algorithm(pg.sga(gen=num_gen))
         else:
             algorithm = pg.algorithm(pg.nsga2(gen=num_gen))
+            if pop_size < 5:
+                no_of_random_individuals += 5 - pop_size
+                pop_size = no_of_random_individuals + no_of_predefined_individuals
+                print(f'Number of individuals was too small, increased to {pop_size}')
+            modulus_random = no_of_random_individuals % 4
+            if modulus_random != 0:
+                no_of_random_individuals += modulus_random
+                pop_size = pop_size_calc(no_of_random_individuals, no_of_predefined_individuals)
+            modulus_pre = no_of_predefined_individuals % 4
+            modulus_pop = pop_size % 4
+            if modulus_pop != 0:
+                no_of_predefined_individuals += modulus_pre
+                pop_size = pop_size_calc(no_of_random_individuals, no_of_predefined_individuals)
+                # print(f'Number of random individuals increased by {modulus}. no_of_random_individuals : {no_of_random_individuals}') 
 
         if leg_exchange:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
@@ -191,6 +205,68 @@ class manualTopology:
             archi.push_back(island_to_be_added)
 
         return temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi
+
+    @staticmethod
+    def perform_evolution(archi, 
+                            number_of_islands, 
+                            num_gen, 
+                            mo_optimisation):
+        list_of_f_dicts = []
+        list_of_x_dicts = []
+        if not mo_optimisation:
+            # with SO no weird work around champions have to be made
+            get_champions_x = lambda archi : (archi.get_champions_x(), None) # 2, no_of_islands 
+            get_champions_f = lambda archi : (archi.get_champions_f(), None)
+        else:
+            current_island_populations = lambda archi : [isl.get_population() for isl in archi]
+
+            def get_champions_x(archi):
+                pop_list= []
+                pop_f_list= []
+                ndf_x = []
+                champs_x = []
+                for j in range(number_of_islands):
+                    pop_list.append(current_island_populations(archi)[j].get_x())
+                    pop_f_list.append(current_island_populations(archi)[j].get_f())
+                    current_ndf_indices = pg.non_dominated_front_2d(pop_f_list[j]) # determine how to sort
+                    ndf_x.append([pop_list[j][i] for i in current_ndf_indices])
+                    champs_x.append(ndf_x[j][0]) # j for island, 0 for first (lowest dV) option
+                return champs_x, ndf_x
+
+            def get_champions_f(archi):
+                pop_list= []
+                pop_f_list= []
+                ndf_f = []
+                champs_f = []
+                for j in range(number_of_islands):
+                    pop_list.append(current_island_populations(archi)[j].get_x())
+                    pop_f_list.append(current_island_populations(archi)[j].get_f())
+                    current_ndf_indices = pg.non_dominated_front_2d(pop_f_list[j]) # determine how to sort
+                    ndf_f.append([pop_f_list[j][i] for i in current_ndf_indices])
+                    champs_f.append(ndf_f[j][0]) # j for island, 0 for first (lowest dV) option
+
+                print(champs_f)
+                return champs_f, ndf_f
+
+        for i in range(num_gen): # step between which topology steps are executed
+            print('Evolving Gen : %i / %i' % (i, num_gen))
+            archi.evolve()
+            champs_dict_current_gen = {}
+            champ_f_dict_current_gen = {}
+            champions_x, ndf_x = get_champions_x(archi)
+            champions_f, ndf_f = get_champions_f(archi)
+            for j in range(number_of_islands):
+                    champs_dict_current_gen[j] = champions_x[j]
+                    champ_f_dict_current_gen[j] = champions_f[j]
+            print(champ_f_dict_current_gen)
+            list_of_x_dicts.append(champs_dict_current_gen)
+            list_of_f_dicts.append(champ_f_dict_current_gen)
+
+            archi.wait_check()
+
+
+        print('Evolution finished')
+        return list_of_x_dicts, list_of_f_dicts, champions_x, champions_f
 
     @staticmethod
     def create_random_transfer_body_order(possible_planets, seed=None, max_no_of_gas=6) -> list:
@@ -306,6 +382,140 @@ class manualTopology:
             # locally_best_sequence = [pc[ for _ in range(no_of_possible_pl
 
             return itbs
+
+    @staticmethod
+    def create_files(no_of_sequence_recursions,
+                        number_of_islands_array,
+                        island_problems,
+                        champions_x,
+                        champions_f,
+                        list_of_lists_of_f_dicts,
+                        list_of_lists_of_x_dicts,
+                        no_of_points,
+                        Isp, 
+                        m0,
+                        unsorted_evaluated_sequences_database,
+                        output_directory,
+                        subdirectory,
+                        free_param_count,
+                        num_gen,
+                        pop_size,
+                        cpu_count,
+                        bounds):
+        addition = 0
+        for layer in range(no_of_sequence_recursions): # 2
+            layer_folder = f'/layer_{layer}'
+            champions_dict = {}
+            champion_fitness_dict = {}
+            # for i in range(len(champions_x[layer])):
+            for i in range(number_of_islands_array[layer]):
+                # print("Champion: ", champions[i])
+                mga_low_thrust_problem = island_problems[layer][i]
+                mga_low_thrust_problem.fitness(champions_x[layer][i], post_processing=True) # 2 is one loop
+        
+                # State history
+                state_history = \
+                mga_low_thrust_problem.transfer_trajectory_object.states_along_trajectory(no_of_points)
+        
+                # Thrust acceleration
+                thrust_acceleration = \
+                mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+
+                mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+            
+                # Node times
+                node_times_list = mga_low_thrust_problem.node_times
+                node_times_days_list = [i / constants.JULIAN_DAY for i in node_times_list]
+        
+                # print(state_history)
+                # print(node_times_list)
+                # print(node_times_days_list)
+        
+                node_times = {}
+                for it, time in enumerate(node_times_list):
+                    node_times[it] = time
+        
+                # Auxiliary information
+                delta_v = mga_low_thrust_problem.transfer_trajectory_object.delta_v
+                delta_v_per_leg = mga_low_thrust_problem.transfer_trajectory_object.delta_v_per_leg
+                number_of_legs = mga_low_thrust_problem.transfer_trajectory_object.number_of_legs
+                number_of_nodes = mga_low_thrust_problem.transfer_trajectory_object.number_of_nodes
+                time_of_flight = mga_low_thrust_problem.transfer_trajectory_object.time_of_flight
+        
+                auxiliary_info = {}
+                auxiliary_info['Number of legs,'] = number_of_legs 
+                auxiliary_info['Number of nodes,'] = number_of_nodes 
+                auxiliary_info['Total ToF (Days),'] = time_of_flight / 86400.0
+                departure_velocity = delta_v
+                for j in range(number_of_legs):
+                    auxiliary_info['Delta V for leg %s,'%(j)] = delta_v_per_leg[j]
+                    departure_velocity -= delta_v_per_leg[j]
+                auxiliary_info['Delta V,'] = delta_v 
+                auxiliary_info['Departure velocity,'] = departure_velocity
+                # print(addition, i)
+                # print(unsorted_evaluated_sequences_database[addition + i][0])
+                auxiliary_info['MGA Sequence,'] = \
+                unsorted_evaluated_sequences_database[addition + i][0]
+                auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
+                    enumerate(thrust_acceleration.items())])
+                auxiliary_info['Delivery mass,'] = delivery_mass
+                auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
+
+    
+                unique_identifier = "/islands/island_" + str(i) + "/"
+                save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
+                        layer_folder + unique_identifier)
+                save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +
+                        subdirectory + layer_folder + unique_identifier)
+                save2txt(node_times, 'node_times.dat', output_directory + subdirectory +
+                        layer_folder + unique_identifier)
+                save2txt(auxiliary_info, 'auxiliary_info.dat', output_directory + subdirectory +
+                        layer_folder + unique_identifier)
+                current_island_f = {}
+                current_island_x = {}
+                for j in range(num_gen):
+                    # print(list_of_lists_of_x_dicts[layer][j][i])
+                    current_island_f[j] = list_of_lists_of_f_dicts[layer][j][i]
+                    current_island_x[j] = list_of_lists_of_x_dicts[layer][j][i]
+                save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
+                        +  subdirectory + layer_folder +  unique_identifier)
+                save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
+                        subdirectory + layer_folder + unique_identifier)
+
+                champions_dict[i] = champions_x[layer][i]
+                champion_fitness_dict[i] = champions_f[layer][i]
+            
+            #Per layer add the indices
+            addition += number_of_islands_array[layer]
+        bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
+            'Free coefficient [-]', 'Number of revolutions [-]']
+
+        optimisation_characteristics = {}
+        # optimisation_characteristics['Transfer body order,'] = mga_sequence_characters
+        optimisation_characteristics['Free parameter count,'] = free_param_count
+        optimisation_characteristics['Number of generations,'] = num_gen
+        optimisation_characteristics['Population size,'] = pop_size
+        optimisation_characteristics['CPU count,'] = cpu_count
+        optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0])
+        for j in range(len(bounds[0])):
+            for k in range(len(bounds)):
+                if k == 0:
+                    min = ' LB'
+                else:
+                    min = ' UB'
+                optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
+        # optimisation_characteristics['Bounds'] = bounds
+        
+        # This should be for the statistics, we already save all information per
+        unique_identifier = ""
+        save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
+                subdirectory + unique_identifier)
+        
+        # with open(evaluated_seq_database_file, 'r+') as file_object:
+        #     file_object.write(evaluated_sequences_results)
+        #     file_object.close()
+
 
 class separateLegMechanics:
 
@@ -580,35 +790,21 @@ def run_mgso_optimisation(departure_planet : str,
         number_of_islands_array[p] = number_of_islands
         island_problems[p] = current_island_problems
 
-        list_of_f_dicts = []
-        list_of_x_dicts = []
-        for i in range(num_gen): # step between which topology steps are executed
-            print('Evolving Gen : %i / %i' % (i, num_gen))
-            archi.evolve()
-            # archi.status
-            # archi.wait_check()
-            if not mo_optimisation:
-                champs_dict_per_gen = {}
-                champ_f_dict_per_gen = {}
-                for j in range(number_of_islands_array[p]):
-                        champs_dict_per_gen[j] = archi.get_champions_x()[j]
-                        champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
-                list_of_x_dicts.append(champs_dict_per_gen)
-                list_of_f_dicts.append(champ_f_dict_per_gen)
-            archi.wait_check()
+        list_of_x_dicts, list_of_f_dicts, champions_x[p], \
+        champions_f[p] = manualTopology.perform_evolution(archi,
+                            number_of_islands_array[p],
+                            num_gen,
+                            mo_optimisation)
+        # print(list_of_x_dicts, list_of_f_dicts)
+        # print(champions_x[p], champions_f[p])
 
-        if not mo_optimisation:
-            list_of_lists_of_x_dicts.append(list_of_x_dicts)
-            list_of_lists_of_f_dicts.append(list_of_f_dicts)
-        print('Evolution finished')
+        list_of_lists_of_x_dicts.append(list_of_x_dicts)
+        list_of_lists_of_f_dicts.append(list_of_f_dicts)
         # print('Number of islands this iteration', number_of_islands_array[p])
         # print('champ_f_dict_per_gen : ', champ_f_dict_per_gen)
         # print('list_of_f_dicts : ', list_of_f_dicts)
 
     ### Algorithm for next island generation ###
-        if not mo_optimisation:
-            champions_x[p] = archi.get_champions_x() # 2, no_of_islands 
-            champions_f[p] = archi.get_champions_f()
 
         # Write mga sequences to evaluated sequence database file
         delta_v = {}
@@ -618,13 +814,13 @@ def run_mgso_optimisation(departure_planet : str,
 
         for j in range(number_of_islands):
 
-            if mo_optimisation:
-                break
-                # island_problems[p][j]
-
+            # if mo_optimisation:
+            #     champions_x[p][j] = champions_x[p][j][0]
             # define delta v to be used for evaluation of best sequence
+            # for MO, the 0 indicates that the best dV is chosen for the database
             island_problems[p][j].fitness(champions_x[p][j], post_processing=True)
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
+            # print(delta_v)
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
             thrust_acceleration = \
@@ -716,7 +912,6 @@ def run_mgso_optimisation(departure_planet : str,
 
 # Saving the trajectories for post-processing
     if write_results_to_file:
-        print(evaluated_sequences_database)
         with open(evaluated_seq_database_file, 'w') as file_object:
             # print(evaluated_sequences_database)
             # json.dump(evaluated_sequences_results, file_object)
@@ -740,118 +935,21 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(sorted_evaluated_sequences_results)
             file_object.close()
 
-    addition = 0
-    for layer in range(no_of_sequence_recursions): # 2
-        layer_folder = f'/layer_{layer}'
-        champions_dict = {}
-        champion_fitness_dict = {}
-        # for i in range(len(champions_x[layer])):
-        for i in range(number_of_islands_array[layer]):
-            # print("Champion: ", champions[i])
-            mga_low_thrust_problem = island_problems[layer][i]
-            mga_low_thrust_problem.fitness(champions_x[layer][i], post_processing=True) # 2 is one loop
-    
-            # State history
-            state_history = \
-            mga_low_thrust_problem.transfer_trajectory_object.states_along_trajectory(no_of_points)
-    
-            # Thrust acceleration
-            thrust_acceleration = \
-            mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
-
-            mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
-        
-            # Node times
-            node_times_list = mga_low_thrust_problem.node_times
-            node_times_days_list = [i / constants.JULIAN_DAY for i in node_times_list]
-    
-            # print(state_history)
-            # print(node_times_list)
-            # print(node_times_days_list)
-    
-            node_times = {}
-            for it, time in enumerate(node_times_list):
-                node_times[it] = time
-    
-            # Auxiliary information
-            delta_v = mga_low_thrust_problem.transfer_trajectory_object.delta_v
-            delta_v_per_leg = mga_low_thrust_problem.transfer_trajectory_object.delta_v_per_leg
-            number_of_legs = mga_low_thrust_problem.transfer_trajectory_object.number_of_legs
-            number_of_nodes = mga_low_thrust_problem.transfer_trajectory_object.number_of_nodes
-            time_of_flight = mga_low_thrust_problem.transfer_trajectory_object.time_of_flight
-    
-            if write_results_to_file:
-                auxiliary_info = {}
-                auxiliary_info['Number of legs,'] = number_of_legs 
-                auxiliary_info['Number of nodes,'] = number_of_nodes 
-                auxiliary_info['Total ToF (Days),'] = time_of_flight / 86400.0
-                departure_velocity = delta_v
-                for j in range(number_of_legs):
-                    auxiliary_info['Delta V for leg %s,'%(j)] = delta_v_per_leg[j]
-                    departure_velocity -= delta_v_per_leg[j]
-                auxiliary_info['Delta V,'] = delta_v 
-                auxiliary_info['Departure velocity,'] = departure_velocity
-                # print(addition, i)
-                print(unsorted_evaluated_sequences_database[addition + i][0])
-                auxiliary_info['MGA Sequence,'] = \
-                unsorted_evaluated_sequences_database[addition + i][0]
-                auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
-                    enumerate(thrust_acceleration.items())])
-                auxiliary_info['Delivery mass,'] = delivery_mass
-                auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
-
-    
-                unique_identifier = "/islands/island_" + str(i) + "/"
-                save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
-                        layer_folder + unique_identifier)
-                save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +
-                        subdirectory + layer_folder + unique_identifier)
-                save2txt(node_times, 'node_times.dat', output_directory + subdirectory +
-                        layer_folder + unique_identifier)
-                save2txt(auxiliary_info, 'auxiliary_info.dat', output_directory + subdirectory +
-                        layer_folder + unique_identifier)
-                current_island_f = {}
-                current_island_x = {}
-                for j in range(num_gen):
-                    # print(j, i)
-                    current_island_f[j] = list_of_lists_of_f_dicts[layer][j][i]
-                    current_island_x[j] = list_of_lists_of_x_dicts[layer][j][i]
-                save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
-                        +  subdirectory + layer_folder +  unique_identifier)
-                save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
-                        subdirectory + layer_folder + unique_identifier)
-
-                champions_dict[i] = champions_x[layer][i]
-                champion_fitness_dict[i] = champions_f[layer][i]
-        
-        #Per layer add the indices
-        addition += number_of_islands_array[layer]
-    if write_results_to_file:
-        bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-            'Free coefficient [-]', 'Number of revolutions [-]']
-
-        optimisation_characteristics = {}
-        # optimisation_characteristics['Transfer body order,'] = mga_sequence_characters
-        optimisation_characteristics['Free parameter count,'] = free_param_count
-        optimisation_characteristics['Number of generations,'] = num_gen
-        optimisation_characteristics['Population size,'] = pop_size
-        optimisation_characteristics['CPU count,'] = cpu_count
-        optimisation_characteristics['Number of islands,'] = number_of_islands
-        for j in range(len(bounds[0])):
-            for k in range(len(bounds)):
-                if k == 0:
-                    min = ' LB'
-                else:
-                    min = ' UB'
-                optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
-        # optimisation_characteristics['Bounds'] = bounds
-        
-        # This should be for the statistics, we already save all information per
-        unique_identifier = ""
-        save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
-                subdirectory + unique_identifier)
-        
-        # with open(evaluated_seq_database_file, 'r+') as file_object:
-        #     file_object.write(evaluated_sequences_results)
-        #     file_object.close()
+        manualTopology.create_files(no_of_sequence_recursions,
+                            number_of_islands_array,
+                            island_problems,
+                            champions_x,
+                            champions_f,
+                            list_of_lists_of_f_dicts,
+                            list_of_lists_of_x_dicts,
+                            no_of_points,
+                            Isp, 
+                            m0,
+                            unsorted_evaluated_sequences_database,
+                            output_directory,
+                            subdirectory,
+                            free_param_count,
+                            num_gen,
+                            pop_size,
+                            cpu_count,
+                            bounds)

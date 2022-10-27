@@ -262,6 +262,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # time of flight
         time_of_flights = design_parameter_vector[3:time_of_flight_index]
+        # print(time_of_flights)
 
         # incoming velocities
         incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index]
