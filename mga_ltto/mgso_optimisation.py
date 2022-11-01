@@ -69,9 +69,9 @@ if __name__ == '__main__':
     write_results_to_file = True
     subdirectory = '/morante_testing_MO'
     max_no_of_gas = 3
-    no_of_sequence_recursions = 1
-    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
-    elitist_fraction = 0.3
+    no_of_sequence_recursions = 2
+    number_of_sequences_per_planet = [5 for _ in range(max_no_of_gas)]
+    elitist_fraction = (1/3)
     manual_base_functions = False
     leg_exchange = True
     seed = 421
@@ -85,17 +85,17 @@ if __name__ == '__main__':
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    # num_gen = 50
-    # pop_size = 200
-    num_gen = 2
-    pop_size = 20
+    # num_gen = 2
+    # pop_size = 20
+    num_gen = 50
+    pop_size = 200 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
         'Free coefficient [-]', 'Number of revolutions [-]']
     bounds = [[10592.5, 1999.999999, 0, 100, 0, 2e5, -10**4, 0],
-            [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 4]]
+            [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 1]]
 
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()

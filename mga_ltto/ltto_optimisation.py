@@ -102,7 +102,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     no_of_points = 500
     bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
             [12000, 0, 0, 1200, 7000, 2e9, 10**4, 2]]
-    subdirectory=  '/EMJ_test_bodies'
+    subdirectory=  '/EMJ_deliv_mass_test'
+
+    mo_optimisation = False
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -160,13 +162,19 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     mga_low_thrust_problem = \
     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-            no_of_free_parameters=free_param_count, bounds=bounds)#, planet_kep_states=planet_kep_states)
-    # mga_low_thrust_problem.get_system_of_bodies()
+            no_of_free_parameters=free_param_count, 
+            bounds=bounds, 
+            Isp=Isp, 
+            m0=m0,
+            no_of_points=no_of_points,
+            mo_optimisation=mo_optimisation)
+
     prob = pg.problem(mga_low_thrust_problem)
     
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
-    number_of_islands = cpu_count
+    # number_of_islands = cpu_count
+    number_of_islands = 1
 
 ###################################################################
 # LTTO Optimisation ###############################################
@@ -262,6 +270,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                     unique_identifier)
             save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory + subdirectory +
                 unique_identifier)
+            save2txt(mass_history, 'mass_history.dat', output_directory + subdirectory + unique_identifier)
             save2txt(node_times, 'node_times.dat', output_directory + subdirectory + unique_identifier)
             save2txt(auxiliary_info, 'auxiliary_info.dat', output_directory + subdirectory +
                 unique_identifier)

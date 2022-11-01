@@ -109,15 +109,15 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # subdirectory = '/verification/neldermead_0fp_jpl'
 
     transfer_body_order = ["Earth", "Mars"]
-    free_param_count = 2
+    free_param_count = 0
     num_gen = 1 #nelder mead doesn't need multiple generations
     pop_size = 2000
     no_of_points = 1000
-    bounds = [[9984.5, 0, 0, 1100, 0, 2e2, -10**4, 2], #2fp
-            [9984.5, 0, 0, 1100, 7000, 2e11, 10**4, 2]]
-    # bounds = [[10024.5, 0, 0, 1050, 0, 2e2, -10**4, 2], #0fp
-    #         [10024.5, 0, 0, 1050, 7000, 2e11, 10**4, 2]]
-    subdirectory = '/verification/neldermead_2fp_N2_other' #mbf is manual base functions
+    # bounds = [[9984.5, 0, 0, 1100, 0, 2e2, -10**4, 2], #2fp
+    #         [9984.5, 0, 0, 1100, 7000, 2e11, 10**4, 2]]
+    bounds = [[10024.5, 0, 0, 1050, 0, 2e2, -10**4, 2], #0fp
+            [10024.5, 0, 0, 1050, 7000, 2e11, 10**4, 2]]
+    subdirectory = '/verification/neldermead_0fp_N2_other' #mbf is manual base functions
 
     # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 0],
     #         [10225*julian_day, 0, 2000*julian_day, 10**4, 5]]

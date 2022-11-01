@@ -60,6 +60,8 @@ class manualTopology:
                         transfer_body_order, 
                         free_param_count, 
                         bounds, 
+                        Isp,
+                        m0,
                         num_gen, 
                         pop_size,
                         leg_exchange, 
@@ -74,7 +76,8 @@ class manualTopology:
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds,
-                manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation)
+                manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation, Isp=Isp,
+                m0=m0)
 
         no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
         no_of_random_individuals = pop_size - no_of_predefined_individuals
@@ -89,13 +92,17 @@ class manualTopology:
                 print(f'Number of individuals was too small, increased to {pop_size}')
             modulus_random = no_of_random_individuals % 4
             if modulus_random != 0:
-                no_of_random_individuals += modulus_random
+                no_of_random_individuals += (4-modulus_random)
                 pop_size = pop_size_calc(no_of_random_individuals, no_of_predefined_individuals)
+                print(f"Number of random individuals not divisible by 4, increased by {4-modulus_random} to {no_of_random_individuals}")
             modulus_pre = no_of_predefined_individuals % 4
             modulus_pop = pop_size % 4
             if modulus_pop != 0:
-                no_of_predefined_individuals += modulus_pre
+                no_of_predefined_individuals += (4-modulus_pop)
                 pop_size = pop_size_calc(no_of_random_individuals, no_of_predefined_individuals)
+                print(f'Population size not divisible by 4, increased no_of_predefined_individuals by {4-modulus_pop} to {no_of_predefined_individuals}')
+                print(f'Population size is {pop_size_calc(no_of_random_individuals, no_of_predefined_individuals)}')
+            # assert pop_size % 4, 0
                 # print(f'Number of random individuals increased by {modulus}. no_of_random_individuals : {no_of_random_individuals}') 
 
         if leg_exchange:
@@ -136,6 +143,8 @@ class manualTopology:
                             free_param_count, 
                             pop_size,
                             bounds,
+                            Isp,
+                            m0,
                             max_no_of_gas,
                             number_of_sequences_per_planet,
                             itbs,
@@ -158,20 +167,20 @@ class manualTopology:
         print('Creating archipelago')
         print('Leg exchange enabled') if leg_exchange == True else None
 
-        no_of_random_individuals = int(pop_size * (1-elitist_fraction)) if iteration != 0 else \
-        pop_size
-        no_of_predefined_individuals = pop_size - no_of_random_individuals
-        print('Number of random individuals : ', no_of_random_individuals)
-        print('Number of predefined individuals : ', no_of_predefined_individuals)
+        no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
+        no_of_random_individuals = pop_size - no_of_predefined_individuals
+        print(f'Population size : {pop_size}')
+        print(f'Number of random individuals : {no_of_random_individuals}')
+        print(f'Number of predefined individuals : {no_of_predefined_individuals}')
 
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
         if iteration == 0:
-            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)+1) + 1
+            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)) + 1
             directtransferbump = 1
         else:
-            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)+1)
+            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list))
             directtransferbump = 0
 
             # keep number of islands to a maximum if combinatorial space is small enough
@@ -198,9 +207,10 @@ class manualTopology:
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(iteration=iteration, transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, num_gen=1,
+                    free_param_count=free_param_count, bounds=bounds, Isp=Isp, m0=m0, num_gen=1,
                     pop_size=pop_size, leg_exchange=leg_exchange, leg_database=leg_database,
-                    manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation)
+                    manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation,
+                    elitist_fraction=elitist_fraction)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
@@ -245,7 +255,6 @@ class manualTopology:
                     ndf_f.append([pop_f_list[j][i] for i in current_ndf_indices])
                     champs_f.append(ndf_f[j][0]) # j for island, 0 for first (lowest dV) option
 
-                print(champs_f)
                 return champs_f, ndf_f
 
         for i in range(num_gen): # step between which topology steps are executed
@@ -258,7 +267,6 @@ class manualTopology:
             for j in range(number_of_islands):
                     champs_dict_current_gen[j] = champions_x[j]
                     champ_f_dict_current_gen[j] = champions_f[j]
-            print(champ_f_dict_current_gen)
             list_of_x_dicts.append(champs_dict_current_gen)
             list_of_f_dicts.append(champ_f_dict_current_gen)
 
@@ -421,7 +429,8 @@ class manualTopology:
                 thrust_acceleration = \
                 mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
 
-                mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+                mass_history, delivery_mass, invalid_trajectory = \
+                util.get_mass_propagation(thrust_acceleration, Isp, m0)
             
                 # Node times
                 node_times_list = mga_low_thrust_problem.node_times
@@ -690,7 +699,7 @@ def run_mgso_optimisation(departure_planet : str,
         planet_list = possible_ga_planets
         planet_characters = \
         util.transfer_body_order_conversion.get_mga_character_list_from_list(planet_list)
-        print('Possible GA planets constrained')
+        print(f'Possible GA planets constrained to {[i for i in planet_list]}')
     else:
         planet_characters = ['Y', 'V', 'E', 'M', 'J', 'S', 'U', 'N']
         planet_list = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"]
@@ -701,7 +710,7 @@ def run_mgso_optimisation(departure_planet : str,
         print(f'GA planets limited to planets within {arrival_planet}')
     
     combinations_total = (len(planet_list)+1)**(max_no_of_gas)# or no_of_sequence_recursions
-    combinations_evaluated=  number_of_sequences_per_planet[0]*len(planet_list)*no_of_sequence_recursions
+    combinations_evaluated=  number_of_sequences_per_planet[1]*len(planet_list)*no_of_sequence_recursions
     print(f'The combinational coverage that will be achieved {combinations_evaluated} / {combinations_total}')
     unique_identifier = '/topology_database'
 
@@ -776,6 +785,8 @@ def run_mgso_optimisation(departure_planet : str,
                                         free_param_count, 
                                         pop_size,
                                         bounds,
+                                        Isp,
+                                        m0,
                                         max_no_of_gas,
                                         number_of_sequences_per_planet,
                                         itbs,
@@ -826,7 +837,8 @@ def run_mgso_optimisation(departure_planet : str,
             thrust_acceleration = \
             island_problems[p][j].transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
 
-            mass_history, delivery_mass = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+            mass_history, delivery_mass, invalid_trajectory = \
+            util.get_mass_propagation(thrust_acceleration, Isp, m0)
             # print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
