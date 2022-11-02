@@ -83,7 +83,10 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
             'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
             'Free coefficient [-]', 'Number of revolutions [-]']
-    
+
+    ## General parameters
+    dynamic_shaping_functions = False
+
     # testing problem functionality
     # transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
     # free_param_count = 2
@@ -93,16 +96,22 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[3300, 0, 50, 0, 2e2, -10**4, 0],
     #         [4600, 3000, 500, 9000, 2e9, 10**4, 2]]
     # subdirectory=  '/tudat_example_EEVVYY_2'
-    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+
+    # next test
+    transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
+
+    # transfer_body_order = ["Earth", "Mercury", "Mars", "Jupiter"]
     Isp = 3200
     m0 = 1300
     free_param_count = 2
-    num_gen = 3
-    pop_size = 100
+    # num_gen = 3
+    # pop_size = 100
+    num_gen = 150
+    pop_size = 200
     no_of_points = 500
-    bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
-            [12000, 0, 0, 1200, 7000, 2e9, 10**4, 2]]
-    subdirectory=  '/EMJ_test_bodies'
+    bounds = [[10592.5, 2000, 0, 100, 0, 2e5, -10**4, 0],
+            [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 4]]
+    subdirectory=  '/EVEMJ_test_dyn_shape_false_150'
     
     # verification Gondelach
     # transfer_body_order = ["Earth", "Mars"]
@@ -160,7 +169,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     mga_low_thrust_problem = \
     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-            no_of_free_parameters=free_param_count, bounds=bounds)#, planet_kep_states=planet_kep_states)
+            no_of_free_parameters=free_param_count, bounds=bounds, dynamic_shaping_functions=dynamic_shaping_functions)#, planet_kep_states=planet_kep_states)
     # mga_low_thrust_problem.get_system_of_bodies()
     prob = pg.problem(mga_low_thrust_problem)
     

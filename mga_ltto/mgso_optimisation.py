@@ -69,10 +69,11 @@ if __name__ == '__main__':
     write_results_to_file = False
     subdirectory = '/morante_verification_MO'
     max_no_of_gas = 3
-    no_of_sequence_recursions = 3
-    number_of_sequences_per_planet = [8 for _ in range(max_no_of_gas)]
+    no_of_sequence_recursions = 2
+    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
     elitist_fraction = 0.3
     manual_base_functions = False
+    dynamic_shaping_functions = True
     leg_exchange = True
     seed = 421
     possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
@@ -84,10 +85,10 @@ if __name__ == '__main__':
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    num_gen = 50
-    pop_size = 200
-    # num_gen = 1
-    # pop_size = 100
+    # num_gen = 50
+    # pop_size = 200
+    num_gen = 1
+    pop_size = 100
     # assert pop_size > 62 #only for gaco
     no_of_points = 1000
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
@@ -119,6 +120,7 @@ if __name__ == '__main__':
                                 seed=seed,
                                 write_results_to_file=write_results_to_file,
                                 manual_base_functions=manual_base_functions,
+                                dynamic_shaping_functions=dynamic_shaping_functions,
                                 leg_exchange=leg_exchange,
                                 top_x_sequences =20)
 

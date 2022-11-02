@@ -57,7 +57,8 @@ class manualTopology:
 
     @staticmethod
     def create_island(iteration, transfer_body_order, free_param_count, bounds, num_gen, pop_size,
-            leg_exchange, leg_database, manual_base_functions=False, elitist_fraction=0.1):
+            leg_exchange, leg_database, manual_base_functions=False, elitist_fraction=0.1,
+            dynamic_shaping_functions=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
@@ -69,7 +70,8 @@ class manualTopology:
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, bounds=bounds,
-                manual_base_functions=manual_base_functions)
+                manual_base_functions=manual_base_functions,
+                dynamic_shaping_functions=dynamic_shaping_functions)
         algorithm = pg.algorithm(pg.sga(gen=num_gen))
 
         if leg_exchange:
@@ -117,6 +119,7 @@ class manualTopology:
                             leg_exchange,
                             leg_database,
                             manual_base_functions, 
+                            dynamic_shaping_functions,
                             elitist_fraction,
                             seed):
 
@@ -173,7 +176,7 @@ class manualTopology:
             manualTopology.create_island(iteration=iteration, transfer_body_order=transfer_body_order,
                     free_param_count=free_param_count, bounds=bounds, num_gen=1,
                     pop_size=pop_size, leg_exchange=leg_exchange, leg_database=leg_database,
-                    manual_base_functions=manual_base_functions)
+                    manual_base_functions=manual_base_functions, dynamic_shaping_functions=dynamic_shaping_functions)
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
@@ -456,6 +459,7 @@ def run_mgso_optimisation(departure_planet : str,
                             seed : int = 421,
                             write_results_to_file=False,
                             manual_base_functions=False,
+                            dynamic_shaping_functions=False,
                             leg_exchange = False,
                             top_x_sequences = 10):
 
@@ -559,6 +563,7 @@ def run_mgso_optimisation(departure_planet : str,
                                         leg_exchange,
                                         separate_leg_database,
                                         manual_base_functions, 
+                                        dynamic_shaping_functions,
                                         elitist_fraction,
                                         seed)
 

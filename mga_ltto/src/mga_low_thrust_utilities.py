@@ -200,42 +200,43 @@ class transfer_body_order_conversion:
 
 def get_low_thrust_transfer_object(transfer_body_order : list,
                                         time_of_flight : np.ndarray,
-                                        departure_elements : tuple,
-                                        target_elements : tuple,
+                                        # departure_elements : tuple,
+                                        # target_elements : tuple,
                                         bodies,
                                         central_body,
                                         no_of_free_parameters: int = 0,
                                         manual_base_functions=False,
-                                        number_of_revolutions: np.ndarray = np.zeros(7, dtype=int))\
+                                        number_of_revolutions: np.ndarray = np.zeros(7, dtype=int),
+                                        dynamic_shaping_functions=False)\
                                         -> transfer_trajectory.TransferTrajectory:
     """
     Provides the transfer settings required to construct a hodographic shaping mga trajectory.
 
     """
-
-    # departure and target state from ephemerides
-    body_dict = {"Mercury" : 0,
-            "Venus" : 1,
-            "Earth" : 2,
-            "Mars" : 3,
-            "Jupiter" : 4,
-            "Saturn" : 5,
-            "Uranus" : 6,
-            "Neptune" : 7}
-
-    # From approximate jpl model states
-    planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
-            77.45779628,     48.33076593],
-    [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
-    [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
-    [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
-    [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
-    [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
-    [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
-    [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
-        131.78422574]]
-
-    astronomical_unit = 149597870.7e3 #m
+    #
+    # # departure and target state from ephemerides
+    # body_dict = {"Mercury" : 0,
+    #         "Venus" : 1,
+    #         "Earth" : 2,
+    #         "Mars" : 3,
+    #         "Jupiter" : 4,
+    #         "Saturn" : 5,
+    #         "Uranus" : 6,
+    #         "Neptune" : 7}
+    #
+    # # From approximate jpl model states
+    # planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
+    #         77.45779628,     48.33076593],
+    # [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
+    # [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
+    # [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
+    # [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
+    # [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
+    # [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
+    # [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
+    #     131.78422574]]
+    #
+    # astronomical_unit = 149597870.7e3 #m
     # departure_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[0]]][0] * astronomical_unit
     # departure_eccentricity = planet_kep_states[body_dict[transfer_body_order[0]]][1]
     # target_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[-1]]][0] * astronomical_unit
@@ -248,7 +249,19 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     target_eccentricity = 0
     
     transfer_leg_settings = []
+    # departure_planet = transfer_body_order[0]
+    # departure_planet_integer = transfer_body_order_conversion.get_transfer_body_integers([departure_planet])
+
     for i in range(len(transfer_body_order)-1):
+        current_body = transfer_body_order[i]
+        current_body_integer = \
+        transfer_body_order_conversion.get_transfer_body_integers([current_body])
+        flyby_target_body = transfer_body_order[i+1]
+        flyby_target_body_integer = \
+        transfer_body_order_conversion.get_transfer_body_integers([flyby_target_body])
+        shaping_function_type = 'default'
+        if flyby_target_body_integer < current_body_integer and dynamic_shaping_functions:
+            shaping_function_type = 'inner_planet'
 
         # first definition of freq, scale
         tof = time_of_flight[i]
@@ -256,24 +269,28 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
         scale_factor = 1.0 / tof
         # scale_factor = 1.0
 
+
         radial_velocity_functions = get_radial_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
                                             no_of_free_parameters=no_of_free_parameters,
                                             frequency=frequency,
                                             scale_factor=scale_factor,
-                                            manual_base_functions=manual_base_functions)
+                                            manual_base_functions=manual_base_functions,
+                                            shaping_function_type=shaping_function_type)
         normal_velocity_functions = get_normal_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
                                             no_of_free_parameters=no_of_free_parameters,
                                             frequency=frequency,
                                             scale_factor=scale_factor,
-                                            manual_base_functions=manual_base_functions)
+                                            manual_base_functions=manual_base_functions,
+                                            shaping_function_type=shaping_function_type)
         axial_velocity_functions = get_axial_velocity_shaping_functions(time_of_flight[i],
                                             number_of_revolutions=number_of_revolutions[i],
                                             no_of_free_parameters=no_of_free_parameters,
                                             frequency=frequency,
                                             scale_factor=scale_factor,
-                                            manual_base_functions=manual_base_functions)
+                                            manual_base_functions=manual_base_functions,
+                                            shaping_function_type=shaping_function_type)
 
         transfer_leg_settings.append( transfer_trajectory.hodographic_shaping_leg( 
             radial_velocity_functions, normal_velocity_functions, axial_velocity_functions) )
@@ -421,7 +438,8 @@ def get_radial_velocity_shaping_functions(time_of_flight: float,
                                              frequency: float = np.pi,
                                              scale_factor: float = 1,
                                              number_of_revolutions: int = 0,
-                                             manual_base_functions=False) -> list:
+                                             manual_base_functions=False,
+                                             shaping_function_type='default') -> list:
 
     """
     Retrieves the radial velocity shaping functions (lowest and highest order in Gondelach and Noomen, 2015) and returns
@@ -479,7 +497,8 @@ def get_normal_velocity_shaping_functions(time_of_flight: float,
                                              frequency: float = np.pi,
                                              scale_factor: float = 1,
                                              number_of_revolutions: int = 0,
-                                             manual_base_functions=False) -> list: # -> \
+                                             manual_base_functions=False,
+                                             shaping_function_type='default') -> list: # -> \
                                             # list(shape_based_thrust.BaseFunctionHodographicShaping):
 
     """
@@ -506,38 +525,39 @@ def get_normal_velocity_shaping_functions(time_of_flight: float,
     """
     # Retrieve default methods (lowest-order in Gondelach and Noomen, 2015)
     if manual_base_functions:
-        normal_velocity_shaping_functions = [shape_based_thrust.hodograph_constant()]
-        normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_power(exponent=1.0))
-        normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_power(exponent=2.0))
+        normal_velocity_shape_function_type = [shape_based_thrust.hodograph_constant()]
+        normal_velocity_shape_function_type.append(shape_based_thrust.hodograph_power(exponent=1.0))
+        normal_velocity_shape_function_type.append(shape_based_thrust.hodograph_power(exponent=2.0))
     else:
-        normal_velocity_shaping_functions = \
+        normal_velocity_shape_function_type = \
         shape_based_thrust.recommended_normal_hodograph_functions(time_of_flight)
 
     # Add degrees of freedom (highest-order in Gondelach and Noomen, 2015)
     if no_of_free_parameters > 0:
-        normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_sine(
+        normal_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_sine(
             exponent=1.0,
             frequency=0.5 * frequency,
             scale_factor=scale_factor))
     if no_of_free_parameters > 1:
-        normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine(
+        normal_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_cosine(
             exponent=1.0,
             frequency=0.5 * frequency,
             scale_factor=scale_factor))
     if no_of_free_parameters > 2:
-        normal_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine(
+        normal_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_cosine(
             exponent=1.0,
             frequency=0.5 * frequency,
             scale_factor=scale_factor))
 
-    return normal_velocity_shaping_functions
+    return normal_velocity_shape_function_type
 
 def get_axial_velocity_shaping_functions(time_of_flight: float,
                                              no_of_free_parameters: int = 2,
                                              frequency: float = np.pi,
                                              scale_factor: float = 1,
                                              number_of_revolutions: int = 0,
-                                             manual_base_functions=False) -> list: # -> \
+                                             manual_base_functions=False,
+                                             shaping_function_type='default') -> list: # -> \
                                             # list(shape_based_thrust.BaseFunctionHodographicShaping):
 
     """
@@ -562,45 +582,50 @@ def get_axial_velocity_shaping_functions(time_of_flight: float,
     tuple
         A tuple composed by two lists: the axial velocity shaping functions and their free coefficients.
     """
+    base_function_exponent = 3.0
+    added_velocity_function_exponent = 4.0
+    if shaping_function_type == 'inner_planet':
+        base_function_exponent = 5.0 # +2
+        added_velocity_function_exponent = 6.0 # +2
 
     # Add degrees of freedom (lowest-order in Gondelach and Noomen, 2015)
     if manual_base_functions:
-        axial_velocity_shaping_functions = [shape_based_thrust.hodograph_cosine(
+        axial_velocity_shape_function_type = [shape_based_thrust.hodograph_cosine(
             frequency=(number_of_revolutions+0.5)*frequency)]
-        axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine( 
-            exponent=3.0, 
+        axial_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_cosine( 
+            exponent=base_function_exponent, 
             frequency=(number_of_revolutions+0.5)*frequency,
             scale_factor=scale_factor))
-        axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_sine(
-            exponent=3.0,
+        axial_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_sine(
+            exponent=base_function_exponent,
             frequency=(number_of_revolutions+0.5)*frequency,
             scale_factor=scale_factor))
     else:
-        axial_velocity_shaping_functions = shape_based_thrust.recommended_axial_hodograph_functions(
+        axial_velocity_shape_function_type = shape_based_thrust.recommended_axial_hodograph_functions(
             time_of_flight,
             number_of_revolutions)
 
-    exponent = 4.0
+    # exponent = 4.0
     # Add degrees of freedom (highest-order in Gondelach and Noomen, 2015)
     if no_of_free_parameters > 0:
-        axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine(
-            exponent=exponent,
+        axial_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_cosine(
+            exponent=added_velocity_function_exponent,
             frequency=(number_of_revolutions + 0.5)*frequency,
-            scale_factor=scale_factor ** exponent))
+            scale_factor=scale_factor ** added_velocity_function_exponent))
             # scale_factor=1))
     if no_of_free_parameters > 1:
-        axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_sine(
-            exponent=exponent,
+        axial_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_sine(
+            exponent=added_velocity_function_exponent,
             frequency=(number_of_revolutions + 0.5)*frequency,
-            scale_factor=scale_factor ** exponent))
+            scale_factor=scale_factor ** added_velocity_function_exponent))
             # scale_factor=1))
     if no_of_free_parameters > 2:
-        axial_velocity_shaping_functions.append(shape_based_thrust.hodograph_scaled_power_cosine(
-            exponent=4.0, #randomly chosen
+        axial_velocity_shape_function_type.append(shape_based_thrust.hodograph_scaled_power_cosine(
+            exponent=added_velocity_function_exponent, #randomly chosen
             frequency=0.5 * frequency,
             scale_factor=scale_factor))
 
-    return axial_velocity_shaping_functions
+    return axial_velocity_shape_function_type
 
 def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, bodies=["Sun",
     "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune"],

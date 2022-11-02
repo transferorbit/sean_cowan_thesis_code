@@ -46,7 +46,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     departure_velocity=2000, 
                     arrival_velocity=0,
                     planet_kep_states = None,
-                    manual_base_functions=False):
+                    manual_base_functions=False,
+                    dynamic_shaping_functions=False):
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -92,6 +93,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 69946000.0, 'Saturn': 58300000.0}
 
         self.manual_base_functions = manual_base_functions
+        self.dynamic_shaping_functions = dynamic_shaping_functions
 
     def mjd2000_to_seconds(self, mjd2000):
         # mjd2000 = 51544
@@ -171,6 +173,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def get_nix(self):
         # free coefficients, number of revolutions
         return self.total_no_of_free_coefficients + self.no_of_legs 
+        # return self.no_of_legs
 
     def get_states_along_trajectory(self, no_of_points) -> dict:
         """
@@ -232,8 +235,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         central_body = 'Sun'
 
         #depart and target elements
-        departure_elements = (self.depart_semi_major_axis, self.depart_eccentricity) 
-        target_elements = (self.target_semi_major_axis, self.target_eccentricity) 
+        # departure_elements = (self.depart_semi_major_axis, self.depart_eccentricity) 
+        # target_elements = (self.target_semi_major_axis, self.target_eccentricity) 
 
         # indexes
         time_of_flight_index = 3 + self.no_of_legs
@@ -272,14 +275,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
-                                                            departure_elements,
-                                                            target_elements,
+                                                            # departure_elements,
+                                                            # target_elements,
                                                             # self.system_of_bodies(),
                                                             bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
                                                             manual_base_functions=self.manual_base_functions,
-                                                            number_of_revolutions=number_of_revolutions)
+                                                            number_of_revolutions=number_of_revolutions,
+                                                            dynamic_shaping_functions=self.dynamic_shaping_functions)
 
         planetary_radii_sequence = np.zeros(self.no_of_gas)
         for i, body in enumerate(self.transfer_body_order[1:-1]):
