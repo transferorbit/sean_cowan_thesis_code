@@ -56,6 +56,13 @@ if __name__ == '__main__':
     current_dir = os.getcwd()
     output_directory = current_dir + '/pp_mgso'
     julian_day = constants.JULIAN_DAY
+    seed = 421
+    no_of_points = 1000
+
+    write_results_to_file = True
+    manual_base_functions = False
+    leg_exchange = True
+    mo_optimisation = True
 
 ####################################################################
 # MGSO Problem Setup ###############################################
@@ -66,17 +73,12 @@ if __name__ == '__main__':
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    write_results_to_file = True
-    subdirectory = '/morante_testing_MO'
+    subdirectory = '/morante_testing_filesaving'
     max_no_of_gas = 3
     no_of_sequence_recursions = 2
-    number_of_sequences_per_planet = [5 for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [1 for _ in range(max_no_of_gas)]
     elitist_fraction = (1/3)
-    manual_base_functions = False
-    leg_exchange = True
-    seed = 421
     possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
-    mo_optimisation = True
     # possible_ga_planets = None
     
     ## Specific parameters
@@ -85,12 +87,11 @@ if __name__ == '__main__':
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
     free_param_count = 2
-    # num_gen = 2
-    # pop_size = 20
-    num_gen = 50
-    pop_size = 200 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
+    num_gen = 2
+    pop_size = 20
+    # num_gen = 50
+    # pop_size = 200 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
     # assert pop_size > 62 #only for gaco
-    no_of_points = 1000
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
         'Free coefficient [-]', 'Number of revolutions [-]']

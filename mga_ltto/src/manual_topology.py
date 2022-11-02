@@ -75,8 +75,11 @@ class manualTopology:
         """
         mga_low_thrust_problem = \
         MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-                no_of_free_parameters=free_param_count, bounds=bounds,
-                manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation, Isp=Isp,
+                no_of_free_parameters=free_param_count, 
+                bounds=bounds,
+                manual_base_functions=manual_base_functions, 
+                mo_optimisation=mo_optimisation, 
+                Isp=Isp,
                 m0=m0)
 
         no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
@@ -392,34 +395,49 @@ class manualTopology:
             return itbs
 
     @staticmethod
-    def create_files(no_of_sequence_recursions,
-                        number_of_islands_array,
-                        island_problems,
-                        champions_x,
-                        champions_f,
-                        list_of_lists_of_f_dicts,
-                        list_of_lists_of_x_dicts,
-                        no_of_points,
-                        Isp, 
-                        m0,
-                        unsorted_evaluated_sequences_database,
-                        output_directory,
-                        subdirectory,
-                        free_param_count,
-                        num_gen,
-                        pop_size,
-                        cpu_count,
-                        bounds):
+    def create_files(type_of_optimisation=None,
+                        no_of_sequence_recursions=None,
+                        number_of_islands_array=[None],
+                        number_of_islands=None,
+                        island_problems=None,
+                        island_problem=None,
+                        champions_x=None,
+                        champions_f=None,
+                        list_of_lists_of_f_dicts={0:None},
+                        list_of_lists_of_x_dicts={0:None},
+                        list_of_f_dicts=None,
+                        list_of_x_dicts=None,
+                        no_of_points=None,
+                        Isp=None, 
+                        m0=None,
+                        unsorted_evaluated_sequences_database=None,
+                        mga_sequence_characters=None,
+                        output_directory=None,
+                        subdirectory=None,
+                        free_param_count=None,
+                        num_gen=None,
+                        pop_size=None,
+                        cpu_count=None,
+                        bounds=None):
+        if type_of_optimisation == 'ltto':
+            no_of_sequence_recursions = 1
+
         addition = 0
         for layer in range(no_of_sequence_recursions): # 2
-            layer_folder = f'/layer_{layer}'
+            if type_of_optimisation == 'mgaso':
+                layer_folder = f'/layer_{layer}'
+            else:
+                layer_folder = ''
             champions_dict = {}
             champion_fitness_dict = {}
             # for i in range(len(champions_x[layer])):
-            for i in range(number_of_islands_array[layer]):
+            for i in range(number_of_islands_array[layer] if type_of_optimisation == 'mgaso' else \
+                number_of_islands):
                 # print("Champion: ", champions[i])
-                mga_low_thrust_problem = island_problems[layer][i]
-                mga_low_thrust_problem.fitness(champions_x[layer][i], post_processing=True) # 2 is one loop
+                mga_low_thrust_problem = island_problems[layer][i] if type_of_optimisation == \
+                'mgaso' else island_problem
+                mga_low_thrust_problem.fitness(champions_x[layer][i] if type_of_optimisation == \
+                'mgaso' else champions_x[i], post_processing=True) # 2 is one loop
         
                 # State history
                 state_history = \
@@ -427,7 +445,8 @@ class manualTopology:
         
                 # Thrust acceleration
                 thrust_acceleration = \
-                mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+                mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(
+                            no_of_points)
 
                 mass_history, delivery_mass, invalid_trajectory = \
                 util.get_mass_propagation(thrust_acceleration, Isp, m0)
@@ -464,7 +483,8 @@ class manualTopology:
                 # print(addition, i)
                 # print(unsorted_evaluated_sequences_database[addition + i][0])
                 auxiliary_info['MGA Sequence,'] = \
-                unsorted_evaluated_sequences_database[addition + i][0]
+                unsorted_evaluated_sequences_database[addition + i][0] if type_of_optimisation == \
+                'mgaso' else mga_sequence_characters
                 auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
                 auxiliary_info['Delivery mass,'] = delivery_mass
@@ -484,19 +504,25 @@ class manualTopology:
                 current_island_x = {}
                 for j in range(num_gen):
                     # print(list_of_lists_of_x_dicts[layer][j][i])
-                    current_island_f[j] = list_of_lists_of_f_dicts[layer][j][i]
-                    current_island_x[j] = list_of_lists_of_x_dicts[layer][j][i]
+                    current_island_f[j] = list_of_lists_of_f_dicts[layer][j][i] if \
+                    type_of_optimisation == 'mgaso' else list_of_f_dicts[j][i]
+                    current_island_x[j] = list_of_lists_of_x_dicts[layer][j][i] if \
+                    type_of_optimisation == 'mgaso' else list_of_x_dicts[j][i]
                 save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
                         +  subdirectory + layer_folder +  unique_identifier)
                 save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
                         subdirectory + layer_folder + unique_identifier)
 
-                champions_dict[i] = champions_x[layer][i]
-                champion_fitness_dict[i] = champions_f[layer][i]
+                if layer == (no_of_sequence_recursions-1):
+                    champions_dict[i] = champions_x[layer][i] if type_of_optimisation == \
+                    'mgaso' else champions_x[i]
+                    champion_fitness_dict[i] = champions_f[layer][i] if type_of_optimisation == \
+                    'mgaso' else champions_f[i]
             
             #Per layer add the indices
-            addition += number_of_islands_array[layer]
-        bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+            addition += number_of_islands_array[layer] if type_of_optimisation == 'mgaso' else 0
+
+        bound_names= ['Departure date [mjd2001]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
             'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
             'Free coefficient [-]', 'Number of revolutions [-]']
 
@@ -506,7 +532,8 @@ class manualTopology:
         optimisation_characteristics['Number of generations,'] = num_gen
         optimisation_characteristics['Population size,'] = pop_size
         optimisation_characteristics['CPU count,'] = cpu_count
-        optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0])
+        optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
+                type_of_optimisation == 'mgaso' else number_of_islands)
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:
@@ -516,7 +543,12 @@ class manualTopology:
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
         # optimisation_characteristics['Bounds'] = bounds
         
-        # This should be for the statistics, we already save all information per
+        unique_identifier = "/champions/"
+        if type_of_optimisation == 'ltto':
+            save2txt(champion_fitness_dict, 'champion_fitness.dat', output_directory + subdirectory +
+                    unique_identifier)
+            save2txt(champions_dict, 'champions.dat', output_directory + subdirectory +
+                    unique_identifier)
         unique_identifier = ""
         save2txt(optimisation_characteristics, 'optimisation_characteristics.dat', output_directory +
                 subdirectory + unique_identifier)
@@ -947,21 +979,22 @@ def run_mgso_optimisation(departure_planet : str,
             file_object.write(sorted_evaluated_sequences_results)
             file_object.close()
 
-        manualTopology.create_files(no_of_sequence_recursions,
-                            number_of_islands_array,
-                            island_problems,
-                            champions_x,
-                            champions_f,
-                            list_of_lists_of_f_dicts,
-                            list_of_lists_of_x_dicts,
-                            no_of_points,
-                            Isp, 
-                            m0,
-                            unsorted_evaluated_sequences_database,
-                            output_directory,
-                            subdirectory,
-                            free_param_count,
-                            num_gen,
-                            pop_size,
-                            cpu_count,
-                            bounds)
+        manualTopology.create_files(type_of_optimisation='mgaso',
+                            no_of_sequence_recursions=no_of_sequence_recursions,
+                            number_of_islands_array=number_of_islands_array,
+                            island_problems=island_problems,
+                            champions_x=champions_x,
+                            champions_f=champions_f,
+                            list_of_lists_of_f_dicts=list_of_lists_of_f_dicts,
+                            list_of_lists_of_x_dicts=list_of_lists_of_x_dicts,
+                            no_of_points=no_of_points,
+                            Isp=Isp, 
+                            m0=m0,
+                            unsorted_evaluated_sequences_database=unsorted_evaluated_sequences_database,
+                            output_directory=output_directory,
+                            subdirectory=subdirectory,
+                            free_param_count=free_param_count,
+                            num_gen=num_gen,
+                            pop_size=pop_size,
+                            cpu_count=cpu_count,
+                            bounds=bounds)
