@@ -22,7 +22,7 @@ sys.path.append('../mga_ltto/src/')
 import mga_low_thrust_utilities as mga_util
 from trajectory3d import trajectory_3d
 
-data_directory = "pp_ltto/EMJ_test/island_4/"
+data_directory = "pp_ltto/hs_tuning/EM_gen10_pop50/islands/island_2/"
 # data_directory = "pp_ltto/EMJ_checknode_2fp/island_0/"
 mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
 

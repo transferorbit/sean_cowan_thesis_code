@@ -16,8 +16,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Tudatpy imports
-import tudatpy
-from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
@@ -26,9 +24,6 @@ from tudatpy.kernel.interface import spice
 spice.load_standard_kernels()
 
 from trajectory3d import trajectory_3d
-
-import io
-import sys
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -791,7 +786,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
-            bodies=["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter"],
+            bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
             frame_orientation= 'ECLIPJ2000'
             )
     # print(auxiliary_info_dict)

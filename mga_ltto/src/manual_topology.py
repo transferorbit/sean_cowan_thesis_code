@@ -16,24 +16,13 @@ import os
 import pygmo as pg
 import multiprocessing as mp
 import random
-import shutil
-import json
 
-# Tudatpy imports
-# Still necessary to implement most recent version of the code
 
-import sys
-sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+# import sys
+# sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
 
-import tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
-from tudatpy.kernel.numerical_simulation import propagation_setup
-from tudatpy.kernel.numerical_simulation import environment_setup
-from tudatpy.kernel.math import interpolators
-from tudatpy.kernel.trajectory_design import shape_based_thrust
-from tudatpy.kernel.trajectory_design import transfer_trajectory
-
 
 # import mga_low_thrust_utilities as mga_util
 from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
@@ -125,7 +114,7 @@ class manualTopology:
                     break
                 # print(leg_database)
                 leg_data = legDatabaseMechanics.get_leg_data_from_database(leg, leg_database)
-                # print(leg_data)
+                print(leg_data)
                 filtered_legs = legDatabaseMechanics.get_filtered_legs(leg_data,
                         no_of_predefined_individuals)
                 pre_design_parameter_vectors = \
@@ -263,7 +252,7 @@ class manualTopology:
                 return champs_f, ndf_f
 
         for i in range(num_gen): # step between which topology steps are executed
-            print('Evolving Gen : %i / %i' % (i, num_gen))
+            print('Evolving Gen : %i / %i' % (i+1, num_gen))
             archi.evolve()
             champs_dict_current_gen = {}
             champ_f_dict_current_gen = {}
@@ -632,7 +621,7 @@ class legDatabaseMechanics:
         Parameters
         -----------
 
-        leg_database : List[str, float, float, int]
+        leg_database : List[[str, float, float, int]]
         leg : str
 
         Returns
@@ -1009,3 +998,4 @@ def run_mgso_optimisation(departure_planet : str,
                             pop_size=pop_size,
                             cpu_count=cpu_count,
                             bounds=bounds)
+

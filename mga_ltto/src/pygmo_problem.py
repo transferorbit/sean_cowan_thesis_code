@@ -10,19 +10,10 @@ This module creates a PyGMO compatible problem class that represents the mga low
 ###########################################################################
 
 # General imports
-import pickle
 import numpy as np
-import os
 
 # Tudatpy imports
-import tudatpy
-from tudatpy.io import save2txt
 from tudatpy.kernel import constants
-from tudatpy.kernel.numerical_simulation import environment_setup
-from tudatpy.kernel.trajectory_design import shape_based_thrust
-from tudatpy.kernel.trajectory_design import transfer_trajectory
-from tudatpy.kernel.astro import time_conversion
-
 import mga_low_thrust_utilities as util
 
 #######################################################################
@@ -48,10 +39,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     Isp=3000,
                     m0=1000,
                     no_of_points=500,
-                    planet_kep_states = None,
+                    # planet_kep_states = None,
                     manual_base_functions=False,
+<<<<<<< Updated upstream
                     dynamic_shaping_functions=False,
                     mo_optimisation=False):
+=======
+                    mo_optimisation=False,
+                    zero_revs=False):
+>>>>>>> Stashed changes
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -78,6 +74,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.no_of_points = no_of_points
 
         self.mo_optimisation = mo_optimisation
+        self.zero_revs = zero_revs
 
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
         #         "Uranus", "Neptune"] 
@@ -289,7 +286,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # number of revolutions
         number_of_revolutions = \
         [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
-        if self.mo_optimisation:
+        if self.zero_revs:
             number_of_revolutions = \
             [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
 
