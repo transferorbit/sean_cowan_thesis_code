@@ -13,9 +13,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ###########################################################################
 # IMPORT STATEMENTS #######################################################
 ###########################################################################
-
-     
+    
     # General imports
+    import numpy as np
     import os
     import pygmo as pg
     import multiprocessing as mp
@@ -25,10 +25,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # import sys
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     
-<<<<<<< Updated upstream
-=======
-    # import tudatpy
->>>>>>> Stashed changes
     from tudatpy.kernel import constants
     
     sys.path.append('../mga_ltto/src/')
@@ -49,21 +45,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     """
     
     current_dir = os.getcwd()
-    output_directory = current_dir + '/pp_ltto/'
+    output_directory = current_dir + '/pp_ltto'
     julian_day = constants.JULIAN_DAY
     seed = 421
     no_of_points = 500
-    cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
-    number_of_islands = cpu_count // 2
 
     write_results_to_file = False
     manual_base_functions = False
-<<<<<<< Updated upstream
     mo_optimisation = True
-=======
-    mo_optimisation = False
-    zero_revs = False
->>>>>>> Stashed changes
     
 ####################################################################
 # LTTO Problem Setup ###############################################
@@ -74,7 +63,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
 
     # testing problem functionality
-<<<<<<< Updated upstream
     # transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
     # free_param_count = 2
     # num_gen = 100
@@ -101,66 +89,19 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()
     print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
-=======
-    Isp = 3200
-    m0 = 1300
-    transfer_body_order = ["Earth", "Mars", "Earth", "Jupiter"]
-    free_param_count = 2
-    num_gen = 10
-    pop_size = 100
-    no_of_points = 500
-    bounds = [[9400, 0, 0, 200, 500, 2e2, -10**4, 0],
-            [9600, 0, 0, 1200, 7000, 2e11, 10**4, 4]]
-    subdirectory=  '/tudat_example_EMEJ'
-
-    # subdirectory=  '/EMJ_filesavingtest'
-    # Isp = 3200
-    # m0 = 1300
-    # transfer_body_order = ["Earth", "Mars", "Jupiter"]
-    # free_param_count = 2
-    # num_gen = 3
-    # pop_size = 100
-    # cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
-    # number_of_islands=  cpu_count
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-    #         'Free coefficient [-]', 'Number of revolutions [-]']
-    # bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
-    #         [12000, 0.0001, 0.00001, 1200, 7000, 2e9, 10**4, 2]]
-    # caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
-    # caldateub = dateConversion(bounds[1][0]).mjd_to_date()
-    # print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
-    #
-    # subdirectory=  '/tuning/EM150'
-    # subdirectory=  'morante_EVEMJ_longest_run'
-    # Isp = 3000
-    # m0 = 360
-    # transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
-    # free_param_count = 2
-    # num_gen = 4
-    # pop_size = 20
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-    #         'Free coefficient [-]', 'Number of revolutions [-]']
-    # bounds = [[10592.5, 1999.9, 0, 100, 0, 2e5, -10**4, 0],
-    #         [11321.5, 2000, 7000, 1500, 20000, 2e11, 10**4, 1]]
->>>>>>> Stashed changes
     
     # verification Gondelach
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-    #         'Free coefficient [-]', 'Number of revolutions [-]']
     # transfer_body_order = ["Earth", "Mars"]
     # free_param_count = 2
-    # Isp = 3000
-    # m0 = 360
-    # num_gen = 50
-    # pop_size = 50
+    # num_gen = 100
+    # pop_size = 30
+    # num_gen = 1
+    # pop_size = 100
     # no_of_points = 500
-    # bounds = [[7303.5, 0, 0, 500, 0, 2e5, -10**4, 0],
-    #         [10224.5, 0, 0, 2000, 2000, 2e11, 10**4, 5]]
-    # subdirectory = '/EM_gen50_pop250'
-    #
+    # bounds = [[7304*julian_day, 0, 500*julian_day, -10**4, 2],
+    #         [10225*julian_day, 0, 2000*julian_day, 10**4, 2]]
+    # subdirectory = '/verification/gondelach_N2'
+
     # transfer_body_order = ["Earth", "Mars"]
     # free_param_count = 0
     # num_gen = 30
@@ -171,10 +112,34 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[9985, 0, 1100, 0, 2e2, -10**4, 2], #2fp
     #         [9985, 0, 1100, 7000, 2e11, 10**4, 2]]
     # subdirectory = '/verification/ltto_0fp_planstates'
+    
+    # TGRRoegiers p.116
+    # mjd_depart_lb = 58849
+    # mjd_depart_ub = 61770
+    # mjd_2000=  51544.5
+    # bounds = [[(mjd_depart_lb-mjd_2000)*julian_day, 1, 500*julian_day, -10**6, 1],
+    #         [(mjd_depart_ub-mjd_2000)*julian_day, 1, 2000*julian_day, 10**6, 4]]
+    # subdirectory = '/verification/roegiers_test5/'
+    
+    
+    # bounds = [[9265*julian_day, 1, 1070*julian_day, -10**6, 0],
+    #         [9265*julian_day, 1, 1070*julian_day, 10**6, 6]]
+    # bounds = [[9300*julian_day, 150, 1185*julian_day, -10**6, 2],
+    #         [9300*julian_day, 150, 1185*julian_day, 10**6, 4]]
+    # subdirectory = '/verification/verification_results/'
 
-    caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
-    caldateub = dateConversion(bounds[1][0]).mjd_to_date()
-    print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
+    # Nathan
+    # transfer_body_order = ["Earth", "Mars"]
+    # free_param_count = 2
+    # num_gen = 15
+    # pop_size = 300
+    # no_of_points = 500
+    #
+    # bounds = [[10000, 0, 50*julian_day, -10**4, 0], #seconds since J2000
+    #         [10100, 0, 1000*julian_day, 10**4, 6]]
+    # subdirectory=  '/nathan_2fp'
+    
+    # validation
 
     mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
             transfer_body_order)
@@ -187,8 +152,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             mo_optimisation=mo_optimisation, 
             Isp=Isp,
             m0=m0,
-            no_of_points=no_of_points,
-            zero_revs=zero_revs)
+            no_of_points=no_of_points)
 
     prob = pg.problem(mga_low_thrust_problem)
     
