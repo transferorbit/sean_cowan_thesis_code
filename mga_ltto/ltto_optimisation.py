@@ -25,19 +25,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # import sys
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     
-    import tudatpy
-    from tudatpy.io import save2txt
     from tudatpy.kernel import constants
-    from tudatpy.kernel.astro import time_conversion
-    from tudatpy.kernel.numerical_simulation import propagation_setup
-    from tudatpy.kernel.numerical_simulation import environment_setup
-    from tudatpy.kernel.math import interpolators
-    from tudatpy.kernel.astro import element_conversion
-    from tudatpy.kernel.trajectory_design import shape_based_thrust
-    from tudatpy.kernel.trajectory_design import transfer_trajectory
-    # from tudatpy.kernel.interface import spice
-    # spice.load_standard_kernels()
-    
     
     sys.path.append('../mga_ltto/src/')
     from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
@@ -62,9 +50,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     seed = 421
     no_of_points = 500
 
-    write_results_to_file = True
+    write_results_to_file = False
     manual_base_functions = False
-    mo_optimisation = False
+    mo_optimisation = True
     
 ####################################################################
 # LTTO Problem Setup ###############################################
@@ -81,20 +69,20 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #         [4600, 3000, 500, 9000, 2e9, 10**4, 2]]
     # subdirectory=  '/tudat_example_EEVVYY_2'
 
-    subdirectory=  '/EMJ_filesavingtest'
-    Isp = 3200
-    m0 = 1300
-    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    subdirectory=  '/EVEMJ_verification_ndf'
+    Isp = 3000
+    m0 = 360
+    transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
     free_param_count = 2
-    num_gen = 3
+    num_gen = 2
     pop_size = 100
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
-    number_of_islands=  cpu_count
+    number_of_islands = cpu_count
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
             'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
             'Free coefficient [-]', 'Number of revolutions [-]']
-    bounds = [[10000, 0, 0, 200, 300, 2e2, -10**4, 0],
-            [12000, 0.0001, 0.00001, 1200, 7000, 2e9, 10**4, 2]]
+    bounds = [[10592.5, 1999.999999, 0, 100, 0, 2e5, -10**4, 0],
+            [11321.5, 2000, 7000, 1500, 7000, 2e11, 10**4, 1]]
     caldatelb = dateConversion(bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()
     print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
@@ -175,9 +163,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     my_population = pg.population(prob, size=pop_size, seed=seed)
     if not mo_optimisation:
-        algorithm = pg.algorithm(pg.sga(gen=num_gen))
+        algorithm = pg.algorithm(pg.sga(gen=1))
     else:
-        algorithm = pg.algorithm(pg.nsga2(gen=num_gen))
+        algorithm = pg.algorithm(pg.nsga2(gen=1))
         modulus_pop = pop_size % 4
         if modulus_pop != 0:
             pop_size += (4-modulus_pop)
@@ -189,7 +177,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     ## New
     list_of_x_dicts, list_of_f_dicts, champions_x, \
-    champions_f = topo.manualTopology.perform_evolution(archi,
+    champions_f, ndf_x, ndf_f = topo.manualTopology.perform_evolution(archi,
                         number_of_islands,
                         num_gen,
                         mo_optimisation)
@@ -218,6 +206,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ###########################################################################
 # Post processing #########################################################
 ###########################################################################
+    print(ndf_f, ndf_x)
 
     topo.manualTopology.create_files(type_of_optimisation='ltto',
                         number_of_islands=number_of_islands,
@@ -226,6 +215,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                         champions_f=champions_f,
                         list_of_f_dicts=list_of_f_dicts,
                         list_of_x_dicts=list_of_x_dicts,
+                        ndf_f=ndf_f,
+                        ndf_x=ndf_x,
                         no_of_points=no_of_points,
                         Isp=Isp, 
                         m0=m0,

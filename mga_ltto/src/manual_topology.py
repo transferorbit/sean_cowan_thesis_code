@@ -86,9 +86,9 @@ class manualTopology:
         no_of_random_individuals = pop_size - no_of_predefined_individuals
         pop_size_calc = lambda x, y: x + y
         if not mo_optimisation:
-            algorithm = pg.algorithm(pg.sga(gen=num_gen))
+            algorithm = pg.algorithm(pg.sga(gen=1))
         else:
-            algorithm = pg.algorithm(pg.nsga2(gen=num_gen))
+            algorithm = pg.algorithm(pg.nsga2(gen=1))
             if pop_size < 5:
                 no_of_random_individuals += 5 - pop_size
                 pop_size = no_of_random_individuals + no_of_predefined_individuals
@@ -228,8 +228,8 @@ class manualTopology:
         list_of_x_dicts = []
         if not mo_optimisation:
             # with SO no weird work around champions have to be made
-            get_champions_x = lambda archi : (archi.get_champions_x(), None) # 2, no_of_islands 
-            get_champions_f = lambda archi : (archi.get_champions_f(), None)
+            get_champions_x, ndf_x = lambda archi : (archi.get_champions_x(), None) # 2, no_of_islands 
+            get_champions_f, ndf_f = lambda archi : (archi.get_champions_f(), None)
         else:
             current_island_populations = lambda archi : [isl.get_population() for isl in archi]
 
@@ -257,6 +257,7 @@ class manualTopology:
                     current_ndf_indices = pg.non_dominated_front_2d(pop_f_list[j]) # determine how to sort
                     ndf_f.append([pop_f_list[j][i] for i in current_ndf_indices])
                     champs_f.append(ndf_f[j][0]) # j for island, 0 for first (lowest dV) option
+                    champs_f[j][1] /= 86400.0
 
                 return champs_f, ndf_f
 
@@ -268,8 +269,8 @@ class manualTopology:
             champions_x, ndf_x = get_champions_x(archi)
             champions_f, ndf_f = get_champions_f(archi)
             for j in range(number_of_islands):
-                    champs_dict_current_gen[j] = champions_x[j]
-                    champ_f_dict_current_gen[j] = champions_f[j]
+                    champs_dict_current_gen[j] = champions_x[j] 
+                    champ_f_dict_current_gen[j] = champions_f[j] 
             list_of_x_dicts.append(champs_dict_current_gen)
             list_of_f_dicts.append(champ_f_dict_current_gen)
 
@@ -277,7 +278,7 @@ class manualTopology:
 
 
         print('Evolution finished')
-        return list_of_x_dicts, list_of_f_dicts, champions_x, champions_f
+        return list_of_x_dicts, list_of_f_dicts, champions_x, champions_f, ndf_x, ndf_f
 
     @staticmethod
     def create_random_transfer_body_order(possible_planets, seed=None, max_no_of_gas=6) -> list:
@@ -407,6 +408,8 @@ class manualTopology:
                         list_of_lists_of_x_dicts={0:None},
                         list_of_f_dicts=None,
                         list_of_x_dicts=None,
+                        ndf_f=None,
+                        ndf_x=None,
                         no_of_points=None,
                         Isp=None, 
                         m0=None,
@@ -492,6 +495,8 @@ class manualTopology:
 
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
+                # save2txt(ndf_x, 'ndf_x.dat', output_directory + subdirectory +
+                #         layer_folder + unique_identifier)
                 save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
                         layer_folder + unique_identifier)
                 save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +
@@ -542,6 +547,11 @@ class manualTopology:
                     min = ' UB'
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
         # optimisation_characteristics['Bounds'] = bounds
+
+        # ndf of all islands together # only ltto
+        # ndf_all_islands = [pg.non_dominated_front_2d(ndf_f[j] for) # determine how to sort
+        # ndf_x.append([pop_list[j][i] for i in current_ndf_indices])
+        # champs_x.append(ndf_x[j][0]) # j for island, 0 for first (lowest dV) option
         
         unique_identifier = "/champions/"
         if type_of_optimisation == 'ltto':
@@ -834,7 +844,7 @@ def run_mgso_optimisation(departure_planet : str,
         island_problems[p] = current_island_problems
 
         list_of_x_dicts, list_of_f_dicts, champions_x[p], \
-        champions_f[p] = manualTopology.perform_evolution(archi,
+        champions_f[p], ndf_x, ndf_f = manualTopology.perform_evolution(archi,
                             number_of_islands_array[p],
                             num_gen,
                             mo_optimisation)
