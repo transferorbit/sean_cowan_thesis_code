@@ -495,8 +495,6 @@ class manualTopology:
 
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
-                # save2txt(ndf_x, 'ndf_x.dat', output_directory + subdirectory +
-                #         layer_folder + unique_identifier)
                 save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
                         layer_folder + unique_identifier)
                 save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +
@@ -549,9 +547,9 @@ class manualTopology:
         # optimisation_characteristics['Bounds'] = bounds
 
         # ndf of all islands together # only ltto
-        # ndf_all_islands = [pg.non_dominated_front_2d(ndf_f[j] for) # determine how to sort
-        # ndf_x.append([pop_list[j][i] for i in current_ndf_indices])
-        # champs_x.append(ndf_x[j][0]) # j for island, 0 for first (lowest dV) option
+        ndf_f_all_islands = [pg.non_dominated_front_2d(ndf_f[j] for i in range(number_of_islands)] # determine how to sort
+         print(ndf_f_all_islands)
+        ndf_x_all_islands = [pg.non_dominated_front_2d(ndf_x[j] for i in range(number_of_islands)] # determine how to sort
         
         unique_identifier = "/champions/"
         if type_of_optimisation == 'ltto':
