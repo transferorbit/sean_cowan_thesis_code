@@ -213,30 +213,31 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
     Provides the transfer settings required to construct a hodographic shaping mga trajectory.
 
     """
-    #
-    # # departure and target state from ephemerides
-    # body_dict = {"Mercury" : 0,
-    #         "Venus" : 1,
-    #         "Earth" : 2,
-    #         "Mars" : 3,
-    #         "Jupiter" : 4,
-    #         "Saturn" : 5,
-    #         "Uranus" : 6,
-    #         "Neptune" : 7}
-    #
-    # # From approximate jpl model states
-    # planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
-    #         77.45779628,     48.33076593],
-    # [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
-    # [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
-    # [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
-    # [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
-    # [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
-    # [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
-    # [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
-    #     131.78422574]]
-    #
-    # astronomical_unit = 149597870.7e3 #m
+
+    # departure and target state from ephemerides
+#     body_dict = {"Mercury" : 0,
+#             "Venus" : 1,
+#             "Earth" : 2,
+#             "Mars" : 3,
+#             "Jupiter" : 4,
+#             "Saturn" : 5,
+#             "Uranus" : 6,
+#             "Neptune" : 7}
+# 
+#     # From approximate jpl model states
+#     planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350,
+#             77.45779628,     48.33076593],
+#     [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
+#     [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
+#     [1.52371034  ,    0.09339410  ,    1.84969142   ,    -4.55343205  ,  -23.94362959   ,  49.55953891],
+#     [5.20288700  ,    0.04838624  ,    1.30439695   ,    34.39644051  ,   14.72847983   , 100.47390909],
+#     [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
+#     [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
+#     [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  ,
+#         131.78422574]]
+# 
+#     astronomical_unit = 149597870.7e3 #m
+
     # departure_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[0]]][0] * astronomical_unit
     # departure_eccentricity = planet_kep_states[body_dict[transfer_body_order[0]]][1]
     # target_semi_major_axis = planet_kep_states[body_dict[transfer_body_order[-1]]][0] * astronomical_unit
@@ -708,6 +709,7 @@ def get_mass_propagation(thrust_acceleration : dict, Isp, m0, g0=9.81):
     time_history = np.array(list(thrust_acceleration.keys()))
     thrust_acceleration = np.array(list(thrust_acceleration.values()))
     mass_history = {}
+    invalid_trajectory = False
 
     mass_history[time_history[0]] = m0
     for it, thrust in enumerate(thrust_acceleration):
@@ -718,8 +720,13 @@ def get_mass_propagation(thrust_acceleration : dict, Isp, m0, g0=9.81):
         dmdt = (1/(Isp*g0)) * m * dvdt
         m -= dmdt * dt
         mass_history[time_history[it+1]] = m
+        if np.abs(m) < 1e-7:
+            m = 0 
+            # print('Mass approaches 0')
+            invalid_trajectory = True
+            break
 
-    return mass_history, mass_history[time_history[-2]]
+    return mass_history, mass_history[time_history[it]], invalid_trajectory
 
 
 def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):

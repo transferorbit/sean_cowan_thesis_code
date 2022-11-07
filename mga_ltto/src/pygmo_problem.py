@@ -23,7 +23,7 @@ from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
 from tudatpy.kernel.astro import time_conversion
 
-import mga_low_thrust_utilities as mga_util
+import mga_low_thrust_utilities as util
 
 #######################################################################
 # PROBLEM CLASS #######################################################
@@ -45,9 +45,13 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     swingby_altitude=200000000, #2e5 km
                     departure_velocity=2000, 
                     arrival_velocity=0,
+                    Isp=3000,
+                    m0=1000,
+                    no_of_points=500,
                     planet_kep_states = None,
                     manual_base_functions=False,
-                    dynamic_shaping_functions=False):
+                    dynamic_shaping_functions=False,
+                    mo_optimisation=False):
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -69,13 +73,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.departure_velocity = departure_velocity
         self.arrival_velocity = arrival_velocity
 
+        self.Isp = Isp
+        self.m0 = m0
+        self.no_of_points = no_of_points
+
+        self.mo_optimisation = mo_optimisation
+
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
         #         "Uranus", "Neptune"] 
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
         # self.central_body = 'Sun'
         # self.central_body_mu = 1.3271244e20 # m^3 / s^2
 
-        # self.system_of_bodies = lambda :  mga_util.create_modified_system_of_bodies(self.bounds[0][0], # departure date
+        # self.system_of_bodies = lambda :  util.create_modified_system_of_bodies(self.bounds[0][0], # departure date
         #     self.central_body_mu, bodies=self.bodies_to_create, ephemeris_type='JPL',
         #     planet_kep_states=planet_kep_states)
 
@@ -167,6 +177,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         return (lower_bounds, upper_bounds)
 
+    def get_nobj(self):
+        if self.mo_optimisation:
+            return 2
+        else:
+            return 1
+
     def get_nic(self):
         return 0
 
@@ -213,7 +229,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def fitness(self, 
                 design_parameter_vector : list, 
-                bodies = mga_util.create_modified_system_of_bodies(ephemeris_type='JPL'),
+                bodies = util.create_modified_system_of_bodies(ephemeris_type='JPL'),
                 # bodies = environment_setup.create_simplified_system_of_bodies(),
                 post_processing=False):
 
@@ -257,6 +273,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # time of flight
         time_of_flights = design_parameter_vector[3:time_of_flight_index]
+        # print(time_of_flights)
 
         # incoming velocities
         incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index]
@@ -272,8 +289,11 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # number of revolutions
         number_of_revolutions = \
         [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
+        if self.mo_optimisation:
+            number_of_revolutions = \
+            [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
 
-        transfer_trajectory_object = mga_util.get_low_thrust_transfer_object(self.transfer_body_order,
+        transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
                                                             # departure_elements,
                                                             # target_elements,
@@ -297,7 +317,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
 
         # node times
-        self.node_times = mga_util.get_node_times(departure_date, time_of_flights)
+        self.node_times = util.get_node_times(departure_date, time_of_flights)
         # print(node_times)
 
         # leg free parameters 
@@ -307,21 +327,67 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 self.no_of_free_parameters)) # added reshape
 
         # node free parameters
-        node_free_parameters = mga_util.get_node_free_parameters(self.transfer_body_order,
+        node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
                 swingby_periapses_array, incoming_velocity_array, departure_velocity=departure_velocity,
                 arrival_velocity=arrival_velocity)
 
         try:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
-            if post_processing == False:
-                objective = transfer_trajectory_object.delta_v 
-            if post_processing == True:
+            # delivery_mass_constraint_check(transfer_trajectory_object, self.Isp, self.m0, self.no_of_points)
+
+            if post_processing == False and self.mo_optimisation == False:
+                objective = [transfer_trajectory_object.delta_v]
+            elif post_processing == False and self.mo_optimisation == True:
+                objective = [transfer_trajectory_object.delta_v, transfer_trajectory_object.time_of_flight]
+            elif post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
+
         except RuntimeError as e:
-            # print(str(e), "\n")#, "Objective increased by 10**16")
-            objective = 10**16
+            mass_penalty = 0
+            negative_distance_penalty = 0
+            if e == 'Error with validity of trajectory: the delivery mass is negative.':
+                # mass_penalty = 5 * 10**15
+                print(e)
+                mass_penalty = 10**16
+            elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
+                # negative_distance_penalty = 5 * 10**15
+                print(e)
+                negative_distance_penalty = 10**16
+            else:
+                print('Unspecified error : ', e)
+                other_penalty = 10**16
+
+            if self.mo_optimisation == False:
+                # objective = [10**16]
+                objective = [mass_penalty + negative_distance_penalty + other_penalty]
+            else:
+                # objective = [10**16, 10**16]
+                objective = [mass_penalty + negative_distance_penalty + other_penalty for _ in range(2)]
+                print(objective)
+
+
+            # objective[0] += [10**16] + [mass_penalty]
             if post_processing == True:
                 raise
         if post_processing == False:
-            return [objective]
+            return objective
             # print('Fitness evaluated')
+
+#######################################################################
+# Penalty functions ###################################################
+#######################################################################
+
+def delivery_mass_constraint_check(transfer_object, Isp, m0, no_of_points=500):
+    thrust_acceleration = \
+    transfer_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+
+    mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+
+
+    if invalid_trajectory:
+        raise RuntimeError('Error with validity of trajectory: the delivery mass is approaching 0 1e-7.')
+
+    return mass_history, delivery_mass
+
+
+
