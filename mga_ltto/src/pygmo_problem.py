@@ -27,7 +27,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def __init__(self,
                     transfer_body_order,
-                    no_of_free_parameters =0 ,
+                    no_of_free_parameters = 0,
                     bounds = None, 
                     depart_semi_major_axis=np.inf,
                     depart_eccentricity=0, 
@@ -225,8 +225,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_objectives(self,
                       transfer_trajectory_object):
+        objectives = []
         for it, j in enumerate(self.objectives):
-            objectives = []
             if j == 'dv':
                 objectives.append(transfer_trajectory_object.delta_v)
             elif j == 'tof':
@@ -240,6 +240,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 objectives.append(self.delivery_mass / self.m0)
             else:
                 raise RuntimeError('An objective was provided that is not permitted')
+        return objectives
 
 
 
