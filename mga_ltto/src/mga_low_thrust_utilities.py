@@ -23,7 +23,8 @@ from tudatpy.kernel.trajectory_design import transfer_trajectory
 from tudatpy.kernel.interface import spice
 spice.load_standard_kernels()
 
-from trajectory3d import trajectory_3d
+from src.trajectory3d import trajectory_3d
+import src.mga_low_thrust_utilities as util
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -256,8 +257,9 @@ def get_low_thrust_transfer_object(transfer_body_order : list,
         flyby_target_body_integer = \
         transfer_body_order_conversion.get_transfer_body_integers([flyby_target_body])
         shaping_function_type = 'default'
-        if flyby_target_body_integer < current_body_integer and dynamic_shaping_functions:
+        if flyby_target_body_integer < current_body_integer and dynamic_shaping_functions: # this works
             shaping_function_type = 'inner_planet'
+
 
         # first definition of freq, scale
         tof = time_of_flight[i]
@@ -753,6 +755,8 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
         raise RuntimeError('Too many resources are provided. Please only pass a directory or \
                 directory of directories to dir or dir_of_dir, respectively') 
 
+    # TO-DO make dir_of_dir plots where you can take up to 8 islands and plot them in one figure
+
     if dir != None:
         input_directory = dir
     elif dir_of_dir != None:
@@ -805,8 +809,6 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
 # Show the plot
     plt.show()
 
-
-
 def objective_per_generation_visualisation(dir=None):
 
     fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
@@ -856,3 +858,45 @@ def objective_per_generation_visualisation(dir=None):
     ax2.grid()
     plt.show()
 
+def pareto_front(dir=None,
+                 deltav_as_obj=True,
+                 mass_fraction_as_obj=False):
+
+    if dir != None:
+        input_directory = dir
+    elif dir_of_dir != None:
+        input_directory = dir_of_dir
+    else:
+        raise RuntimeError('Something went wrong, check source')
+
+
+    #import data
+    pareto_front = np.loadtxt(dir + 'pareto_front.dat')
+
+    auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
+    thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
+    Isp = auxiliary_info_dict['Isp']
+    m0 = auxiliary_info_dict['m0']
+    mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration,
+                                                                                Isp, m0)
+
+    dv_values = pareto_front[:, 1]
+    dv_values /= 1000 #to km/s
+    tof_values = pareto_front[:, 2]
+    tof_values /= 86400 # to days
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    ax.plot(tof_values, dv_values)
+    ax.set_ylabel(r'$\Delta V$ [km / s]')
+    ax.set_xlabel(' ToF [days]' )
+    ax.set_ylim([150, 1000])
+    ax.set_xlim([350, 1000])
+    # ax.legend()
+    ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
+    ax.grid()
+
+    # plt.show()

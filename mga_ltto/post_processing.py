@@ -10,21 +10,27 @@ This module performs post processing actions to visualize the optimized results.
 ###########################################################################
 
 import sys
+import os
+import matplotlib.pyplot as plt
 
 # General imports
 # import sys
 # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
 
-from tudatpy.kernel.interface import spice
-spice.load_standard_kernels()
+current_dir = os.getcwd()
+sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
+import src.mga_low_thrust_utilities as util
+from src.trajectory3d import trajectory_3d
 
-sys.path.append('../mga_ltto/src/')
-import mga_low_thrust_utilities as mga_util
-from trajectory3d import trajectory_3d
+# data_directory = "pp_mgso/morante_maxga3sr2_spp5gen150pop300/layer_0/islands/island_1/"
+# data_directory = "pp_ltto/EVEMJ_verification_gen150pop300/islands/island_3/"
+# util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
 
-data_directory = "pp_ltto/hs_tuning/EM_gen10_pop50/islands/island_2/"
-# data_directory = "pp_ltto/EMJ_checknode_2fp/island_0/"
-mga_util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=mga_util.trajectory_3d)
+data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf0/islands/island_0/"
+util.pareto_front(dir=data_directory) # only if MO of course
+data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf1/islands/island_0/"
+util.pareto_front(dir=data_directory) # only if MO of course
+plt.show()
 
 # data_directory= "verification/verification_results/minlp_rastrigin/island_0/"
-# mga_util.objective_per_generation_visualisation(dir=data_directory)
+# util.objective_per_generation_visualisation(dir=data_directory)

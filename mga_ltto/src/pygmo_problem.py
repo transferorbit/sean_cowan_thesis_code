@@ -14,7 +14,7 @@ import numpy as np
 
 # Tudatpy imports
 from tudatpy.kernel import constants
-import mga_low_thrust_utilities as util
+import src.mga_low_thrust_utilities as util
 
 #######################################################################
 # PROBLEM CLASS #######################################################
@@ -41,13 +41,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     no_of_points=500,
                     # planet_kep_states = None,
                     manual_base_functions=False,
-<<<<<<< Updated upstream
                     dynamic_shaping_functions=False,
-                    mo_optimisation=False):
-=======
-                    mo_optimisation=False,
+                    objectives=['dv'],
                     zero_revs=False):
->>>>>>> Stashed changes
 
         self.transfer_body_order = transfer_body_order
         self.no_of_gas = len(transfer_body_order)-2
@@ -73,7 +69,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.m0 = m0
         self.no_of_points = no_of_points
 
-        self.mo_optimisation = mo_optimisation
+        self.objectives = objectives
         self.zero_revs = zero_revs
 
         # self.bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn",
@@ -89,6 +85,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.design_parameter_vector = None
 
         self.transfer_trajectory_object = None
+        self.delivery_mass = None
         self.node_times = None
 
         # planetary_radii = {}
@@ -175,10 +172,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
         return (lower_bounds, upper_bounds)
 
     def get_nobj(self):
-        if self.mo_optimisation:
+        if len(self.objectives) == 2:
             return 2
-        else:
+        elif len(self.objectives) == 1:
             return 1
+        else:
+            raise RuntimeError('The amount of objectives has not bee implemented yet, please choose 1 or 2 objectives')
 
     def get_nic(self):
         return 0
@@ -223,6 +222,26 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_design_parameter_vector(self):
         return self.design_parameter_vector
+
+    def get_objectives(self,
+                      transfer_trajectory_object):
+        for it, j in enumerate(self.objectives):
+            objectives = []
+            if j == 'dv':
+                objectives.append(transfer_trajectory_object.delta_v)
+            elif j == 'tof':
+                objectives.append(transfer_trajectory_object.time_of_flight)
+            elif j == 'mf':
+                thrust_acceleration = \
+                transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+
+                mass_history, self.delivery_mass, invalid_trajectory = \
+                util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
+                objectives.append(self.delivery_mass / self.m0)
+            else:
+                raise RuntimeError('An objective was provided that is not permitted')
+
+
 
     def fitness(self, 
                 design_parameter_vector : list, 
@@ -332,10 +351,9 @@ class MGALowThrustTrajectoryOptimizationProblem:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
             # delivery_mass_constraint_check(transfer_trajectory_object, self.Isp, self.m0, self.no_of_points)
 
-            if post_processing == False and self.mo_optimisation == False:
-                objective = [transfer_trajectory_object.delta_v]
-            elif post_processing == False and self.mo_optimisation == True:
-                objective = [transfer_trajectory_object.delta_v, transfer_trajectory_object.time_of_flight]
+            if post_processing == False:
+                objective = self.get_objectives(transfer_trajectory_object)
+                return objective
             elif post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
 
@@ -343,32 +361,20 @@ class MGALowThrustTrajectoryOptimizationProblem:
             mass_penalty = 0
             negative_distance_penalty = 0
             if e == 'Error with validity of trajectory: the delivery mass is negative.':
-                # mass_penalty = 5 * 10**15
                 print(e)
                 mass_penalty = 10**16
             elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
-                # negative_distance_penalty = 5 * 10**15
                 print(e)
                 negative_distance_penalty = 10**16
             else:
                 print('Unspecified error : ', e)
                 other_penalty = 10**16
 
-            if self.mo_optimisation == False:
-                # objective = [10**16]
+            if len(self.objectives) == 1:
                 objective = [mass_penalty + negative_distance_penalty + other_penalty]
             else:
-                # objective = [10**16, 10**16]
                 objective = [mass_penalty + negative_distance_penalty + other_penalty for _ in range(2)]
                 print(objective)
-
-
-            # objective[0] += [10**16] + [mass_penalty]
-            if post_processing == True:
-                raise
-        if post_processing == False:
-            return objective
-            # print('Fitness evaluated')
 
 #######################################################################
 # Penalty functions ###################################################

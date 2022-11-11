@@ -25,10 +25,8 @@ from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 
 # import mga_low_thrust_utilities as mga_util
-from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
-import mga_low_thrust_utilities as util
-
-current_dir = os.getcwd()
+from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
+import src.mga_low_thrust_utilities as util
 
 class manualTopology:
 
@@ -57,7 +55,8 @@ class manualTopology:
                         leg_database, 
                         manual_base_functions=False, 
                         elitist_fraction=0.1,
-                        mo_optimisation=False):
+                        objectives=['dv'],
+                        zero_revs=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
@@ -67,14 +66,15 @@ class manualTopology:
                 no_of_free_parameters=free_param_count, 
                 bounds=bounds,
                 manual_base_functions=manual_base_functions, 
-                mo_optimisation=mo_optimisation, 
+                objectives=objectives, 
                 Isp=Isp,
-                m0=m0)
+                m0=m0,
+                zero_revs=zero_revs)
 
         no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
         no_of_random_individuals = pop_size - no_of_predefined_individuals
         pop_size_calc = lambda x, y: x + y
-        if not mo_optimisation:
+        if len(objectives) == 1:
             algorithm = pg.algorithm(pg.sga(gen=1))
         else:
             algorithm = pg.algorithm(pg.nsga2(gen=1))
@@ -109,12 +109,9 @@ class manualTopology:
                 pre_design_parameter_vectors.append(population.random_decision_vector())
             # for leg_number, leg in enumerate(island_leg_dict): 
             for leg, leg_number in island_leg_dict.items(): 
-                # print(leg, leg_number)
                 if leg_database == []: #exit if 1st iteration where leg_database is empty
                     break
-                # print(leg_database)
                 leg_data = legDatabaseMechanics.get_leg_data_from_database(leg, leg_database)
-                print(leg_data)
                 filtered_legs = legDatabaseMechanics.get_filtered_legs(leg_data,
                         no_of_predefined_individuals)
                 pre_design_parameter_vectors = \
@@ -147,7 +144,8 @@ class manualTopology:
                             dynamic_shaping_functions,
                             elitist_fraction,
                             seed,
-                            mo_optimisation):
+                            objectives,
+                            zero_revs):
 
         current_max_no_of_gas = max_no_of_gas - iteration
         current_island_problems = []
@@ -199,11 +197,21 @@ class manualTopology:
             temp_evaluated_sequences.append(transfer_body_order) 
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
-            manualTopology.create_island(iteration=iteration, transfer_body_order=transfer_body_order,
-                    free_param_count=free_param_count, bounds=bounds, Isp=Isp, m0=m0, num_gen=1,
-                    pop_size=pop_size, leg_exchange=leg_exchange, leg_database=leg_database,
-                    manual_base_functions=manual_base_functions, mo_optimisation=mo_optimisation,
-                    elitist_fraction=elitist_fraction)
+            manualTopology.create_island(iteration=iteration, 
+                                        transfer_body_order=transfer_body_order,
+                                        free_param_count=free_param_count, 
+                                        bounds=bounds, 
+                                        Isp=Isp, 
+                                        m0=m0, 
+                                        num_gen=1,
+                                        pop_size=pop_size, 
+                                        leg_exchange=leg_exchange, 
+                                        leg_database=leg_database,
+                                        manual_base_functions=manual_base_functions, 
+                                        objectives=objectives,
+                                        elitist_fraction=elitist_fraction, 
+                                        zero_revs=zero_revs)
+
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
@@ -213,13 +221,19 @@ class manualTopology:
     def perform_evolution(archi, 
                             number_of_islands, 
                             num_gen, 
-                            mo_optimisation):
+                            objectives):
         list_of_f_dicts = []
         list_of_x_dicts = []
-        if not mo_optimisation:
+        if len(objectives) == 1:
             # with SO no weird work around champions have to be made
-            get_champions_x, ndf_x = lambda archi : (archi.get_champions_x(), None) # 2, no_of_islands 
-            get_champions_f, ndf_f = lambda archi : (archi.get_champions_f(), None)
+            # get_champions_x, ndf_x = lambda archi : (archi.get_champions_x(), None) # 2, no_of_islands 
+            # get_champions_f, ndf_f = lambda archi : (archi.get_champions_f(), None)
+
+            def get_champions_x(archi):
+                return archi.get_champions_x(), None
+            def get_champions_f(archi):
+                return archi.get_champions_f(), None
+
         else:
             current_island_populations = lambda archi : [isl.get_population() for isl in archi]
 
@@ -247,7 +261,7 @@ class manualTopology:
                     current_ndf_indices = pg.non_dominated_front_2d(pop_f_list[j]) # determine how to sort
                     ndf_f.append([pop_f_list[j][i] for i in current_ndf_indices])
                     champs_f.append(ndf_f[j][0]) # j for island, 0 for first (lowest dV) option
-                    champs_f[j][1] /= 86400.0
+                    # champs_f[j][1] /= 86400.0
 
                 return champs_f, ndf_f
 
@@ -441,8 +455,7 @@ class manualTopology:
                 mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(
                             no_of_points)
 
-                mass_history, delivery_mass, invalid_trajectory = \
-                util.get_mass_propagation(thrust_acceleration, Isp, m0)
+                delivery_mass = mga_low_thrust_problem.delivery_mass
             
                 # Node times
                 node_times_list = mga_low_thrust_problem.node_times
@@ -462,8 +475,11 @@ class manualTopology:
                 number_of_legs = mga_low_thrust_problem.transfer_trajectory_object.number_of_legs
                 number_of_nodes = mga_low_thrust_problem.transfer_trajectory_object.number_of_nodes
                 time_of_flight = mga_low_thrust_problem.transfer_trajectory_object.time_of_flight
-        
+
+                # Aux file per island
                 auxiliary_info = {}
+                auxiliary_info['Isp'] = Isp
+                auxiliary_info['m0'] = m0
                 auxiliary_info['Number of legs,'] = number_of_legs 
                 auxiliary_info['Number of nodes,'] = number_of_nodes 
                 auxiliary_info['Total ToF (Days),'] = time_of_flight / 86400.0
@@ -483,8 +499,16 @@ class manualTopology:
                 auxiliary_info['Delivery mass,'] = delivery_mass
                 auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
 
+                # Get ndf
+                current_ndf_f_list = ndf_f[i]
+                current_ndf_f_dict = {}
+                for p, q in enumerate(current_ndf_f_list):
+                    current_ndf_f_dict[p] = q
+
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
+                save2txt(current_ndf_f_dict, 'pareto_front.dat', output_directory + subdirectory +
+                        layer_folder + unique_identifier)
                 save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
                         layer_folder + unique_identifier)
                 save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +
@@ -525,6 +549,8 @@ class manualTopology:
         optimisation_characteristics['Number of generations,'] = num_gen
         optimisation_characteristics['Population size,'] = pop_size
         optimisation_characteristics['CPU count,'] = cpu_count
+        optimisation_characteristics['Isp'] = Isp
+        optimisation_characteristics['m0'] = m0
         optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
                 type_of_optimisation == 'mgaso' else number_of_islands)
         for j in range(len(bounds[0])):
@@ -537,9 +563,9 @@ class manualTopology:
         # optimisation_characteristics['Bounds'] = bounds
 
         # ndf of all islands together # only ltto
-        ndf_f_all_islands = [pg.non_dominated_front_2d(ndf_f[j]) for i in range(number_of_islands)] # determine how to sort
-        print(ndf_f_all_islands)
-        ndf_x_all_islands = [pg.non_dominated_front_2d(ndf_x[j]) for i in range(number_of_islands)] # determine how to sort
+        # ndf_f_all_islands = [pg.non_dominated_front_2d(ndf_f[j]) for i in range(number_of_islands)] # determine how to sort
+        # print(ndf_f_all_islands)
+        # ndf_x_all_islands = [pg.non_dominated_front_2d(ndf_x[j]) for i in range(number_of_islands)] # determine how to sort
         
         unique_identifier = "/champions/"
         if type_of_optimisation == 'ltto':
@@ -721,7 +747,8 @@ def run_mgso_optimisation(departure_planet : str,
                             dynamic_shaping_functions=False,
                             leg_exchange = False,
                             top_x_sequences = 10,
-                            mo_optimisation=False):
+                            objectives=['dv'],
+                            zero_revs=False):
 
     # if os.path.exists(output_directory + subdirectory):
     #     shutil.rmtree(output_directory + subdirectory)
@@ -828,7 +855,8 @@ def run_mgso_optimisation(departure_planet : str,
                                         dynamic_shaping_functions,
                                         elitist_fraction,
                                         seed,
-                                        mo_optimisation)
+                                        objectives,
+                                        zero_revs=zero_revs)
 
         number_of_islands_array[p] = number_of_islands
         island_problems[p] = current_island_problems
@@ -837,7 +865,7 @@ def run_mgso_optimisation(departure_planet : str,
         champions_f[p], ndf_x, ndf_f = manualTopology.perform_evolution(archi,
                             number_of_islands_array[p],
                             num_gen,
-                            mo_optimisation)
+                            objectives)
         # print(list_of_x_dicts, list_of_f_dicts)
         # print(champions_x[p], champions_f[p])
 
@@ -857,7 +885,7 @@ def run_mgso_optimisation(departure_planet : str,
 
         for j in range(number_of_islands):
 
-            # if mo_optimisation:
+            # if len(objectives) == 2:
             #     champions_x[p][j] = champions_x[p][j][0]
             # define delta v to be used for evaluation of best sequence
             # for MO, the 0 indicates that the best dV is chosen for the database

@@ -23,18 +23,18 @@ if __name__ == '__main__':
     import sys
     
     # If conda environment does not work
-    import sys
-    sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+    # import sys
+    # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/tudatpy/tudatpy")
     
-    import tudatpy
     from tudatpy.kernel import constants
     
-    sys.path.append('../mga_ltto/src/')
+    current_dir = os.getcwd()
+    sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
     # from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
     # import mga_low_thrust_utilities as util
-    import manual_topology as topo
-    from date_conversion import dateConversion
+    import src.manual_topology as topo
+    from src.date_conversion import dateConversion
     
 ###########################################################################
 # General parameters ######################################################
@@ -46,7 +46,6 @@ if __name__ == '__main__':
     Population size; unknown
     """
 
-    current_dir = os.getcwd()
     output_directory = current_dir + '/pp_mgso'
     julian_day = constants.JULIAN_DAY
     seed = 421
@@ -56,7 +55,7 @@ if __name__ == '__main__':
     manual_base_functions = False
     leg_exchange = True
     elitist_fraction = 0.3# part of the leg_exchange parameter
-    mo_optimisation = True
+    objectives = ['dv', 'tof']
 
 ####################################################################
 # MGSO Problem Setup ###############################################
@@ -67,20 +66,16 @@ if __name__ == '__main__':
     PTBS - Predefined Target Body Sequence
     MGSA - Multiple Gravity Assist Sequence
     """
-    subdirectory = '/leg_database_testing_false_0.3'
+    subdirectory = '/morante_maxga3sr2_spp5gen150pop300'
     max_no_of_gas = 3
-<<<<<<< Updated upstream
     no_of_sequence_recursions = 2
-    number_of_sequences_per_planet = [2 for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [5 for _ in range(max_no_of_gas)]
     elitist_fraction = 0.3
     manual_base_functions = False
     dynamic_shaping_functions = True
     leg_exchange = True
+    zero_revs = True
     seed = 421
-=======
-    no_of_sequence_recursions = 3
-    number_of_sequences_per_planet = [10 for _ in range(max_no_of_gas)]
->>>>>>> Stashed changes
     possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
     # possible_ga_planets = None
     
@@ -91,9 +86,9 @@ if __name__ == '__main__':
     arrival_planet = "Jupiter"
     free_param_count = 2
     # num_gen = 2
-    # pop_size = 20
+    # pop_size = 52
     num_gen = 150
-    pop_size = 400 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
+    pop_size = 300 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
     # assert pop_size > 62 #only for gaco
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
@@ -127,5 +122,6 @@ if __name__ == '__main__':
                                 dynamic_shaping_functions=dynamic_shaping_functions,
                                 leg_exchange=leg_exchange,
                                 top_x_sequences =20,
-                                mo_optimisation=mo_optimisation)
+                                objectives=objectives,
+                                zero_revs=zero_revs)
 
