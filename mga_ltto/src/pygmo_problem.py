@@ -225,24 +225,32 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
     def get_objectives(self,
                       transfer_trajectory_object):
-        objectives = []
+        objective_values = []
         for it, j in enumerate(self.objectives):
             if j == 'dv':
-                objectives.append(transfer_trajectory_object.delta_v)
+                objective_values.append(transfer_trajectory_object.delta_v)
             elif j == 'tof':
-                objectives.append(transfer_trajectory_object.time_of_flight)
+                objective_values.append(transfer_trajectory_object.time_of_flight)
             elif j == 'mf':
                 thrust_acceleration = \
                 transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
 
-                mass_history, self.delivery_mass, invalid_trajectory = \
+                mass_history, delivery_mass, invalid_trajectory = \
                 util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
-                objectives.append(self.delivery_mass / self.m0)
+                if delivery_mass < 0:
+                    raise RuntimeError('Error with validity of trajectory: the delivery mass is negative.')
+                objective_values.append(- delivery_mass / self.m0) # try to maximize
             else:
                 raise RuntimeError('An objective was provided that is not permitted')
-        return objectives
+        return objective_values
 
-
+    def get_delivery_mass(self):
+        thrust_acceleration = \
+        self.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+        mass_history, self.delivery_mass, invalid_trajectory = \
+        util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
+        return self.delivery_mass
+        
 
     def fitness(self, 
                 design_parameter_vector : list, 
@@ -354,15 +362,15 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
             if post_processing == False:
                 objective = self.get_objectives(transfer_trajectory_object)
-                return objective
             elif post_processing == True:
                 self.transfer_trajectory_object = transfer_trajectory_object
+                return
 
         except RuntimeError as e:
             mass_penalty = 0
             negative_distance_penalty = 0
             if e == 'Error with validity of trajectory: the delivery mass is negative.':
-                print(e)
+                # print(e)
                 mass_penalty = 10**16
             elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
                 print(e)
@@ -376,6 +384,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
             else:
                 objective = [mass_penalty + negative_distance_penalty + other_penalty for _ in range(2)]
                 print(objective)
+
+        return objective
 
 #######################################################################
 # Penalty functions ###################################################

@@ -22,15 +22,14 @@ sys.path.append(current_dir) # this only works if you run ltto and mgso while in
 import src.mga_low_thrust_utilities as util
 from src.trajectory3d import trajectory_3d
 
-# data_directory = "pp_mgso/morante_maxga3sr2_spp5gen150pop300/layer_0/islands/island_1/"
-# data_directory = "pp_ltto/EVEMJ_verification_gen150pop300/islands/island_3/"
-# util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
+data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300fp2_plot/islands/island_0/"
+util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
 
-data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf0/islands/island_0/"
-util.pareto_front(dir=data_directory) # only if MO of course
-data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf1/islands/island_0/"
-util.pareto_front(dir=data_directory) # only if MO of course
-plt.show()
+# data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf0/islands/island_0/"
+# util.pareto_front(dir=data_directory) # only if MO of course
+# data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300fp2_plot/islands/island_0/"
+# util.pareto_front(dir=data_directory) # only if MO of course
+# plt.show()
 
 # data_directory= "verification/verification_results/minlp_rastrigin/island_0/"
 # util.objective_per_generation_visualisation(dir=data_directory)

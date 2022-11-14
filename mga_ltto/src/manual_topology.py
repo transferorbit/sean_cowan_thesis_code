@@ -455,7 +455,7 @@ class manualTopology:
                 mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(
                             no_of_points)
 
-                delivery_mass = mga_low_thrust_problem.delivery_mass
+                delivery_mass = mga_low_thrust_problem.get_delivery_mass()
             
                 # Node times
                 node_times_list = mga_low_thrust_problem.node_times
@@ -478,8 +478,8 @@ class manualTopology:
 
                 # Aux file per island
                 auxiliary_info = {}
-                auxiliary_info['Isp'] = Isp
-                auxiliary_info['m0'] = m0
+                auxiliary_info['Isp,'] = Isp
+                auxiliary_info['m0,'] = m0
                 auxiliary_info['Number of legs,'] = number_of_legs 
                 auxiliary_info['Number of nodes,'] = number_of_nodes 
                 auxiliary_info['Total ToF (Days),'] = time_of_flight / 86400.0

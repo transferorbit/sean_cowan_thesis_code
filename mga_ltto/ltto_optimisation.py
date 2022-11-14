@@ -47,27 +47,27 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     output_directory = current_dir + '/pp_ltto'
     julian_day = constants.JULIAN_DAY
     seed = 421
-    no_of_points = 2000 # this number affects the state_history and thrust_acceleration, thus the accuracy of the delivery mass
+    no_of_points = 50 # this number affects the state_history and thrust_acceleration, thus the accuracy of the delivery mass
 
     ## General parameters
     dynamic_shaping_functions = False
-    write_results_to_file = False
+    write_results_to_file = True
     manual_base_functions = False
     zero_revs = True
-    objectives = ['dv', 'tof'] #dv, tof, mf
+    objectives = ['mf', 'tof'] #dv, tof, mf
     
 ####################################################################
 # LTTO Problem Setup ###############################################
 ####################################################################
 
 
-    subdirectory=  '/EVEMJ_cpu4gen150pop300fp0'
+    subdirectory=  '/EVEMJ_cpu4gen150pop300fp2_plot'
     Isp = 3000
     m0 = 360
     transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
-    free_param_count = 0
-    num_gen = 2
-    pop_size = 100
+    free_param_count = 2
+    num_gen = 10
+    pop_size = 52
     cpu_count = os.cpu_count() // 2# not very relevant because differnent machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')
