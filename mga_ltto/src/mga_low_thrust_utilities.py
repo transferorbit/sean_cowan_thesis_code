@@ -807,7 +807,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
 # Change the size of the figure
     fig.set_size_inches(8, 8)
 # Show the plot
-    plt.show()
+    # plt.show()
 
 def objective_per_generation_visualisation(dir=None):
 
@@ -900,3 +900,54 @@ def pareto_front(dir=None,
     ax.grid()
 
     # plt.show()
+
+def thrust_propagation(dir=None):
+
+    auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
+    thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
+    thrust_norm = np.array([np.linalg.norm(thrust_acceleration[i, 1:4]) for i in 
+                                           range(len(thrust_acceleration))])
+    print(np.min(thrust_norm))
+    print(np.max(thrust_norm))
+    print(min(thrust_norm))
+    print(max(thrust_norm))
+
+    initial_epoch = thrust_acceleration[0, 0]
+    # print(initial_epoch)
+    time_history = thrust_acceleration[:, 0].copy()
+    time_history -= initial_epoch
+    time_history /= 86400
+    print(time_history[0:10])
+
+    node_times = np.loadtxt(dir + 'node_times.dat')
+    node_times[:, 1] -= initial_epoch
+    node_times[:, 1] /= 86400
+    print(node_times)
+
+    mga_sequence_characters = auxiliary_info_dict['MGA Sequence']
+    list_of_mga_sequence_char = util.transfer_body_order_conversion.get_mga_list_from_characters(mga_sequence_characters)
+    color_list = \
+    ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
+    linestyle = '--'
+
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    ax.plot(time_history, thrust_norm)
+    for i in range(len(list_of_mga_sequence_char)):
+        ax.axvline(node_times[i, 1], c=color_list[i], linestyle=linestyle,
+                   label=list_of_mga_sequence_char[i])
+    # ax.axvline(node_times[0, 1], c=color_list[0], linestyle=linestyle,
+    #            label=list_of_mga_sequence_char[0], ymin = np.min(thrust_norm), ymax =
+    #            np.max(thrust_norm))
+    ax.set_ylabel(r'Thrust norm [m / s$^2$]')
+    ax.set_xlabel(' Epoch [days]' )
+    # ax.set_ylim([150, 1000])
+    # ax.set_xlim([350, 1000])
+    ax.set_yscale('log')
+    ax.legend()
+    ax.set_title(mga_sequence_characters, fontweight='semibold', fontsize=18)
+    ax.grid()
+    plt.show()
