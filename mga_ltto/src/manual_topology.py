@@ -55,6 +55,7 @@ class manualTopology:
                         leg_database, 
                         manual_base_functions=False, 
                         elitist_fraction=0.1,
+                        dynamic_bounds=False,
                         objectives=['dv'],
                         zero_revs=False):
         """
@@ -69,6 +70,7 @@ class manualTopology:
                 objectives=objectives, 
                 Isp=Isp,
                 m0=m0,
+                dynamic_bounds=dynamic_bounds,
                 zero_revs=zero_revs)
 
         no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
@@ -142,6 +144,7 @@ class manualTopology:
                             leg_database,
                             manual_base_functions, 
                             dynamic_shaping_functions,
+                            dynamic_bounds,
                             elitist_fraction,
                             seed,
                             objectives,
@@ -209,6 +212,7 @@ class manualTopology:
                                         leg_database=leg_database,
                                         manual_base_functions=manual_base_functions, 
                                         objectives=objectives,
+                                        dynamic_bounds=dynamic_bounds,
                                         elitist_fraction=elitist_fraction, 
                                         zero_revs=zero_revs)
 
@@ -545,6 +549,7 @@ class manualTopology:
 
         optimisation_characteristics = {}
         # optimisation_characteristics['Transfer body order,'] = mga_sequence_characters
+        optimisation_characteristics['No of points,'] = no_of_points
         optimisation_characteristics['Free parameter count,'] = free_param_count
         optimisation_characteristics['Number of generations,'] = num_gen
         optimisation_characteristics['Population size,'] = pop_size
@@ -745,6 +750,7 @@ def run_mgso_optimisation(departure_planet : str,
                             write_results_to_file=False,
                             manual_base_functions=False,
                             dynamic_shaping_functions=False,
+                            dynamic_bounds=False,
                             leg_exchange = False,
                             top_x_sequences = 10,
                             objectives=['dv'],
@@ -853,6 +859,7 @@ def run_mgso_optimisation(departure_planet : str,
                                         separate_leg_database,
                                         manual_base_functions, 
                                         dynamic_shaping_functions,
+                                        dynamic_bounds,
                                         elitist_fraction,
                                         seed,
                                         objectives,

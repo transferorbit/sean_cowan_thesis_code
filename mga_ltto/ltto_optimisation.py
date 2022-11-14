@@ -51,10 +51,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     ## General parameters
     dynamic_shaping_functions = False
+    dynamic_bounds = True
     write_results_to_file = True
     manual_base_functions = False
     zero_revs = True
-    objectives = ['mf', 'tof'] #dv, tof, mf
+    objectives = ['pmf', 'tof'] #dv, tof, pmf, dmf
     
 ####################################################################
 # LTTO Problem Setup ###############################################
@@ -95,7 +96,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             m0=m0,
             no_of_points=no_of_points,
             zero_revs=zero_revs,
-            dynamic_shaping_functions=dynamic_shaping_functions)
+            dynamic_shaping_functions=dynamic_shaping_functions,
+            dynamic_bounds=dynamic_bounds)
 
     prob = pg.problem(mga_low_thrust_problem)
     
