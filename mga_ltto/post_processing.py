@@ -22,17 +22,16 @@ sys.path.append(current_dir) # this only works if you run ltto and mgso while in
 import src.mga_low_thrust_utilities as util
 from src.trajectory3d import trajectory_3d
 
-### TRAJECTORY VISUALIZATION ###
-data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300np50/islands/island_0/"
-util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
-data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300np50/islands/island_1/"
-util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
+# data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300fp2_plot/islands/island_0/"
+# util.hodographic_shaping_visualisation(dir=data_directory, trajectory_function=util.trajectory_3d)
 
 ### PARETO FRONT ###
 # data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf0/islands/island_0/"
 # util.pareto_front(dir=data_directory) # only if MO of course
-# data_directory = "pp_ltto/EVEMJ_cpu4gen150pop300fp2_plot/islands/island_0/"
-# util.pareto_front(dir=data_directory) # only if MO of course
+data_directory = "pp_ltto/EVEMJ_cpu8gen300pop300dbTruedsFull/islands/island_0/"
+# util.pareto_front(dir=data_directory, pmf_as_obj=True) # only if MO of course
+# util.hodographic_shaping_visualisation(dir=data_directory, quiver=True, projection='xy')
+util.thrust_propagation(dir=data_directory)
 
 ### OBJECTIVE PER GEN ###
 # data_directory= "verification/verification_results/minlp_rastrigin/island_0/"

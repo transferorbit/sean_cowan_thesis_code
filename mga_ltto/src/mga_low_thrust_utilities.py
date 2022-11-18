@@ -43,30 +43,29 @@ class transfer_body_order_conversion:
     @staticmethod
     def get_transfer_body_integers(transfer_body_list: list, strip=True) -> np.ndarray:
         """
-        Input : ["Venus", "Venus", "Earth", "Mercury", "Null", "Null", "Null", "Null"]
-        Ouput : np.array([2, 2, 3, 5, 0, 0, 0, 0])
+        Input : ["Venus", "Venus", "Earth", "Mercury"]
+        Ouput : np.array([1, 1, 2, 4])
         """
         #transfer_body_list = transfer_body_list[1:-1]
-        body_dict = {0: "Null",
-                1: "Mercury",
-                2: "Venus",
-                3: "Earth",
-                4: "Mars",
-                5: "Jupiter",
-                6: "Saturn",
-                7: "Uranus",
-                8: "Neptune"}
+        body_dict = {0: "Mercury",
+                1: "Venus",
+                2: "Earth",
+                3: "Mars",
+                4: "Jupiter",
+                5: "Saturn",
+                6: "Uranus",
+                7: "Neptune"}
 
         body_values = list(body_dict.values())
         body_keys = list(body_dict.keys())
         body_list = []
 
         for body in transfer_body_list:
-            for j in range(len(body_dict.values())):
-                if body == body_values[j] and strip and body != "Null":
+            for j in range(len(body_values)):
+                if body == body_values[j]:
                     body_list.append(body_keys[j])
-                elif body == body_values[j] and strip == False:
-                    body_list.append(body_keys[j])
+                # elif body == body_values[j] and strip == False:
+                #     body_list.append(body_keys[j])
 
         body_array = np.array(body_list)
 
@@ -410,8 +409,6 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
     # Departure node
     node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
 
-    assert len(incoming_velocities) == len(swingby_periapses)
-
     # Swingby nodes
     for i in range(len(transfer_body_order)-2): # no_of_gas
         node_parameters = list()
@@ -726,7 +723,7 @@ def get_mass_propagation(thrust_acceleration : dict, Isp, m0, g0=9.81):
     return mass_history, mass_history[time_history[it]], invalid_trajectory
 
 
-def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_function=trajectory_3d):
+def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, projection=None):
     """
     Function that plots the relevant data provided by the input parameters. Generally this function
     is designed for MGA trajectories, and is specifically adapted to use data created by multiple
@@ -738,8 +735,6 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     information
     dir_of_dir : directory in which to look for directories of various islands that all have
     to-be plotted data
-    trajectory_function : function from tudatpy that visualizes mga trajectories based on specific
-    inputs
 
     Returns
     -------
@@ -767,14 +762,18 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     state_history = np.loadtxt(dir + 'state_history.dat')
     node_times = np.loadtxt(dir + 'node_times.dat')
     auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
+
+    thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
     # print(auxiliary_info[0][0])
     # print(auxiliary_info[1])
     # aux_info_list= [i.replace('\t') for i in auxiliary_info]
     # print(aux_info_list)
 
     state_history_dict = {}
+    thrust_history_dict = {}
     for i in range(len(state_history)):
         state_history_dict[state_history[i, 0]] = state_history[i,1:]
+        thrust_history_dict[thrust_acceleration[i, 0]] = thrust_acceleration[i,1:]
     # print(state_history_dict)
     auxiliary_info_dict = {}
     for i in range(len(auxiliary_info)):
@@ -785,14 +784,17 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None , trajectory_fu
     # print(node_times)
     fly_by_states = np.array([state_history_dict[node_times[i, 1]] for i in range(len(node_times))])
     # print(fly_by_states)
+    if quiver==False:
+        thrust_history_dict = None
 
-    fig, ax = trajectory_function(
+    fig, ax = util.trajectory_3d(
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
             bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
-            frame_orientation= 'ECLIPJ2000'
-            )
+            frame_orientation= 'ECLIPJ2000',
+            thrust_history=thrust_history_dict,
+            projection=projection)
     # print(auxiliary_info_dict)
     ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
@@ -859,8 +861,9 @@ def objective_per_generation_visualisation(dir=None):
     plt.show()
 
 def pareto_front(dir=None,
-                 deltav_as_obj=True,
-                 mass_fraction_as_obj=False):
+                 deltav_as_obj=False,
+                 dmf_as_obj=False,
+                 pmf_as_obj=False):
 
     if dir != None:
         input_directory = dir
@@ -878,23 +881,30 @@ def pareto_front(dir=None,
     for i in range(len(auxiliary_info)):
         auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
 
-    thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
-    Isp = auxiliary_info_dict['Isp']
-    m0 = auxiliary_info_dict['m0']
-    mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration,
-                                                                                Isp, m0)
+    # thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
+    # Isp = auxiliary_info_dict['Isp']
+    # m0 = auxiliary_info_dict['m0']
+    # mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration,
+    #                                                                             Isp, m0)
 
-    dv_values = pareto_front[:, 1]
-    dv_values /= 1000 #to km/s
+    y_values = pareto_front[:, 1]
+    if deltav_as_obj:
+        y_values /= 1000 #to km/s
     tof_values = pareto_front[:, 2]
     tof_values /= 86400 # to days
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    ax.plot(tof_values, dv_values)
-    ax.set_ylabel(r'$\Delta V$ [km / s]')
+    ax.plot(tof_values, y_values)
+    if deltav_as_obj:
+        ax.set_ylabel(r'$\Delta V$ [km / s]')
+        ax.set_ylim([150, 1000])
+    elif dmf_as_obj:
+        ax.set_ylabel(r'Delivery mass fraction $\frac{m_d}{m_0}$')
+    elif pmf_as_obj:
+        ax.set_ylabel(r'Propellant mass fraction $\frac{m_p}{m_0}$')
+        # ax.set_ylim([0, 1])
     ax.set_xlabel(' ToF [days]' )
-    ax.set_ylim([150, 1000])
-    ax.set_xlim([350, 1000])
+    # ax.set_xlim([350, 1000])
     # ax.legend()
     ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     ax.grid()
@@ -911,22 +921,22 @@ def thrust_propagation(dir=None):
     thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
     thrust_norm = np.array([np.linalg.norm(thrust_acceleration[i, 1:4]) for i in 
                                            range(len(thrust_acceleration))])
-    print(np.min(thrust_norm))
-    print(np.max(thrust_norm))
-    print(min(thrust_norm))
-    print(max(thrust_norm))
+    # print(np.min(thrust_norm))
+    # print(np.max(thrust_norm))
+    # print(min(thrust_norm))
+    # print(max(thrust_norm))
 
     initial_epoch = thrust_acceleration[0, 0]
     # print(initial_epoch)
     time_history = thrust_acceleration[:, 0].copy()
     time_history -= initial_epoch
     time_history /= 86400
-    print(time_history[0:10])
+    # print(time_history[0:10])
 
     node_times = np.loadtxt(dir + 'node_times.dat')
     node_times[:, 1] -= initial_epoch
     node_times[:, 1] /= 86400
-    print(node_times)
+    # print(node_times)
 
     mga_sequence_characters = auxiliary_info_dict['MGA Sequence']
     list_of_mga_sequence_char = util.transfer_body_order_conversion.get_mga_list_from_characters(mga_sequence_characters)

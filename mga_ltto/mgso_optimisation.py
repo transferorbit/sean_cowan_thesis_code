@@ -73,6 +73,7 @@ if __name__ == '__main__':
     elitist_fraction = 0.3
     manual_base_functions = False
     dynamic_shaping_functions = True
+    dynamic_bounds = True
     leg_exchange = True
     zero_revs = True
     seed = 421
@@ -120,6 +121,7 @@ if __name__ == '__main__':
                                 write_results_to_file=write_results_to_file,
                                 manual_base_functions=manual_base_functions,
                                 dynamic_shaping_functions=dynamic_shaping_functions,
+                                dynamic_bounds=dynamic_bounds,
                                 leg_exchange=leg_exchange,
                                 top_x_sequences =20,
                                 objectives=objectives,

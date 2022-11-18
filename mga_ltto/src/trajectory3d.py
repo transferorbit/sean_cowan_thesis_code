@@ -15,7 +15,9 @@ def trajectory_3d(
     frame_orientation:str = "J2000",
     center_plot:bool = False,
     colors:List[str] = [],
-    linestyles:List[str] = [] ):
+    linestyles:List[str] = [],
+    thrust_history : Dict[float, np.ndarray]=None,
+    projection=None):
 
     # Save color and linestyle index
     i_c, i_ls = 0, 0
@@ -38,6 +40,18 @@ def trajectory_3d(
 
     # Convert the states to a ndarray
     vehicles_states_array = result2array(vehicles_states)
+    if thrust_history != None:
+        vehicles_thrust_array = result2array(thrust_history)
+        normalized_vehicles_thrust_array = np.zeros((len(vehicles_thrust_array), 3))
+        thrust_norms = np.zeros(len(vehicles_thrust_array))
+        for i in range(len(vehicles_thrust_array)):
+            thrust_norms[i] = np.linalg.norm(vehicles_thrust_array[i, 1:4])
+            normalized_vehicles_thrust_array[i, :] = vehicles_thrust_array[i, 1:4] / thrust_norms[i]
+            
+
+        # thrust_norm = np.array([np.linalg.norm(vehicles_thrust_array[i, 1:4]) for i in 
+        #                                        range(len(vehicles_thrust_array))])
+        # print(vehicles_thrust_array[:10, :])
     sim_epochs = vehicles_states_array[:,0]
     # print(sim_epochs[-1],sim_epochs[0])
 
@@ -48,11 +62,12 @@ def trajectory_3d(
     # print(vehicles_positions[0][-10:-1,:])
 
     # Create a figure with a 3D projection for the Moon and vehicle trajectory around Earth
-    fig = plt.figure(figsize=(7, 6))
+    fig = plt.figure(figsize=(7, 6), layout="constrained")
     ax = fig.add_subplot(111, projection="3d")
 
     # Save the minimum and maximum positions
     min_pos, max_pos = 0, 0
+    au = 1.5e11
 
     # Plot the trajectory of each vehicle
     for i, vehicle_name in enumerate(vehicles_names):
@@ -67,13 +82,27 @@ def trajectory_3d(
             i_c = i_c + 1 if i_c != len(colors) else 0
             i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
             # Plot the trajectory of the vehicle
-            ax.plot(vehicles_positions[i][:,0], vehicles_positions[i][:,1],
-                    vehicles_positions[i][:,2], label=vehicle_name, color='k',
+            ax.plot(vehicles_positions[i][:,0] / au, vehicles_positions[i][:,1] / au,
+                    vehicles_positions[i][:,2] / au, label=vehicle_name, color='k',
                     linestyle='-', linewidth=0.5)
-            ax.scatter(vehicles_positions[i][0, 0] , vehicles_positions[i][0, 1] ,
+            ax.scatter(vehicles_positions[i][0, 0] / au , vehicles_positions[i][0, 1]  / au,
                     vehicles_positions[i][0, 2] , marker='D', s=40, color='k')
-            ax.scatter(vehicles_positions[i][-1, 0] , vehicles_positions[i][-1, 1] ,
-                    vehicles_positions[i][-1, 2] , marker='D', s=40, color='k')
+            ax.scatter(vehicles_positions[i][-1, 0] / au , vehicles_positions[i][-1, 1] / au ,
+                    vehicles_positions[i][-1, 2]  / au, marker='D', s=40, color='k')
+
+            # Plot the thrust arrows along the trajectory
+            # print(normalized_vehicles_thrust_array[:10, :])
+            # print(vehicles_thrust_array[:10, :])
+            if thrust_history != None:
+                ax.quiver(vehicles_positions[i][:,0] / au, vehicles_positions[i][:,1] / au,
+                          vehicles_positions[i][:,2] / au, normalized_vehicles_thrust_array[:, 0],
+                          normalized_vehicles_thrust_array[:, 1],
+                          normalized_vehicles_thrust_array[:, 2], color='r', length = 0.3,
+                          normalize=True, alpha=0.6)
+                # ax.quiver(vehicles_positions[i][:,0] / au, vehicles_positions[i][:,1] / au,
+                #           vehicles_positions[i][:,2] / au, vehicles_thrust_array[:, 0],
+                #           vehicles_thrust_array[:, 1], vehicles_thrust_array[:, 2], 
+                #           color='r', zorder=10, alpha=0.6)
 
     body_list_settings = lambda : \
         environment_setup.get_default_body_settings(bodies=bodies,
@@ -121,12 +150,12 @@ def trajectory_3d(
         i_c = i_c + 1 if i_c != len(colors) else 0
         i_ls = i_ls + 1 if i_ls != len(linestyles) else 0
         # Plot the trajectory of the body
-        ax.plot(body_state_array[:,0], body_state_array[:,1], body_state_array[:,2],
+        ax.plot(body_state_array[:,0] / au, body_state_array[:,1] / au, body_state_array[:,2] / au,
                 label=body, color=_color, linestyle=_linestyle)
-        ax.scatter(body_state_array[0, 0], body_state_array[0, 1],
-                body_state_array[0, 2], marker="o", color=_color)
-        ax.scatter(body_state_array[-1, 0], body_state_array[-1, 1],
-                body_state_array[-1, 2], marker="o", color=_color)
+        ax.scatter(body_state_array[0, 0] / au, body_state_array[0, 1] / au,
+                body_state_array[0, 2] / au, marker="o", color=_color)
+        ax.scatter(body_state_array[-1, 0] / au, body_state_array[-1, 1] / au,
+                body_state_array[-1, 2] / au, marker="o", color=_color)
 
     # Plot the central body position
     ax.scatter(0.0, 0.0, 0.0, label=central_body_name, marker="o", color="k")
@@ -137,8 +166,19 @@ def trajectory_3d(
 
     # Add a legend, set the plot limits, and add axis labels
     ax.legend()
-    ax.set_xlim([min_pos*1.2, max_pos*1.2]), ax.set_ylim([min_pos*1.2, max_pos*1.2]), ax.set_zlim([min_pos*1.2, max_pos*1.2])
+    # ax.set_xlim([min_pos*1.2 / au, max_pos*1.2 / au]), ax.set_ylim([min_pos*1.2 / au, max_pos*1.2 /
+    #                                                                 au]), ax.set_zlim([min_pos*1.2 /
+    #                                                                                    au,
+    #                                                                                    max_pos*1.2 /
+    #                                                                                    au])
+    ax.set_zlim([min_pos*1.05 / au, max_pos*1.05 / au])
     ax.set_xlabel("x [m]"), ax.set_ylabel("y [m]"), ax.set_zlabel("z [m]")
+    if projection=='xy' or projection=='yx':
+        ax.view_init(elev=90, azim=0)
+    elif projection=='yz' or projection=='zy':
+        ax.view_init(elev=90, azim=0)
+    elif projection=='zx' or projection == 'xz':
+        ax.view_init(elev=90, azim=0)
 
     # Use a tight layout for the figure (do last to avoid trimming axis)
     fig.tight_layout()
