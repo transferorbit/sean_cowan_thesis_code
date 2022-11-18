@@ -383,7 +383,8 @@ def get_node_times(departure_date: float,
 #     return leg_free_parameters
 
 def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.ndarray,
-        incoming_velocities: np.ndarray, departure_velocity: float = 0, arrival_velocity: float = 0) -> list:
+                             incoming_velocities: np.ndarray, dsm_deltav_array : np.ndarray=None,
+                             departure_velocity: float = 0, arrival_velocity: float = 0) -> list:
     """
     velocity magnitude
     velocity in-plane angle
@@ -419,7 +420,7 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_parameters.append(swingby_periapses[i])
         # node_parameters.append(10)
         node_parameters.append(0)
-        node_parameters.append(0)
+        node_parameters.append(dsm_deltav_array[i] if dsm_deltav_array.any() != None else 0)
 
         node_free_parameters.append(node_parameters)
 

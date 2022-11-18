@@ -429,7 +429,8 @@ class manualTopology:
                         num_gen=None,
                         pop_size=None,
                         cpu_count=None,
-                        bounds=None):
+                        bounds=None,
+                        bound_names=None):
         if type_of_optimisation == 'ltto':
             no_of_sequence_recursions = 1
 
@@ -476,6 +477,7 @@ class manualTopology:
                 # Auxiliary information
                 delta_v = mga_low_thrust_problem.transfer_trajectory_object.delta_v
                 delta_v_per_leg = mga_low_thrust_problem.transfer_trajectory_object.delta_v_per_leg
+                delta_v_per_node = mga_low_thrust_problem.transfer_trajectory_object.delta_v_per_node
                 number_of_legs = mga_low_thrust_problem.transfer_trajectory_object.number_of_legs
                 number_of_nodes = mga_low_thrust_problem.transfer_trajectory_object.number_of_nodes
                 time_of_flight = mga_low_thrust_problem.transfer_trajectory_object.time_of_flight
@@ -487,12 +489,11 @@ class manualTopology:
                 auxiliary_info['Number of legs,'] = number_of_legs 
                 auxiliary_info['Number of nodes,'] = number_of_nodes 
                 auxiliary_info['Total ToF (Days),'] = time_of_flight / 86400.0
-                departure_velocity = delta_v
                 for j in range(number_of_legs):
                     auxiliary_info['Delta V for leg %s,'%(j)] = delta_v_per_leg[j]
-                    departure_velocity -= delta_v_per_leg[j]
+                for j in range(number_of_nodes):
+                    auxiliary_info['Delta V for node %s,'%(j)] = delta_v_per_node[j]
                 auxiliary_info['Delta V,'] = delta_v 
-                auxiliary_info['Departure velocity,'] = departure_velocity
                 # print(addition, i)
                 # print(unsorted_evaluated_sequences_database[addition + i][0])
                 auxiliary_info['MGA Sequence,'] = \
@@ -542,10 +543,6 @@ class manualTopology:
             
             #Per layer add the indices
             addition += number_of_islands_array[layer] if type_of_optimisation == 'mgaso' else 0
-
-        bound_names= ['Departure date [mjd2001]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-            'Free coefficient [-]', 'Number of revolutions [-]']
 
         optimisation_characteristics = {}
         # optimisation_characteristics['Transfer body order,'] = mga_sequence_characters
