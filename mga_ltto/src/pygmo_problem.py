@@ -42,6 +42,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     manual_base_functions=False,
                     dynamic_shaping_functions=False,
                     dynamic_bounds=False,
+                    manual_tof_bounds=None,
                     objectives=['dv'],
                     zero_revs=False):
 
@@ -85,18 +86,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.manual_base_functions = manual_base_functions
         self.dynamic_shaping_functions = dynamic_shaping_functions
         self.dynamic_bounds = dynamic_bounds
-
-    def mjd2000_to_seconds(self, mjd2000):
-        # mjd2000 = 51544
-        # mjd += mjd2000
-        mjd2000 *= constants.JULIAN_DAY
-        return mjd2000
-        # return time_conversion.julian_day_to_seconds_since_epoch(time_conversion.modified_julian_day_to_julian_day(mjd2000))
-
-    def swingby_periapsis_to_bound(self, bound):
-        return np.floor(np.log10(np.abs(bound))).astype(int)
+        self.manual_tof_bounds = manual_tof_bounds
 
     def get_tof_bound(self, leg_number : int, original_bounds : tuple):
+
         planet_kep_states = [[0.38709927,      0.20563593 ,     7.00497902 ,     252.25032350, 77.45779628,     48.33076593],
         [0.72333566  ,    0.00677672  ,    3.39467605   ,   181.97909950  ,  131.60246718   ,  76.67984255],
         [1.00000261  ,    0.01671123  ,   -0.00001531   ,   100.46457166  ,  102.93768193   ,   0.0],
@@ -131,11 +124,11 @@ class MGALowThrustTrajectoryOptimizationProblem:
             bounds = [pperiod_previous / 2, pperiod_previous * 20]
         elif max([sma_previous, sma_next]) < 2:
             # print("Option 2")
-            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 2 * max([pperiod_previous,
+            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 0.5 *  max([pperiod_previous,
                                                                         pperiod_next])]
         elif max([sma_previous, sma_next]) >= 2:
             # print("Option 3")
-            bounds = [0.1 * min([pperiod_previous, pperiod_next]), max([pperiod_previous,
+            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 0.25 * max([pperiod_previous,
                                                                         pperiod_next])]
         else:
             raise RuntimeError("The periods provided are formatted incorrectly")
@@ -152,6 +145,16 @@ class MGALowThrustTrajectoryOptimizationProblem:
         return bounds
 
 
+
+    def mjd2000_to_seconds(self, mjd2000):
+        # mjd2000 = 51544
+        # mjd += mjd2000
+        mjd2000 *= constants.JULIAN_DAY
+        return mjd2000
+        # return time_conversion.julian_day_to_seconds_since_epoch(time_conversion.modified_julian_day_to_julian_day(mjd2000))
+
+    def swingby_periapsis_to_bound(self, bound):
+        return np.floor(np.log10(np.abs(bound))).astype(int)
 
 
     def get_bounds(self):
@@ -170,8 +173,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
         incoming_velocity_lb = self.bounds[0][4]
         incoming_velocity_ub = self.bounds[1][4]
 
-        swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
-        swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
+        # swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
+        # swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
+        swingby_periapsis_lb = self.bounds[0][5]
+        swingby_periapsis_ub = self.bounds[1][5]
 
         free_coefficients_lb = self.bounds[0][6]
         free_coefficients_ub = self.bounds[1][6]
@@ -187,8 +192,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
         upper_bounds.append(arrival_velocity_ub) # departure velocity
 
         for leg in range(self.no_of_legs): # time of flight
-            if self.dynamic_bounds:
-                current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb, time_of_flight_ub))
+            if self.manual_tof_bounds != None:
+                lower_bounds.append(self.manual_tof_bounds[leg])
+                upper_bounds.append(self.manual_tof_bounds[leg]+10)
+            elif self.dynamic_bounds:
+                current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
+                                                                         time_of_flight_ub))
                 lower_bounds.append(current_time_of_flight_bounds[0])
                 upper_bounds.append(current_time_of_flight_bounds[1])
             else:
@@ -261,17 +270,16 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def get_design_parameter_vector(self):
         return self.design_parameter_vector
 
-    def get_objectives(self,
-                      transfer_trajectory_object):
+    def get_objectives(self):
         objective_values = []
         for it, j in enumerate(self.objectives):
             if j == 'dv':
-                objective_values.append(transfer_trajectory_object.delta_v)
+                objective_values.append(self.transfer_trajectory_object.delta_v)
             elif j == 'tof':
-                objective_values.append(transfer_trajectory_object.time_of_flight)
-            elif j == 'dmf' or j == 'pmf':
+                objective_values.append(self.transfer_trajectory_object.time_of_flight)
+            elif j == 'dmf' or j == 'pmf' or j == 'dm':
                 thrust_acceleration = \
-                transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+                self.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
 
                 mass_history, delivery_mass, invalid_trajectory = \
                 util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
@@ -282,6 +290,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     objective_values.append(- delivery_mass / self.m0) # try to maximize
                 elif j == 'pmf':
                     objective_values.append((self.m0 - delivery_mass) / self.m0) # try to maximize
+                elif j == 'dm':
+                    objective_values.append(- delivery_mass) # try to maximize
             else:
                 raise RuntimeError('An objective was provided that is not permitted')
         return objective_values
@@ -360,18 +370,19 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # swingby_periapses
         swingby_periapses = \
-        [10**x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]]
+        [x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]]
 
         ### INTEGER PART ###
         # hodographic shaping free coefficients
         free_coefficients = design_parameter_vector[swingby_periapsis_index:free_coefficient_index]
 
         # number of revolutions
-        number_of_revolutions = \
-        [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
         if self.zero_revs:
             number_of_revolutions = \
             [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
+        else:
+            number_of_revolutions = \
+            [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
@@ -415,17 +426,25 @@ class MGALowThrustTrajectoryOptimizationProblem:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
             # self.delivery_mass_constraint_check(transfer_trajectory_object, self.Isp, self.m0, self.no_of_points)
 
+            self.transfer_trajectory_object = transfer_trajectory_object
+
             if post_processing == False:
-                objective = self.get_objectives(transfer_trajectory_object)
-            elif post_processing == True:
-                self.transfer_trajectory_object = transfer_trajectory_object
+                objective = self.get_objectives()
+            else:
                 return
+            #
+            # if post_processing == False:
+            #     objective = self.get_objectives(transfer_trajectory_object)
+            # elif post_processing == True:
+            #     self.transfer_trajectory_object = transfer_trajectory_object
+            #     return
+
 
         except RuntimeError as e:
             mass_penalty = 0
             negative_distance_penalty = 0
             if e == 'Error with validity of trajectory: the delivery mass is negative.':
-                # print(e)
+                print(e)
                 mass_penalty = 10**16
             elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
                 print(e)
