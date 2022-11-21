@@ -53,7 +53,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     ## General parameters
     manual_tof_bounds = None
     dynamic_shaping_functions = False
-    dynamic_bounds = True
+    dynamic_bounds = False
     write_results_to_file = True
     manual_base_functions = False
     zero_revs = True
@@ -64,25 +64,29 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ####################################################################
 
 
-    subdirectory=  '/EVEMJ_DSMtest'
+    subdirectory=  '/EV_gen50pop300'
     free_param_count = 2
-    num_gen = 2
-    pop_size = 100
+    num_gen = 50
+    pop_size = 300
     cpu_count = os.cpu_count() // 2# not very relevant because differnent machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')
     number_of_islands = cpu_count # // 2 to only access physical cores.
+    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', r'DSM $\Delta V$ [m/s]',
+    #         'Free coefficient [-]', 'Number of revolutions [-]']
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', r'DSM $\Delta V$ [m/s]',
-            'Free coefficient [-]', 'Number of revolutions [-]']
+                'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+                'Free coefficient [-]', 'Number of revolutions [-]']
 
     ## MORANTE ##
-    transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
-    zero_revs = True
-    Isp = 3000
-    m0 = 360
-    bounds = [[10592.5, 1999.999999, 5000, 100, 0, 2e5, 0, -10**4, 0],
-                    [11321.5, 2000, 6000, 1500, 15000, 2e8, 2000, 10**4, 1]]
+    # transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
+    # zero_revs = True
+    # Isp = 3000
+    # m0 = 360
+    # bounds = [[10592.5, 1999.999999, 5000, 100, 0, 2e5, 0, -10**4, 0],
+    #                 [11321.5, 2000, 6000, 1500, 15000, 2e8, 2000, 10**4, 1]]
+
     # bounds = [[10592.5, 1999.999999, 5000, 100, 0, 2e5, -10**4, 0],
     #                 [11321.5, 2000, 6000, 1500, 15000, 2e8, 10**4, 1]]
     # dep_date = dateConversion(calendar_date='2029, 9, 3').date_to_mjd()
@@ -93,13 +97,38 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # bounds = [[dep_date, 1999.999999, 5850, 100, 0, 2e5, -10**4, 0],
     #         [dep_date + 0.0001, 2000, 5900, 1500, 17000, 2e8, 10**4, 1]]
     # manual_tof_bounds = [160, 330, 125, 1330]
+    # manual_tof_bounds = [160, 330, 125, 1330]
 
-    # transfer_body_order = ["Earth", "Jupiter"]
+    transfer_body_order = ["Earth", "Venus"]
+    zero_revs = True
+    Isp = 3000
+    m0 = 360
+    bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
+                    [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
+    # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
+    #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 2000, 10**4, 1]]
+    # manual_tof_bounds = [[100, 250, 100], [200, 400, 200]]
+
+    # transfer_body_order = ["Earth", "Venus", "Earth"]
     # zero_revs = True
     # Isp = 3000
     # m0 = 360
-    # bounds = [[10592.5, 1999.999999, 5000, 100, 100, 2e5, -10**4, 0],
-    #                 [11321.5, 2000, 6000, 1500, 15000, 2e8, 10**4, 1]]
+    # # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
+    # #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
+    # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
+    #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 2000, 10**4, 1]]
+    # manual_tof_bounds = [[100, 250, 100], [200, 400, 200]]
+
+
+    # transfer_body_order = ["Earth", "Venus", "Earth", "Mars"]
+    # zero_revs = True
+    # Isp = 3000
+    # m0 = 360
+    # # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
+    # #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
+    # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
+    #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 2000, 10**4, 1]]
+    # manual_tof_bounds = [[100, 250, 100], [200, 400, 200]]
 
     ## ENGLANDER ##
     # transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
@@ -117,7 +146,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             transfer_body_order)
 
     mga_low_thrust_problem = \
-    MGALowThrustTrajectoryOptimizationProblemDSM(transfer_body_order=transfer_body_order,
+    MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
               no_of_free_parameters=free_param_count, 
               bounds=bounds, 
               manual_base_functions=manual_base_functions, 

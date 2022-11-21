@@ -28,9 +28,9 @@ from src.trajectory3d import trajectory_3d
 ### PARETO FRONT ###
 # data_directory = "pp_ltto/EVEMJ_cpu4gen200pop300dsf0/islands/island_0/"
 # util.pareto_front(dir=data_directory) # only if MO of course
-data_directory = "pp_ltto/EVEMJ_cpu8gen300pop300dbTruedsFull/islands/island_0/"
-# util.pareto_front(dir=data_directory, pmf_as_obj=True) # only if MO of course
-# util.hodographic_shaping_visualisation(dir=data_directory, quiver=True, projection='xy')
+data_directory = "pp_ltto/EV_cpu8gen400pop800_test2/islands/island_5/"
+util.pareto_front(dir=data_directory, pmf_as_obj=True) # only if MO of course
+util.hodographic_shaping_visualisation(dir=data_directory, quiver=True, projection='xy')
 util.thrust_propagation(dir=data_directory)
 
 ### OBJECTIVE PER GEN ###

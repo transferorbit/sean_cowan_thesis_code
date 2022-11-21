@@ -47,6 +47,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     zero_revs=False):
 
         self.transfer_body_order = transfer_body_order
+        self.mga_characters = \
+        util.transfer_body_order_conversion.get_mga_characters_from_list(self.transfer_body_order)
+        self.legstrings = \
+        util.transfer_body_order_conversion.get_list_of_legs_from_characters(self.mga_characters)
         self.no_of_gas = len(transfer_body_order)-2
         self.target_body = transfer_body_order[0]
         self.depart_body = transfer_body_order[-1]
@@ -193,8 +197,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         for leg in range(self.no_of_legs): # time of flight
             if self.manual_tof_bounds != None:
-                lower_bounds.append(self.manual_tof_bounds[leg])
-                upper_bounds.append(self.manual_tof_bounds[leg]+10)
+                lower_bounds.append(self.manual_tof_bounds[0][leg] * constants.JULIAN_DAY)
+                upper_bounds.append(self.manual_tof_bounds[1][leg] * constants.JULIAN_DAY)
             elif self.dynamic_bounds:
                 current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
                                                                          time_of_flight_ub))
@@ -536,8 +540,8 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
 
         for leg in range(self.no_of_legs): # time of flight
             if self.manual_tof_bounds != None:
-                lower_bounds.append(self.manual_tof_bounds[leg])
-                upper_bounds.append(self.manual_tof_bounds[leg]+10)
+                lower_bounds.append(self.manual_tof_bounds[0][leg] * constants.JULIAN_DAY)
+                upper_bounds.append(self.manual_tof_bounds[1][leg] * constants.JULIAN_DAY)
             elif self.dynamic_bounds:
                 current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
                                                                          time_of_flight_ub))

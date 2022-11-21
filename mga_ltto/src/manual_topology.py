@@ -562,7 +562,16 @@ class manualTopology:
                 else:
                     min = ' UB'
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
-        # optimisation_characteristics['Bounds'] = bounds
+        if mga_low_thrust_problem.manual_tof_bounds != None:
+            for i in range(len(mga_low_thrust_problem.manual_tof_bounds[0])):
+                optimisation_characteristics[
+                        f'Manual ToF bounds LB {mga_low_thrust_problem.legstrings[i]},'] = \
+                        mga_low_thrust_problem.manual_tof_bounds[0][i]
+                optimisation_characteristics[
+                        f'Manual ToF bounds UB {mga_low_thrust_problem.legstrings[i]},'] = \
+                        mga_low_thrust_problem.manual_tof_bounds[1][i]
+            optimisation_characteristics.pop('Time of Flight [s] LB,')
+            optimisation_characteristics.pop('Time of Flight [s] UB,')
 
         # ndf of all islands together # only ltto
         # ndf_f_all_islands = [pg.non_dominated_front_2d(ndf_f[j]) for i in range(number_of_islands)] # determine how to sort
