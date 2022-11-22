@@ -382,10 +382,17 @@ def get_node_times(departure_date: float,
 # 
 #     return leg_free_parameters
 
-def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.ndarray,
-                             incoming_velocities: np.ndarray, dsm_deltav_array :
-                             np.ndarray=np.array([None]), departure_velocity: float = 0,
-                             arrival_velocity: float = 0) -> list:
+def get_node_free_parameters(transfer_body_order: list, 
+                             swingby_periapses: np.ndarray,
+                             incoming_velocities: np.ndarray, 
+                             dsm_deltav_array: np.ndarray=np.array([None]), 
+                             departure_velocity: float = 0,
+                             arrival_velocity: float = 0,
+                             departure_inplane_angle : float = 0,
+                             departure_outofplane_angle: float = 0,
+                             orbit_ori_angle_array: np.ndarray = np.array([None]),
+                             arrival_inplane_angle: float = 0,
+                             arrival_outofplane_angle: float = 0) -> list:
     """
     velocity magnitude
     velocity in-plane angle
@@ -409,7 +416,8 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
 
     assert len(incoming_velocities) == len(swingby_periapses)
     # Departure node
-    node_free_parameters.append(np.array([departure_velocity, 0, 0]))#  departure_velocity
+    node_free_parameters.append(np.array([departure_velocity, departure_inplane_angle,
+                                          departure_outofplane_angle]))#  departure_velocity
 
     # Swingby nodes
     for i in range(len(transfer_body_order)-2): # no_of_gas
@@ -420,13 +428,14 @@ def get_node_free_parameters(transfer_body_order: list, swingby_periapses: np.nd
         node_parameters.append(0)
         node_parameters.append(swingby_periapses[i])
         # node_parameters.append(10)
-        node_parameters.append(0)
+        node_parameters.append(orbit_ori_angle_array[i] if orbit_ori_angle_array[0] != None else 0)
         node_parameters.append(dsm_deltav_array[i] if dsm_deltav_array[0] != None else 0)
 
         node_free_parameters.append(node_parameters)
 
     # Arrival node
-    node_free_parameters.append(np.array([arrival_velocity, 0, 0], dtype=float))
+    node_free_parameters.append(np.array([arrival_velocity, arrival_inplane_angle,
+                                          arrival_outofplane_angle], dtype=float))
     
     return node_free_parameters
 

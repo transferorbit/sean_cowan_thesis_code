@@ -19,6 +19,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     import pygmo as pg
     import multiprocessing as mp
     import sys
+    import numpy as np
+    import warnings
     
     # If conda environment does not work
     # import sys
@@ -29,7 +31,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
     from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem, \
-    MGALowThrustTrajectoryOptimizationProblemDSM
+    MGALowThrustTrajectoryOptimizationProblemDSM, MGALowThrustTrajectoryOptimizationProblemOOA, \
+    MGALowThrustTrajectoryOptimizationProblemOOADAAA
     import src.mga_low_thrust_utilities as util
     import src.manual_topology as topo
     from src.date_conversion import dateConversion
@@ -64,20 +67,42 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ####################################################################
 
 
-    subdirectory=  '/EV_gen50pop300'
+    subdirectory=  '/EVE_gen20pop300_test'
     free_param_count = 2
-    num_gen = 50
+    num_gen = 20
     pop_size = 300
     cpu_count = os.cpu_count() // 2# not very relevant because differnent machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')
     number_of_islands = cpu_count # // 2 to only access physical cores.
     # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+    #             'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+    #             'Free coefficient [-]', 'Number of revolutions [-]']
+    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
     #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', r'DSM $\Delta V$ [m/s]',
     #         'Free coefficient [-]', 'Number of revolutions [-]']
-    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-                'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
-                'Free coefficient [-]', 'Number of revolutions [-]']
+    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
+    #               'Orbit orientation angle [rad]', 'Free coefficient [-]', 'Number of revolutions [-]']
+    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Departure in-plane angle [rad]', 
+                  'Departure out-of-plane angle [rad]', 'Arrival velocity [m/s]', 'Arrival in-plane angle [rad]', 
+                  'Arrival out-of-plane angle [rad]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 
+                  'Swingby periapsis [m]', 'Orbit orientation angle [rad]', 'Free coefficient [-]', 
+                  'Number of revolutions [-]']
+
+    departure_date = ()
+    departure_velocity = ()
+    departure_inplane_angle = ()
+    departure_outofplane_angle = ()
+    arrival_velocity = ()
+    arrival_inplane_angle = ()
+    arrival_outofplane_angle = ()
+    time_of_flight = ()
+    incoming_velocity = ()
+    swingby_periapsis = ()
+    orbit_ori_angle = ()
+    free_coefficient = ()
+    number_of_revs = ()
 
     ## MORANTE ##
     # transfer_body_order = ["Earth", "Venus", "Earth", "Mars", "Jupiter"]
@@ -99,24 +124,39 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # manual_tof_bounds = [160, 330, 125, 1330]
     # manual_tof_bounds = [160, 330, 125, 1330]
 
-    transfer_body_order = ["Earth", "Venus"]
-    zero_revs = True
-    Isp = 3000
-    m0 = 360
-    bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
-                    [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
+    # transfer_body_order = ["Earth", "Venus"]
+    # zero_revs = True
+    # Isp = 3000
+    # m0 = 360
+    # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
+    #                 [11321.5, 2000, 3000, 200, 15000, 2e8, np.pi / 2, 10**4, 1]]
     # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
     #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 2000, 10**4, 1]]
     # manual_tof_bounds = [[100, 250, 100], [200, 400, 200]]
 
-    # transfer_body_order = ["Earth", "Venus", "Earth"]
-    # zero_revs = True
-    # Isp = 3000
-    # m0 = 360
-    # # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
-    # #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
+    transfer_body_order = ["Earth", "Venus", "Earth"]
+    zero_revs = True
+    Isp = 3000
+    m0 = 360
+    departure_date = (10592.5, 11321.5)
+    departure_velocity = (1999.9999, 2000)
+    departure_inplane_angle = (0, np.pi / 2)
+    departure_outofplane_angle = (0, np.pi / 2)
+    arrival_velocity = (2000, 3000)
+    arrival_inplane_angle = (0, np.pi / 2)
+    arrival_outofplane_angle = (0, np.pi / 2)
+    time_of_flight = (100, 400)
+    incoming_velocity = (100, 15000)
+    swingby_periapsis = (2e5, 2e8)
+    orbit_ori_angle = (0, np.pi / 2)
+    free_coefficient = (-1e4, 1e4)
+    number_of_revs = (0, 1)
+    # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, -10**4, 0],
+    #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 10**4, 1]]
     # bounds = [[10592.5, 1999.999999, 2000, 100, 100, 2e5, 0, -10**4, 0],
     #                 [11321.5, 2000, 3000, 200, 15000, 2e8, 2000, 10**4, 1]]
+    # bounds = [[10592.5, 1999.999999, 0, 0, 2000, 0, 0, 100, 100, 2e5, 0, -10**4, 0],
+    #     [11321.5, 2000, np.pi / 2, np.pi / 2, 3000, np.pi / 2, np.pi / 2, 400, 15000, 2e8, np.pi / 2, 10**4, 1]]
     # manual_tof_bounds = [[100, 250, 100], [200, 400, 200]]
 
 
@@ -138,6 +178,22 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # dep_date_ub = dateConversion(calendar_date='2012, 4, 27').date_to_mjd()
     # bounds = [[dep_date_lb, 0, 0, 10, 100, 2e5, 0, -10**4, 0],
     #     [dep_date_ub, 1925, 500, 10000, 10000, 2e7, 2000, 10**4, 6]]
+
+    # bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
+    #            departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
+    #            arrival_outofplane_angle[0], time_of_flight[0], incoming_velocity[0],
+    #            swingby_periapsis[0], orbit_ori_angle[0], free_coefficient[0], number_of_revs[0]], 
+    #           [departure_date[1], departure_velocity[1], departure_inplane_angle[1],
+    #            departure_outofplane_angle[1], arrival_velocity[1], arrival_inplane_angle[1],
+    #            arrival_outofplane_angle[1], time_of_flight[1], incoming_velocity[1],
+    #            swingby_periapsis[1], orbit_ori_angle[1], free_coefficient[1], number_of_revs[1]]]
+    
+    bounds = [[departure_date[0], departure_velocity[0], arrival_velocity[0], time_of_flight[0],
+               incoming_velocity[0], swingby_periapsis[0], orbit_ori_angle[0], free_coefficient[0],
+               number_of_revs[0]], 
+              [departure_date[1], departure_velocity[1], arrival_velocity[1], time_of_flight[1],
+               incoming_velocity[1], swingby_periapsis[1], orbit_ori_angle[1], free_coefficient[1],
+               number_of_revs[1]]]
 
     caldatelb = dateConversion(mjd2000=bounds[0][0]).mjd_to_date()
     caldateub = dateConversion(mjd2000=bounds[1][0]).mjd_to_date()
