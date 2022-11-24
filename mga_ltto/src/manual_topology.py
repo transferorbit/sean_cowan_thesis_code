@@ -505,15 +505,17 @@ class manualTopology:
                 auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
 
                 # Get ndf
-                current_ndf_f_list = ndf_f[i]
-                current_ndf_f_dict = {}
-                for p, q in enumerate(current_ndf_f_list):
-                    current_ndf_f_dict[p] = q
+                if len(mga_low_thrust_problem.objectives) != 1:
+                    current_ndf_f_list = ndf_f[i]
+                    current_ndf_f_dict = {}
+                    for p, q in enumerate(current_ndf_f_list):
+                        current_ndf_f_dict[p] = q
 
     
                 unique_identifier = "/islands/island_" + str(i) + "/"
-                save2txt(current_ndf_f_dict, 'pareto_front.dat', output_directory + subdirectory +
-                        layer_folder + unique_identifier)
+                if len(mga_low_thrust_problem.objectives) != 1:
+                    save2txt(current_ndf_f_dict, 'pareto_front.dat', output_directory + subdirectory +
+                            layer_folder + unique_identifier)
                 save2txt(state_history, 'state_history.dat', output_directory + subdirectory +
                         layer_folder + unique_identifier)
                 save2txt(thrust_acceleration, 'thrust_acceleration.dat', output_directory +

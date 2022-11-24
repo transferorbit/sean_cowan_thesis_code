@@ -139,10 +139,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
 
         if bounds[0] < original_bounds[0]:
-            print(f"Lower bound updated from {bounds[0] / 86400} to {original_bounds[0] / 86400} days")
+            print(f"Lower bound updated from {original_bounds[0] / 86400} to {bounds[0] / 86400} days")
             bounds[0] = original_bounds[0]
         if bounds[1] > original_bounds[1]:
-            print(f"Upper bound updated from {bounds[1] / 86400} to {original_bounds[1] / 86400} days")
+            print(f"Upper bound updated from {original_bounds[1] / 86400} to {bounds[1] / 86400} days")
             bounds[1] = original_bounds[1]
 
 
@@ -293,7 +293,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 if j == 'dmf':
                     objective_values.append(- delivery_mass / self.m0) # try to maximize
                 elif j == 'pmf':
-                    objective_values.append((self.m0 - delivery_mass) / self.m0) # try to maximize
+                    objective_values.append((self.m0 - delivery_mass) / self.m0) # try to minimize
                 elif j == 'dm':
                     objective_values.append(- delivery_mass) # try to maximize
             else:
