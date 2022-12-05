@@ -157,7 +157,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         return mjd2000
         # return time_conversion.julian_day_to_seconds_since_epoch(time_conversion.modified_julian_day_to_julian_day(mjd2000))
 
-    def swingby_periapsis_to_bound(self, bound):
+    def swingby_altitude_to_bound(self, bound):
         return np.floor(np.log10(np.abs(bound))).astype(int)
 
 
@@ -177,10 +177,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
         incoming_velocity_lb = self.bounds[0][4]
         incoming_velocity_ub = self.bounds[1][4]
 
-        # swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
-        # swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
-        swingby_periapsis_lb = self.bounds[0][5]
-        swingby_periapsis_ub = self.bounds[1][5]
+        swingby_altitude_lb = self.bounds[0][5]
+        swingby_altitude_ub = self.bounds[1][5]
 
         free_coefficients_lb = self.bounds[0][6]
         free_coefficients_ub = self.bounds[1][6]
@@ -211,8 +209,8 @@ class MGALowThrustTrajectoryOptimizationProblem:
             lower_bounds.append(incoming_velocity_lb)
             upper_bounds.append(incoming_velocity_ub)
         for _ in range(self.no_of_gas):
-            lower_bounds.append(swingby_periapsis_lb)
-            upper_bounds.append(swingby_periapsis_ub)
+            lower_bounds.append(swingby_altitude_lb)
+            upper_bounds.append(swingby_altitude_ub)
         for _ in range(self.total_no_of_free_coefficients): # free coefficients
             lower_bounds.append(free_coefficients_lb)
             upper_bounds.append(free_coefficients_ub)
@@ -351,48 +349,34 @@ class MGALowThrustTrajectoryOptimizationProblem:
         # indexes
         time_of_flight_index = 3 + self.no_of_legs
         incoming_velocity_index = time_of_flight_index + self.no_of_gas
-        swingby_periapsis_index = incoming_velocity_index + self.no_of_gas
-        free_coefficient_index = swingby_periapsis_index + self.total_no_of_free_coefficients
+        swingby_altitude_index = incoming_velocity_index + self.no_of_gas
+        free_coefficient_index = swingby_altitude_index + self.total_no_of_free_coefficients
         revolution_index = free_coefficient_index + self.no_of_legs
 
         ### CONTINUOUS PART ###
-        # departure date
-        departure_date = design_parameter_vector[0]
-
-        # departure velocity
-        departure_velocity = design_parameter_vector[1] 
-
-        # arrival velocity
-        arrival_velocity = design_parameter_vector[2] 
-
-        # time of flight
-        time_of_flights = design_parameter_vector[3:time_of_flight_index]
-        # print(time_of_flights)
-
-        # incoming velocities
-        incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index]
-
-        # swingby_periapses
-        swingby_periapses = \
-        [x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]]
+        departure_date = np.array(design_parameter_vector[0]) # departure date
+        departure_velocity = np.array(design_parameter_vector[1]) # departure velocity
+        arrival_velocity = np.array(design_parameter_vector[2]) # arrival velocity
+        time_of_flights = np.array(design_parameter_vector[3:time_of_flight_index]) # time of flight
+        incoming_velocities = \
+        np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
+        swingby_altitudes = np.array(design_parameter_vector[incoming_velocity_index:swingby_altitude_index]) # swingby_altitudes
 
         ### INTEGER PART ###
         # hodographic shaping free coefficients
-        free_coefficients = design_parameter_vector[swingby_periapsis_index:free_coefficient_index]
+        free_coefficients = \
+        np.array(design_parameter_vector[swingby_altitude_index:free_coefficient_index])
 
         # number of revolutions
         if self.zero_revs:
             number_of_revolutions = \
-            [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
+            np.array([0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]])
         else:
-            number_of_revolutions = \
-            [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]]
+            number_of_revolutions = np.array([int(x) for x in
+                      design_parameter_vector[free_coefficient_index:revolution_index]])
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
-                                                            # departure_elements,
-                                                            # target_elements,
-                                                            # self.system_of_bodies(),
                                                             bodies,
                                                             central_body,
                                                             no_of_free_parameters=self.no_of_free_parameters,
@@ -404,12 +388,12 @@ class MGALowThrustTrajectoryOptimizationProblem:
         for i, body in enumerate(self.transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
-        # swingby_periapses = np.array([planetary_radii_sequence[i] + self.swingby_altitude for i in
+        # swingby_altitudes = np.array([planetary_radii_sequence[i] + self.swingby_altitude for i in
         #    range(self.no_of_gas)]) # defined depending on problem
-        swingby_periapses_array = np.array([planetary_radii_sequence[i] + swingby_periapses[i] for i in
+        swingby_periapses = np.array([planetary_radii_sequence[i] + swingby_altitudes[i] for i in
             range(self.no_of_gas)]) # defined depending on problem
         # incoming_velocities = np.array([2000 for _ in range(self.no_of_gas)]) 
-        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
+        # incoming_velocity= np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
 
         # node times
         self.node_times = util.get_node_times(departure_date, time_of_flights)
@@ -423,8 +407,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
 
         # node free parameters
         node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
-                swingby_periapses_array, incoming_velocity_array, departure_velocity=departure_velocity,
-                arrival_velocity=arrival_velocity)
+                                                             swingby_periapses, 
+                                                             incoming_velocities, 
+                                                             departure_velocity=departure_velocity,
+                                                             arrival_velocity=arrival_velocity)
 
         try:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
@@ -517,10 +503,10 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
         incoming_velocity_lb = self.bounds[0][4]
         incoming_velocity_ub = self.bounds[1][4]
 
-        # swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
-        # swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
-        swingby_periapsis_lb = self.bounds[0][5]
-        swingby_periapsis_ub = self.bounds[1][5]
+        # swingby_altitude_lb = self.swingby_altitude_to_bound(self.bounds[0][5])
+        # swingby_altitude_ub = self.swingby_altitude_to_bound(self.bounds[1][5])
+        swingby_altitude_lb = self.bounds[0][5]
+        swingby_altitude_ub = self.bounds[1][5]
 
         dsm_dv_lb = self.bounds[0][6]
         dsm_dv_ub = self.bounds[1][6]
@@ -554,8 +540,8 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
             lower_bounds.append(incoming_velocity_lb)
             upper_bounds.append(incoming_velocity_ub)
         for _ in range(self.no_of_gas):
-            lower_bounds.append(swingby_periapsis_lb)
-            upper_bounds.append(swingby_periapsis_ub)
+            lower_bounds.append(swingby_altitude_lb)
+            upper_bounds.append(swingby_altitude_ub)
         for _ in range(self.no_of_gas):
             lower_bounds.append(dsm_dv_lb)
             upper_bounds.append(dsm_dv_ub)
@@ -582,9 +568,9 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
         3..6 - time of flights
         6..8 - incoming velocities
         8..10 - swingby periapses
-        11..13 - dsm delta v 
-        12..31 - free_coefficients
-        31..34 - number of revolutions
+        10..12 - dsm delta v 
+        12..30 - free_coefficients
+        30..33 - number of revolutions
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
         self.design_parameter_vector = design_parameter_vector
@@ -599,29 +585,30 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
         # indexes
         time_of_flight_index = 3 + self.no_of_legs
         incoming_velocity_index = time_of_flight_index + self.no_of_gas
-        swingby_periapsis_index = incoming_velocity_index + self.no_of_gas
-        dsm_dv_index = swingby_periapsis_index + self.no_of_gas
+        swingby_altitude_index = incoming_velocity_index + self.no_of_gas
+        dsm_dv_index = swingby_altitude_index + self.no_of_gas
         free_coefficient_index = dsm_dv_index + self.total_no_of_free_coefficients
         revolution_index = free_coefficient_index + self.no_of_legs
 
         ### CONTINUOUS PART ###
-        departure_date = design_parameter_vector[0] # departure date
-        departure_velocity = design_parameter_vector[1] # departure velocity
-        arrival_velocity = design_parameter_vector[2] # arrival velocity
-        time_of_flights = design_parameter_vector[3:time_of_flight_index] # time of flight
-        incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index] # incoming velocities
-        swingby_periapses = \
-        [x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]] # swingby_periapses
-        dsm_deltav = design_parameter_vector[swingby_periapsis_index:dsm_dv_index] # dsm_dv
-        free_coefficients = design_parameter_vector[dsm_dv_index:free_coefficient_index] # hodographic shaping free coefficients
+        departure_date = np.array(design_parameter_vector[0]) # departure date
+        departure_velocity = np.array(design_parameter_vector[1]) # departure velocity
+        arrival_velocity = np.array(design_parameter_vector[2]) # arrival velocity
+        time_of_flights = np.array(design_parameter_vector[3:time_of_flight_index]) # time of flight
+        incoming_velocities = \
+        np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
+        swingby_altitudes = np.array([x for x in
+                                      design_parameter_vector[incoming_velocity_index:swingby_altitude_index]]) # swingby_altitudes
+        dsm_deltav = np.array(design_parameter_vector[swingby_altitude_index:dsm_dv_index]) # dsm_dv
+        free_coefficients = np.array(design_parameter_vector[dsm_dv_index:free_coefficient_index]) # hodographic shaping free coefficients
 
         ### INTEGER PART ###
         if self.zero_revs:
             number_of_revolutions = \
-            [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
+            np.array([0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]])
         else:
-            number_of_revolutions = \
-            [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]] # number of revolutions
+            number_of_revolutions = np.array([int(x) for x in
+                      design_parameter_vector[free_coefficient_index:revolution_index]]) # number of revolutions
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
@@ -636,10 +623,10 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
         for i, body in enumerate(self.transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
-        swingby_periapses_array = np.array([planetary_radii_sequence[i] + swingby_periapses[i] for i in
+        swingby_periapses = np.array([planetary_radii_sequence[i] + swingby_altitudes[i] for i in
             range(self.no_of_gas)]) 
-        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
-        dsm_deltav_array = np.array([dsm_deltav[i] for i in range(self.no_of_gas)])
+        # incoming_velocity= np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
+        # dsm_deltav= np.array([dsm_deltav[i] for i in range(self.no_of_gas)])
 
         # node times
         self.node_times = util.get_node_times(departure_date, time_of_flights)
@@ -653,8 +640,11 @@ class MGALowThrustTrajectoryOptimizationProblemDSM(MGALowThrustTrajectoryOptimiz
 
         # node free parameters
         node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
-                swingby_periapses_array, incoming_velocity_array, dsm_deltav_array=dsm_deltav_array, departure_velocity=departure_velocity,
-                arrival_velocity=arrival_velocity)
+                                                             swingby_periapses, 
+                                                             incoming_velocities, 
+                                                             dsm_deltav=dsm_deltav, 
+                                                             departure_velocity=departure_velocity,
+                                                             arrival_velocity=arrival_velocity)
 
         try:
             transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
@@ -746,10 +736,8 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
         incoming_velocity_lb = self.bounds[0][4]
         incoming_velocity_ub = self.bounds[1][4]
 
-        # swingby_periapsis_lb = self.swingby_periapsis_to_bound(self.bounds[0][5])
-        # swingby_periapsis_ub = self.swingby_periapsis_to_bound(self.bounds[1][5])
-        swingby_periapsis_lb = self.bounds[0][5]
-        swingby_periapsis_ub = self.bounds[1][5]
+        swingby_altitude_lb = self.bounds[0][5]
+        swingby_altitude_ub = self.bounds[1][5]
 
         orbit_ori_angle_lb = self.bounds[0][6]
         orbit_ori_angle_ub = self.bounds[1][6]
@@ -783,8 +771,8 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
             lower_bounds.append(incoming_velocity_lb)
             upper_bounds.append(incoming_velocity_ub)
         for _ in range(self.no_of_gas):
-            lower_bounds.append(swingby_periapsis_lb)
-            upper_bounds.append(swingby_periapsis_ub)
+            lower_bounds.append(swingby_altitude_lb)
+            upper_bounds.append(swingby_altitude_ub)
         for _ in range(self.no_of_gas):
             lower_bounds.append(orbit_ori_angle_lb)
             upper_bounds.append(orbit_ori_angle_ub)
@@ -811,9 +799,9 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
         3..6 - time of flights
         6..8 - incoming velocities
         8..10 - swingby periapses
-        11..13 - orbit orientation angle
-        12..31 - free_coefficients
-        31..34 - number of revolutions
+        10..12 - orbit orientation angle
+        12..30 - free_coefficients
+        30..33 - number of revolutions
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
         self.design_parameter_vector = design_parameter_vector
@@ -828,29 +816,32 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
         # indexes
         time_of_flight_index = 3 + self.no_of_legs
         incoming_velocity_index = time_of_flight_index + self.no_of_gas
-        swingby_periapsis_index = incoming_velocity_index + self.no_of_gas
-        orbit_ori_angle_index = swingby_periapsis_index + self.no_of_gas
+        swingby_altitude_index = incoming_velocity_index + self.no_of_gas
+        orbit_ori_angle_index = swingby_altitude_index + self.no_of_gas
         free_coefficient_index = orbit_ori_angle_index + self.total_no_of_free_coefficients
         revolution_index = free_coefficient_index + self.no_of_legs
 
         ### CONTINUOUS PART ###
-        departure_date = design_parameter_vector[0] # departure date
-        departure_velocity = design_parameter_vector[1] # departure velocity
-        arrival_velocity = design_parameter_vector[2] # arrival velocity
-        time_of_flights = design_parameter_vector[3:time_of_flight_index] # time of flight
-        incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index] # incoming velocities
-        swingby_periapses = \
-        [x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]] # swingby_periapses
-        orbit_ori_angles = design_parameter_vector[swingby_periapsis_index:orbit_ori_angle_index] # orbit_ori_angle
-        free_coefficients = design_parameter_vector[orbit_ori_angle_index:free_coefficient_index] # hodographic shaping free coefficients
+        departure_date = np.array(design_parameter_vector[0]) # departure date
+        departure_velocity = np.array(design_parameter_vector[1]) # departure velocity
+        arrival_velocity = np.array(design_parameter_vector[2]) # arrival velocity
+        time_of_flights = np.array(design_parameter_vector[3:time_of_flight_index]) # time of flight
+        incoming_velocities = \
+        np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
+        swingby_altitudes = np.array([x for x in
+                  design_parameter_vector[incoming_velocity_index:swingby_altitude_index]]) # swingby_altitudes
+        orbit_ori_angles = \
+        np.array(design_parameter_vector[swingby_altitude_index:orbit_ori_angle_index]) # orbit_ori_angle
+        free_coefficients = \
+        np.array(design_parameter_vector[orbit_ori_angle_index:free_coefficient_index]) # hodographic shaping free coefficients
 
         ### INTEGER PART ###
         if self.zero_revs:
             number_of_revolutions = \
-            [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
+            np.array([0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]])
         else:
-            number_of_revolutions = \
-            [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]] # number of revolutions
+            number_of_revolutions = np.array([int(x) for x in
+                      design_parameter_vector[free_coefficient_index:revolution_index]]) # number of revolutions
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
@@ -865,10 +856,10 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
         for i, body in enumerate(self.transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
-        swingby_periapses_array = np.array([planetary_radii_sequence[i] + swingby_periapses[i] for i in
+        swingby_periapses = np.array([planetary_radii_sequence[i] + swingby_altitudes[i] for i in
             range(self.no_of_gas)]) 
-        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
-        orbit_ori_angle_array = np.array([orbit_ori_angles[i] for i in range(self.no_of_gas)])
+        # incoming_velocity= np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
+        # orbit_ori_angle= np.array([orbit_ori_angles[i] for i in range(self.no_of_gas)])
 
         # node times
         self.node_times = util.get_node_times(departure_date, time_of_flights)
@@ -882,9 +873,9 @@ class MGALowThrustTrajectoryOptimizationProblemOOA(MGALowThrustTrajectoryOptimiz
 
         # node free parameters
         node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
-                                                             swingby_periapses_array,
-                                                             incoming_velocity_array,
-                                                             orbit_ori_angle_array=orbit_ori_angle_array,
+                                                             swingby_periapses,
+                                                             incoming_velocities,
+                                                             orbit_ori_angle=orbit_ori_angles,
                                                              departure_velocity=departure_velocity,
                                                              arrival_velocity=arrival_velocity)
 
@@ -991,8 +982,8 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
         incoming_velocity_lb = self.bounds[0][8]
         incoming_velocity_ub = self.bounds[1][8]
 
-        swingby_periapsis_lb = self.bounds[0][9]
-        swingby_periapsis_ub = self.bounds[1][9]
+        swingby_altitude_lb = self.bounds[0][9]
+        swingby_altitude_ub = self.bounds[1][9]
 
         orbit_ori_angle_lb = self.bounds[0][10]
         orbit_ori_angle_ub = self.bounds[1][10]
@@ -1036,8 +1027,8 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
             lower_bounds.append(incoming_velocity_lb)
             upper_bounds.append(incoming_velocity_ub)
         for _ in range(self.no_of_gas):
-            lower_bounds.append(swingby_periapsis_lb)
-            upper_bounds.append(swingby_periapsis_ub)
+            lower_bounds.append(swingby_altitude_lb)
+            upper_bounds.append(swingby_altitude_ub)
         for _ in range(self.no_of_gas):
             lower_bounds.append(orbit_ori_angle_lb)
             upper_bounds.append(orbit_ori_angle_ub)
@@ -1068,9 +1059,9 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
         7..10 - time of flights
         10..12 - incoming velocities
         12..14 - swingby periapses
-        15..17 - orbit orientation angle
-        16..35 - free_coefficients
-        35..38 - number of revolutions
+        14..16 - orbit orientation angle
+        16..34 - free_coefficients
+        34..37 - number of revolutions
         """
         # print("Design Parameters:", design_parameter_vector, "\n")
         self.design_parameter_vector = design_parameter_vector
@@ -1085,34 +1076,37 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
         # indexes
         time_of_flight_index = 7 + self.no_of_legs
         incoming_velocity_index = time_of_flight_index + self.no_of_gas
-        swingby_periapsis_index = incoming_velocity_index + self.no_of_gas
-        orbit_ori_angle_index = swingby_periapsis_index + self.no_of_gas
+        swingby_altitude_index = incoming_velocity_index + self.no_of_gas
+        orbit_ori_angle_index = swingby_altitude_index + self.no_of_gas
         free_coefficient_index = orbit_ori_angle_index + self.total_no_of_free_coefficients
         revolution_index = free_coefficient_index + self.no_of_legs
 
         ### CONTINUOUS PART ###
-        departure_date = design_parameter_vector[0] # departure date
-        departure_velocity = design_parameter_vector[1] # departure velocity
-        departure_inplane_angle = design_parameter_vector[2] 
-        departure_outofplane_angle = design_parameter_vector[3] 
-        arrival_velocity = design_parameter_vector[4] # arrival velocity
-        arrival_inplane_angle = design_parameter_vector[5] 
-        arrival_outofplane_angle = design_parameter_vector[6] 
+        departure_date = np.array(design_parameter_vector[0]) # departure date
+        departure_velocity = np.array(design_parameter_vector[1]) # departure velocity
+        departure_inplane_angle = np.array(design_parameter_vector[2]) 
+        departure_outofplane_angle = np.array(design_parameter_vector[3]) 
+        arrival_velocity = np.array(design_parameter_vector[4]) # arrival velocity
+        arrival_inplane_angle = np.array(design_parameter_vector[5]) 
+        arrival_outofplane_angle = np.array(design_parameter_vector[6]) 
 
-        time_of_flights = design_parameter_vector[3:time_of_flight_index] # time of flight
-        incoming_velocities = design_parameter_vector[time_of_flight_index:incoming_velocity_index] # incoming velocities
-        swingby_periapses = \
-        [x for x in design_parameter_vector[incoming_velocity_index:swingby_periapsis_index]] # swingby_periapses
-        orbit_ori_angles = design_parameter_vector[swingby_periapsis_index:orbit_ori_angle_index] # orbit_ori_angle
-        free_coefficients = design_parameter_vector[orbit_ori_angle_index:free_coefficient_index] # hodographic shaping free coefficients
+        time_of_flights = np.array(design_parameter_vector[7:time_of_flight_index]) # time of flight
+        incoming_velocities = \
+        np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
+        swingby_altitudes = np.array([x for x in
+                  design_parameter_vector[incoming_velocity_index:swingby_altitude_index]]) # swingby_altitudes
+        orbit_ori_angles = \
+        np.array(design_parameter_vector[swingby_altitude_index:orbit_ori_angle_index]) # orbit_ori_angle
+        free_coefficients = \
+        np.array(design_parameter_vector[orbit_ori_angle_index:free_coefficient_index]) # hodographic shaping free coefficients
 
         ### INTEGER PART ###
         if self.zero_revs:
             number_of_revolutions = \
-            [0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]]
+            np.array([0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]])
         else:
-            number_of_revolutions = \
-            [int(x) for x in design_parameter_vector[free_coefficient_index:revolution_index]] # number of revolutions
+            number_of_revolutions = np.array([int(x) for x in
+                      design_parameter_vector[free_coefficient_index:revolution_index]]) # number of revolutions
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
                                                             time_of_flights,
@@ -1127,10 +1121,8 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
         for i, body in enumerate(self.transfer_body_order[1:-1]):
             planetary_radii_sequence[i] = self.planetary_radii[body]
 
-        swingby_periapses_array = np.array([planetary_radii_sequence[i] + swingby_periapses[i] for i in
+        swingby_periapses = np.array([planetary_radii_sequence[i] + swingby_altitudes[i] for i in
             range(self.no_of_gas)]) 
-        incoming_velocity_array = np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
-        orbit_ori_angle_array = np.array([orbit_ori_angles[i] for i in range(self.no_of_gas)])
 
         # node times
         self.node_times = util.get_node_times(departure_date, time_of_flights)
@@ -1144,9 +1136,330 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
 
         # node free parameters
         node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
-                                                             swingby_periapses_array,
-                                                             incoming_velocity_array,
-                                                             orbit_ori_angle_array=orbit_ori_angle_array,
+                                                     swingby_periapses,
+                                                     incoming_velocities,
+                                                     orbit_ori_angles=orbit_ori_angles,
+                                                     departure_velocity=departure_velocity,
+                                                     departure_inplane_angle=departure_inplane_angle,
+                                                     departure_outofplane_angle=departure_outofplane_angle,
+                                                     arrival_velocity=arrival_velocity,
+                                                     arrival_inplane_angle=arrival_inplane_angle,
+                                                     arrival_outofplane_angle=arrival_outofplane_angle)
+
+        try:
+            transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+            # self.delivery_mass_constraint_check(transfer_trajectory_object, self.Isp, self.m0, self.no_of_points)
+
+            # self.transfer_trajectory_object = transfer_trajectory_object
+            #
+            # if post_processing == False:
+            #     objective = self.get_objectives()
+            # else:
+            #     return
+            #
+            if post_processing == False:
+                objective = self.get_objectives(transfer_trajectory_object)
+            elif post_processing == True:
+                self.transfer_trajectory_object = transfer_trajectory_object
+                return
+
+
+        except RuntimeError as e:
+            mass_penalty = 0
+            negative_distance_penalty = 0
+            if e == 'Error with validity of trajectory: the delivery mass is negative.':
+                print(e)
+                mass_penalty = 10**16
+            elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
+                print(e)
+                negative_distance_penalty = 10**16
+            else:
+                print('Unspecified error : ', e)
+                other_penalty = 10**16
+
+            if len(self.objectives) == 1:
+                objective = [mass_penalty + negative_distance_penalty + other_penalty]
+            else:
+                objective = [mass_penalty + negative_distance_penalty + other_penalty for _ in range(2)]
+                print(objective)
+
+        return objective
+
+class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryOptimizationProblem):
+    def __init__(self,
+                    transfer_body_order,
+                    no_of_free_parameters = 0,
+                    bounds = None, 
+                    depart_semi_major_axis=np.inf,
+                    depart_eccentricity=0, 
+                    target_semi_major_axis=np.inf, 
+                    target_eccentricity=0,
+                    swingby_altitude=200000000, #2e5 km
+                    departure_velocity=2000, 
+                    arrival_velocity=0,
+                    Isp=3000,
+                    m0=1000,
+                    no_of_points=500,
+                    manual_base_functions=False,
+                    dynamic_shaping_functions=False,
+                    dynamic_bounds=False,
+                    manual_tof_bounds=None,
+                    objectives=['dv'],
+                    zero_revs=False):
+
+        super().__init__(transfer_body_order=transfer_body_order,
+                         no_of_free_parameters=no_of_free_parameters, bounds=bounds,
+                         depart_semi_major_axis=depart_semi_major_axis,
+                         depart_eccentricity=depart_eccentricity,
+                         target_semi_major_axis=target_semi_major_axis,
+                         target_eccentricity=target_eccentricity, swingby_altitude=swingby_altitude,
+                         departure_velocity=departure_velocity, arrival_velocity=arrival_velocity,
+                         Isp=Isp, m0=m0, no_of_points=no_of_points,
+                         manual_base_functions=manual_base_functions,
+                         dynamic_shaping_functions=dynamic_shaping_functions,
+                         dynamic_bounds=dynamic_bounds, manual_tof_bounds=manual_tof_bounds,
+                         objectives=objectives, zero_revs=zero_revs)
+
+    def conversion_ooa_quantity_angle(self, 
+                                      ooa_quantity=None,
+                                      ooa_angle=None):
+
+        def condition(ooa_quantity, ooa_angle):
+            if (ooa_quantity != None or ooa_angle != None) and not (ooa_quantity != None and
+                                                                        ooa_angle != None):
+                return True
+            else:
+                return False
+        assert condition(ooa_quantity, ooa_angle) is True
+
+        def ooa_angle_condition(ooa_angle):
+            if (ooa_angle > 5 * np.pi / 6 and ooa_angle < 7 * np.pi / 6) or  \
+                        ((ooa_angle < np.pi / 6 and ooa_angle > 0) and \
+                         (ooa_angle > 11 * np.pi / 6 and ooa_angle < 2 * np.pi)):
+                return True
+            else:
+                return False
+
+
+        if ooa_angle is not None:
+            assert ooa_angle_condition(ooa_angle) is True
+            if ooa_angle > 5 * np.pi / 6 and ooa_angle < 7 * np.pi / 6:
+                ooa_quantity = ooa_angle * -1
+
+
+
+
+    def get_bounds(self):
+        departure_date_lb = self.mjd2000_to_seconds(self.bounds[0][0])
+        departure_date_ub = self.mjd2000_to_seconds(self.bounds[1][0])
+
+        departure_velocity_lb = self.bounds[0][1]
+        departure_velocity_ub = self.bounds[1][1]
+
+        departure_inplane_angle_lb = self.bounds[0][2]
+        departure_inplane_angle_ub = self.bounds[1][2]
+
+        departure_outofplane_angle_lb = self.bounds[0][3]
+        departure_outofplane_angle_ub = self.bounds[1][3]
+
+        arrival_velocity_lb = self.bounds[0][4]
+        arrival_velocity_ub = self.bounds[1][4]
+
+        arrival_inplane_angle_lb = self.bounds[0][5]
+        arrival_inplane_angle_ub = self.bounds[1][5]
+
+        arrival_outofplane_angle_lb = self.bounds[0][6]
+        arrival_outofplane_angle_ub = self.bounds[1][6]
+
+        time_of_flight_lb = self.mjd2000_to_seconds(self.bounds[0][7])
+        time_of_flight_ub = self.mjd2000_to_seconds(self.bounds[1][7])
+
+        incoming_velocity_lb = self.bounds[0][8]
+        incoming_velocity_ub = self.bounds[1][8]
+
+        swingby_altitude_lb = self.bounds[0][9]
+        swingby_altitude_ub = self.bounds[1][9]
+
+        orbit_ori_angle_lb = self.bounds[0][10]
+        orbit_ori_angle_ub = self.bounds[1][10]
+
+        swingby_inplane_angle_lb = self.bounds[0][11]
+        swingby_inplane_angle_ub = self.bounds[1][11]
+
+        swingby_outofplane_angle_lb = self.bounds[0][12]
+        swingby_outofplane_angle_ub = self.bounds[1][12]
+
+        free_coefficients_lb = self.bounds[0][13]
+        free_coefficients_ub = self.bounds[1][13]
+
+        number_of_revolutions_lb = self.bounds[0][14]
+        number_of_revolutions_ub = self.bounds[1][14]
+
+        lower_bounds = [departure_date_lb] # departure date
+        upper_bounds = [departure_date_ub] # departure date
+
+        lower_bounds.append(departure_velocity_lb) 
+        upper_bounds.append(departure_velocity_ub)
+        lower_bounds.append(departure_inplane_angle_lb) 
+        upper_bounds.append(departure_inplane_angle_ub)
+        lower_bounds.append(departure_outofplane_angle_lb) 
+        upper_bounds.append(departure_outofplane_angle_ub) 
+
+        lower_bounds.append(arrival_velocity_lb) 
+        upper_bounds.append(arrival_velocity_ub)
+        lower_bounds.append(arrival_inplane_angle_lb) 
+        upper_bounds.append(arrival_inplane_angle_ub)
+        lower_bounds.append(arrival_outofplane_angle_lb) 
+        upper_bounds.append(arrival_outofplane_angle_ub) 
+
+        for leg in range(self.no_of_legs): # time of flight
+            if self.manual_tof_bounds != None:
+                lower_bounds.append(self.manual_tof_bounds[0][leg] * constants.JULIAN_DAY)
+                upper_bounds.append(self.manual_tof_bounds[1][leg] * constants.JULIAN_DAY)
+            elif self.dynamic_bounds:
+                current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
+                                                                         time_of_flight_ub))
+                lower_bounds.append(current_time_of_flight_bounds[0])
+                upper_bounds.append(current_time_of_flight_bounds[1])
+            else:
+                lower_bounds.append(time_of_flight_lb)
+                upper_bounds.append(time_of_flight_ub)
+        for _ in range(self.no_of_gas):
+            lower_bounds.append(incoming_velocity_lb)
+            upper_bounds.append(incoming_velocity_ub)
+        for _ in range(self.no_of_gas):
+            lower_bounds.append(swingby_altitude_lb)
+            upper_bounds.append(swingby_altitude_ub)
+        for _ in range(self.no_of_gas):
+            lower_bounds.append(orbit_ori_angle_lb)
+            upper_bounds.append(orbit_ori_angle_ub)
+        for _ in range(self.no_of_gas):
+            lower_bounds.append(swingby_inplane_angle_lb)
+            upper_bounds.append(swingby_inplane_angle_ub)
+        for _ in range(self.no_of_gas):
+            lower_bounds.append(swingby_outofplane_angle_lb)
+            upper_bounds.append(swingby_outofplane_angle_ub)
+        for _ in range(self.total_no_of_free_coefficients): # free coefficients
+            lower_bounds.append(free_coefficients_lb)
+            upper_bounds.append(free_coefficients_ub)
+        for _ in range(self.no_of_legs): # number of revolutions
+            lower_bounds.append(number_of_revolutions_lb)
+            upper_bounds.append(number_of_revolutions_ub)
+
+        return (lower_bounds, upper_bounds)
+
+    def fitness(self, 
+                design_parameter_vector : list, 
+                bodies = util.create_modified_system_of_bodies(ephemeris_type='JPL'),
+                # bodies = environment_setup.create_simplified_system_of_bodies(),
+                post_processing=False):
+
+        """
+        Assuming no_of_gas == 2 & #fc == 2
+        0 - departure_date
+        1 - departure velocity
+        2 - dep inplane angle 
+        3 - dep outofplane angle 
+        4 - arrival velocity
+        5 - arr inplane angle
+        6 - arr outofplane angle
+        7..10 - time of flights
+        10..12 - incoming velocities
+        12..14 - swingby periapses
+        14..16 - orbit orientation angle
+        16..18 - swingby inplane angle
+        18..20 - swingby outofplane angle
+        20..38 - free_coefficients
+        38..41 - number of revolutions
+        """
+        # print("Design Parameters:", design_parameter_vector, "\n")
+        self.design_parameter_vector = design_parameter_vector
+
+        # parameters
+        central_body = 'Sun'
+
+        #depart and target elements
+        # departure_elements = (self.depart_semi_major_axis, self.depart_eccentricity) 
+        # target_elements = (self.target_semi_major_axis, self.target_eccentricity) 
+
+        # indexes
+        time_of_flight_index = 7 + self.no_of_legs
+        incoming_velocity_index = time_of_flight_index + self.no_of_gas
+        swingby_altitude_index = incoming_velocity_index + self.no_of_gas
+        orbit_ori_angle_index = swingby_altitude_index + self.no_of_gas
+        swingby_inplane_angle_index = orbit_ori_angle_index + self.no_of_gas
+        swingby_outofplane_angle_index = swingby_inplane_angle_index + self.no_of_gas
+        free_coefficient_index = swingby_outofplane_angle_index + self.total_no_of_free_coefficients
+        revolution_index = free_coefficient_index + self.no_of_legs
+
+        ### CONTINUOUS PART ###
+        departure_date = np.array(design_parameter_vector[0]) # departure date
+        departure_velocity = np.array(design_parameter_vector[1]) # departure velocity
+        departure_inplane_angle = np.array(design_parameter_vector[2]) 
+        departure_outofplane_angle = np.array(design_parameter_vector[3]) 
+        arrival_velocity = np.array(design_parameter_vector[4]) # arrival velocity
+        arrival_inplane_angle = np.array(design_parameter_vector[5]) 
+        arrival_outofplane_angle = np.array(design_parameter_vector[6]) 
+
+        time_of_flights = np.array(design_parameter_vector[7:time_of_flight_index]) # time of flight
+        incoming_velocities = \
+        np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
+        swingby_altitudes = np.array([x for x in
+                  design_parameter_vector[incoming_velocity_index:swingby_altitude_index]]) # swingby_altitudes
+        orbit_ori_angles = \
+        np.array(design_parameter_vector[swingby_altitude_index:orbit_ori_angle_index]) # orbit_ori_angle
+        swingby_inplane_angles = \
+        np.array(design_parameter_vector[orbit_ori_angle_index:swingby_inplane_angle_index])
+        swingby_outofplane_angles = \
+        np.array(design_parameter_vector[swingby_inplane_angle_index:swingby_outofplane_angle_index])
+        free_coefficients = \
+        np.array(design_parameter_vector[orbit_ori_angle_index:free_coefficient_index]) # hodographic shaping free coefficients
+
+        ### INTEGER PART ###
+        if self.zero_revs:
+            number_of_revolutions = \
+            np.array([0 for _ in design_parameter_vector[free_coefficient_index:revolution_index]])
+        else:
+            number_of_revolutions = np.array([int(x) for x in
+                      design_parameter_vector[free_coefficient_index:revolution_index]]) # number of revolutions
+
+        transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
+                                                            time_of_flights,
+                                                            bodies,
+                                                            central_body,
+                                                            no_of_free_parameters=self.no_of_free_parameters,
+                                                            manual_base_functions=self.manual_base_functions,
+                                                            number_of_revolutions=number_of_revolutions,
+                                                            dynamic_shaping_functions=self.dynamic_shaping_functions)
+
+        planetary_radii_sequence = np.zeros(self.no_of_gas)
+        for i, body in enumerate(self.transfer_body_order[1:-1]):
+            planetary_radii_sequence[i] = self.planetary_radii[body]
+
+        swingby_periapses = np.array([planetary_radii_sequence[i] + swingby_altitudes[i] for i in
+            range(self.no_of_gas)]) 
+        # incoming_velocity= np.array([incoming_velocities[i] for i in range(self.no_of_gas)])
+        # orbit_ori_angle= np.array([orbit_ori_angles[i] for i in range(self.no_of_gas)])
+        # swingby_inplane_angles= np.array([swingby_inplane_angles[i] for i in range(self.no_of_gas)])
+        # swingby_outofplane_angles= np.array([swingby_outofplane_angles[i] for i in range(self.no_of_gas)])
+
+        # node times
+        self.node_times = util.get_node_times(departure_date, time_of_flights)
+        # print(node_times)
+
+        # leg free parameters 
+        leg_free_parameters = np.concatenate(np.array([np.append(number_of_revolutions[i],
+            free_coefficients[i*(self.no_of_free_parameters*3):(i+1)*(self.no_of_free_parameters*3)]) for i
+            in range(self.no_of_legs)])).reshape((self.no_of_legs, 1 + 3*
+                self.no_of_free_parameters)) # added reshape
+
+        # node free parameters
+        node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
+                                                             swingby_periapses,
+                                                             incoming_velocities,
+                                                             orbit_ori_angles=orbit_ori_angles,
+                                                             swingby_inplane_angles=swingby_inplane_angles,
+                                                             swingby_outofplane_angles=swingby_outofplane_angles,
                                                              departure_velocity=departure_velocity,
                                                              departure_inplane_angle=departure_inplane_angle,
                                                              departure_outofplane_angle=departure_outofplane_angle,
@@ -1192,7 +1505,6 @@ class MGALowThrustTrajectoryOptimizationProblemOOADAAA(MGALowThrustTrajectoryOpt
                 print(objective)
 
         return objective
-
 
 
 

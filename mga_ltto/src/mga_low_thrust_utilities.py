@@ -14,6 +14,7 @@ performing the actual optimization.
 # General imports
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 
 # Tudatpy imports
 from tudatpy.kernel import constants
@@ -385,14 +386,16 @@ def get_node_times(departure_date: float,
 def get_node_free_parameters(transfer_body_order: list, 
                              swingby_periapses: np.ndarray,
                              incoming_velocities: np.ndarray, 
-                             dsm_deltav_array: np.ndarray=np.array([None]), 
+                             orbit_ori_angles : np.ndarray = np.array([None]),
+                             swingby_inplane_angles : np.ndarray = np.array([None]),
+                             swingby_outofplane_angles : np.ndarray = np.array([None]),
+                             dsm_deltav: np.ndarray=np.array([None]), 
                              departure_velocity: float = 0,
                              arrival_velocity: float = 0,
                              departure_inplane_angle : float = 0,
                              departure_outofplane_angle: float = 0,
-                             orbit_ori_angle_array: np.ndarray = np.array([None]),
-                             arrival_inplane_angle: float = 0,
-                             arrival_outofplane_angle: float = 0) -> list:
+                             arrival_inplane_angle : float = 0,
+                             arrival_outofplane_angle : float = 0) -> list:
     """
     velocity magnitude
     velocity in-plane angle
@@ -412,7 +415,7 @@ def get_node_free_parameters(transfer_body_order: list,
     
     # swingby_delta_v = 0
 
-    node_free_parameters = list()
+    node_free_parameters = []
 
     assert len(incoming_velocities) == len(swingby_periapses)
     # Departure node
@@ -422,20 +425,18 @@ def get_node_free_parameters(transfer_body_order: list,
     # Swingby nodes
     for i in range(len(transfer_body_order)-2): # no_of_gas
         node_parameters = list()
-        node_parameters.append(incoming_velocities[i])
-        # node_parameters.append(100)
-        node_parameters.append(0)
-        node_parameters.append(0)
-        node_parameters.append(swingby_periapses[i])
-        # node_parameters.append(10)
-        node_parameters.append(orbit_ori_angle_array[i] if orbit_ori_angle_array[0] != None else 0)
-        node_parameters.append(dsm_deltav_array[i] if dsm_deltav_array[0] != None else 0)
+        node_parameters.append(incoming_velocities[i] if incoming_velocities[0] != None else 0)
+        node_parameters.append(swingby_inplane_angles[i] if swingby_inplane_angles[0] != None else 0)
+        node_parameters.append(swingby_outofplane_angles[i] if swingby_outofplane_angles[0] != None else 0)
+        node_parameters.append(swingby_periapses[i] if swingby_periapses[0] != None else 0)
+        node_parameters.append(orbit_ori_angles[i] if orbit_ori_angles[0] != None else 0)
+        node_parameters.append(dsm_deltav[i] if dsm_deltav[0] != None else 0)
 
         node_free_parameters.append(node_parameters)
 
     # Arrival node
     node_free_parameters.append(np.array([arrival_velocity, arrival_inplane_angle,
-                                          arrival_outofplane_angle], dtype=float))
+                                          arrival_outofplane_angle]))
     
     return node_free_parameters
 
@@ -798,11 +799,16 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
     if quiver==False:
         thrust_history_dict = None
 
+    #Only plot relevant bodies
+    tbo_list = \
+    util.transfer_body_order_conversion.get_mga_list_from_characters(auxiliary_info_dict['MGA Sequence'])
+
     fig, ax = util.trajectory_3d(
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
-            bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
+            # bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
+            bodies=["Sun"] + tbo_list,
             frame_orientation= 'ECLIPJ2000',
             thrust_history=thrust_history_dict,
             projection=projection)
@@ -822,54 +828,49 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
 # Show the plot
     # plt.show()
 
-def objective_per_generation_visualisation(dir=None):
+def objective_per_generation_visualisation(dir=None, 
+                                           dir_of_dir=None, 
+                                           no_of_islands=8):
 
-    fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
-    variable_values = np.loadtxt(dir + 'champs_per_gen.dat')
+    if dir != None:
+        fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
+        variable_values = np.loadtxt(dir + 'champs_per_gen.dat')
+    if dir_of_dir != None:
+        dir_list = dir_of_dir.split('/')
+        fitness_value_dict = {}
+        variable_value_dict = {}
+        for i in range(no_of_islands):
+            fitness_value_dict[i] = np.loadtxt(dir_of_dir + f'island_{i}/champ_f_per_gen.dat')
+            variable_value_dict[i] = np.loadtxt(dir_of_dir + f'island_{i}/champs_per_gen.dat')
+        auxiliary_info = np.loadtxt(dir_of_dir + 'island_0/auxiliary_info.dat', delimiter=',', dtype=str)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
 
-    generation_count = fitness_values[:50, 0]
-    fitness_values = fitness_values[:50, 1:]
-    variable_values = variable_values[:50, 1:]
-    # print(fitness_values)
-    # print(generation_count)
+    fitness_array = np.zeros((len(fitness_value_dict[0][:,0]), no_of_islands))
+    for i in range(no_of_islands):
+        fitness_array[:, i] = fitness_value_dict[i][:, 1]
 
+    min_deltav_value = np.min(fitness_array)
+    
+    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    for island in range(no_of_islands):
+        ax.plot(fitness_value_dict[island][:,0], fitness_value_dict[island][:,1], label=f'Island {island}')
+        # ax.legend()
+    ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value / 1000)}')
+    ax.set_ylabel(r'$\Delta V$ [m / s]')
+    ax.set_xlabel(r'Generation count [-]')
+    # ax.legend()
+    ax.grid()
+    trans = transforms.blended_transform_factory(
+    ax.get_yticklabels()[0].get_transform(), ax.transData)
+    ax.text(0,min_deltav_value, "{:.0f}".format(min_deltav_value), color="red", transform=trans, 
+            ha="right", va="center")
+    # ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
+    ax.set_title(dir_list[2], fontweight='semibold', fontsize=18)
+    # ax.set_yscale('log')
+    ax.set_ylim([0, 40000])
 
-    no_of_parameters = len(variable_values[0, :])
-    no_of_int_parameters = 5
-    integer_bounds = (-10, -5)
-    continuous_bounds = (-5.12, 5.12)
-
-    minimum_fitness_value =  no_of_int_parameters**3
-    color_dict = {0 : 'r', 1 : 'b'}
-    color = [color_dict[0] if i < no_of_int_parameters else color_dict[1] for i in
-            range(no_of_parameters)]
-
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 8))
-    ax1.plot(generation_count, fitness_values)
-    ax1.plot(generation_count, [minimum_fitness_value for i in range(len(generation_count))], c='k',
-            linestyle='--', linewidth=0.8, label='Constraint value')
-    ax1.set_xlabel('Generation count [-]')
-    ax1.set_ylabel(' Function value [-]' )
-    # ax1.set_yscale('log')
-    ax1.legend()
-    ax1.grid()
-
-    for i in range(no_of_parameters):
-        ax2.plot(generation_count, variable_values[:, i], c=color[i])
-    ax2.plot(generation_count, [integer_bounds[0] for i in range(len(generation_count))], c='k',
-            linewidth=0.8, linestyle='--', label='Constraint value')
-    ax2.plot(generation_count, [integer_bounds[1] for i in range(len(generation_count))], c='k',
-            linestyle='--', linewidth=0.8)
-    ax2.plot(generation_count, [continuous_bounds[0] for i in range(len(generation_count))], c='k',
-            linestyle='--', linewidth=0.8)
-    ax2.plot(generation_count, [continuous_bounds[1] for i in range(len(generation_count))], c='k',
-            linestyle='--', linewidth=0.8)
-    ax2.set_xlabel('Generation count [-]')
-    ax2.set_ylabel(' Variable value [-]' )
-    ax2.legend()
-
-    ax2.grid()
-    plt.show()
 
 def pareto_front(dir=None,
                  deltav_as_obj=False,
@@ -956,10 +957,12 @@ def thrust_propagation(dir=None):
     linestyle = '--'
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    ax.plot(time_history, thrust_norm)
+    ax.plot(time_history, thrust_acceleration[:, 1], linestyle=':', label=r'$a_r$')
+    ax.plot(time_history, thrust_acceleration[:, 2], linestyle='-.', label=r'$a_\theta$')
+    ax.plot(time_history, thrust_acceleration[:, 3], linestyle='--', label=r'$a_z$')
+    ax.plot(time_history, thrust_norm, label='a')
     for i in range(len(list_of_mga_sequence_char)):
-        ax.axvline(node_times[i, 1], c=color_list[i], linestyle=linestyle,
-                   label=list_of_mga_sequence_char[i])
+        ax.axvline(node_times[i, 1], c='k', linestyle='-', linewidth=0.5)
     # ax.axvline(node_times[0, 1], c=color_list[0], linestyle=linestyle,
     #            label=list_of_mga_sequence_char[0], ymin = np.min(thrust_norm), ymax =
     #            np.max(thrust_norm))
@@ -967,8 +970,7 @@ def thrust_propagation(dir=None):
     ax.set_xlabel(' Epoch [days]' )
     # ax.set_ylim([150, 1000])
     # ax.set_xlim([350, 1000])
-    ax.set_yscale('log')
+    # ax.set_yscale('log')
     ax.legend()
     ax.set_title(mga_sequence_characters, fontweight='semibold', fontsize=18)
     ax.grid()
-    plt.show()
