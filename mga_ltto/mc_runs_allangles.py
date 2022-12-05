@@ -3,7 +3,7 @@ Author: Sean Cowan
 Purpose: MSc Thesis
 Date Created: 03-10-2022
 
-This modules performs a monte carlo analysis on design parameters.
+This modules performs a monte carlo analysis on design parameters for the all angle Problem class
 '''
 ###########################################################################
 # IMPORT STATEMENTS #######################################################
@@ -30,13 +30,15 @@ output_directory = current_dir + '/pp_singleruns'
 julian_day = constants.JULIAN_DAY
 no_of_points=100
 
-bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-            'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
-            'Free coefficient [-]', 'Number of revolutions [-]']
+bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Departure in-plane angle [rad]', 
+              'Departure out-of-plane angle [rad]', 'Arrival velocity [m/s]', 'Arrival in-plane angle [rad]', 
+              'Arrival out-of-plane angle [rad]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 
+              'Swingby periapsis [m]', 'Orbit orientation angle [rad]', 'Swingby in-plane Angle [rad]', 
+              'Swingby out-of-plane angle [rad]', 'Free coefficient [-]', 'Number of revolutions [-]']
 
 manual_tof_bounds = None
 dynamic_shaping_functions = False
-dynamic_bounds = True
+dynamic_bounds = False
 write_results_to_file = True
 manual_base_functions = False
 zero_revs = False
@@ -50,14 +52,25 @@ m0 = 1300
 jd2000_dep_date_lb = 61420 - 51544.5
 jd2000_dep_date_ub = 63382 - 51544.5
 
-departure_date=  (jd2000_dep_date_lb, jd2000_dep_date_ub)
+departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
+# departure_date=  (11263.51 - 100, 11263.51 + 100) #from island_0 EM_gen150
 departure_velocity = (0, 0)
-arrival_velocity = (0, 0)
-time_of_flight = (200, 3000)
-incoming_velocity = (100, 15000)
+departure_inplane_angle = (0, 0)
+departure_outofplane_angle = (0, 0)
+arrival_velocity = (0, 3000)
+arrival_inplane_angle = (0, 2 * np.pi)
+arrival_outofplane_angle = (-np.pi / 4, np.pi / 4)
+time_of_flight = (100, 4500)
+incoming_velocity = (0, 5000)
 swingby_periapsis = (2e5, 2e8)
+orbit_ori_angle = (0, 2 * np.pi)
+swingby_inplane_angle = (0, 2 * np.pi)
+swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
 free_coefficient = (-3e4, 3e4)
-number_of_revs = (0, 4)
+number_of_revs = (0, 2)
+Isp = 3200 #guess
+m0 = 1300 #guess
+manual_tof_bounds = [[100, 500], [1000, 4000]]
 
 bounds = [[departure_date[0], departure_velocity[0], arrival_velocity[0], time_of_flight[0],
            incoming_velocity[0], swingby_periapsis[0], free_coefficient[0], number_of_revs[0]], 
@@ -269,3 +282,4 @@ if plot:
                 it2 += 1
 
 plt.show()
+

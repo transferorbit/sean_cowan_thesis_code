@@ -171,8 +171,10 @@ def trajectory_3d(
     #                                                                                    au,
     #                                                                                    max_pos*1.2 /
     #                                                                                    au])
-    ax.set_zlim([min_pos*1.05 / au, max_pos*1.05 / au])
-    ax.set_xlabel("x [m]"), ax.set_ylabel("y [m]"), ax.set_zlabel("z [m]")
+
+    ax.set_xlim([-10, 10]), ax.set_ylim([-10, 10]), ax.set_zlim([-0.2, 0.2])
+
+    ax.set_xlabel("x [AU]"), ax.set_ylabel("y [AU]"), ax.set_zlabel("z [AU]")
     if projection=='xy' or projection=='yx':
         ax.view_init(elev=90, azim=0)
     elif projection=='yz' or projection=='zy':
