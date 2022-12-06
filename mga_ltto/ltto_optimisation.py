@@ -55,8 +55,11 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     ## General parameters
     manual_tof_bounds = None
-    dynamic_shaping_functions = False
-    dynamic_bounds = False
+    dynamic_bounds = {'time_of_flight' : False,
+                      'orbit_ori_angle' : False,
+                      'swingby_outofplane' : False,
+                      'swingby_inplane' : False,
+                      'shaping_function' : False}
     write_results_to_file = True
     manual_base_functions = False
     zero_revs = False
@@ -198,7 +201,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     number_of_revs = (0, 2)
     Isp = 3200 #guess
     m0 = 1300 #guess
-    manual_tof_bounds = [[100, 500], [1000, 4000]]
+    # manual_tof_bounds = [[100, 500], [1000, 4000]]
 
     bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
                departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
@@ -239,7 +242,6 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
               m0=m0,
               no_of_points=no_of_points,
               zero_revs=zero_revs,
-              dynamic_shaping_functions=dynamic_shaping_functions,
               dynamic_bounds=dynamic_bounds,
               manual_tof_bounds=manual_tof_bounds)
 

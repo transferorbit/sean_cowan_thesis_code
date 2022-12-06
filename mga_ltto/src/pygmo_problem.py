@@ -28,7 +28,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
     def __init__(self,
                     transfer_body_order,
                     no_of_free_parameters = 0,
-                    bounds = None, 
+                    bounds = [[], []], 
                     depart_semi_major_axis=np.inf,
                     depart_eccentricity=0, 
                     target_semi_major_axis=np.inf, 
@@ -40,8 +40,11 @@ class MGALowThrustTrajectoryOptimizationProblem:
                     m0=1000,
                     no_of_points=500,
                     manual_base_functions=False,
-                    dynamic_shaping_functions=False,
-                    dynamic_bounds=False,
+                    dynamic_bounds = {'time_of_flight' : False,
+                                      'orbit_ori_angle' : False,
+                                      'swingby_outofplane' : False,
+                                      'swingby_inplane' : False,
+                                      'shaping_function' : False},
                     manual_tof_bounds=None,
                     objectives=['dv'],
                     zero_revs=False):
@@ -88,7 +91,6 @@ class MGALowThrustTrajectoryOptimizationProblem:
                 69946000.0, 'Saturn': 58300000.0}
 
         self.manual_base_functions = manual_base_functions
-        self.dynamic_shaping_functions = dynamic_shaping_functions
         self.dynamic_bounds = dynamic_bounds
         self.manual_tof_bounds = manual_tof_bounds
 
@@ -376,13 +378,13 @@ class MGALowThrustTrajectoryOptimizationProblem:
                       design_parameter_vector[free_coefficient_index:revolution_index]])
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
-                                                            time_of_flights,
-                                                            bodies,
-                                                            central_body,
-                                                            no_of_free_parameters=self.no_of_free_parameters,
-                                                            manual_base_functions=self.manual_base_functions,
-                                                            number_of_revolutions=number_of_revolutions,
-                                                            dynamic_shaping_functions=self.dynamic_shaping_functions)
+                                                        time_of_flights,
+                                                        bodies,
+                                                        central_body,
+                                                        no_of_free_parameters=self.no_of_free_parameters,
+                                                        manual_base_functions=self.manual_base_functions,
+                                                        number_of_revolutions=number_of_revolutions,
+                                                        dynamic_shaping_functions=self.dynamic_bounds['shaping_function'])
 
         planetary_radii_sequence = np.zeros(self.no_of_gas)
         for i, body in enumerate(self.transfer_body_order[1:-1]):
@@ -1201,8 +1203,11 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
                     m0=1000,
                     no_of_points=500,
                     manual_base_functions=False,
-                    dynamic_shaping_functions=False,
-                    dynamic_bounds=False,
+                    dynamic_bounds = {'time_of_flight' : False,
+                                      'orbit_ori_angle' : False,
+                                      'swingby_outofplane' : False,
+                                      'swingby_inplane' : False,
+                                      'shaping_function' : False},
                     manual_tof_bounds=None,
                     objectives=['dv'],
                     zero_revs=False):
@@ -1216,37 +1221,45 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
                          departure_velocity=departure_velocity, arrival_velocity=arrival_velocity,
                          Isp=Isp, m0=m0, no_of_points=no_of_points,
                          manual_base_functions=manual_base_functions,
-                         dynamic_shaping_functions=dynamic_shaping_functions,
                          dynamic_bounds=dynamic_bounds, manual_tof_bounds=manual_tof_bounds,
                          objectives=objectives, zero_revs=zero_revs)
 
-    def conversion_ooa_quantity_angle(self, 
-                                      ooa_quantity=None,
-                                      ooa_angle=None):
-
-        def condition(ooa_quantity, ooa_angle):
-            if (ooa_quantity != None or ooa_angle != None) and not (ooa_quantity != None and
-                                                                        ooa_angle != None):
-                return True
-            else:
-                return False
-        assert condition(ooa_quantity, ooa_angle) is True
-
-        def ooa_angle_condition(ooa_angle):
-            if (ooa_angle > 5 * np.pi / 6 and ooa_angle < 7 * np.pi / 6) or  \
-                        ((ooa_angle < np.pi / 6 and ooa_angle > 0) and \
-                         (ooa_angle > 11 * np.pi / 6 and ooa_angle < 2 * np.pi)):
-                return True
-            else:
-                return False
+        self.flyby_directions = util.get_flyby_directions(self.transfer_body_order)
 
 
-        if ooa_angle is not None:
-            assert ooa_angle_condition(ooa_angle) is True
-            if ooa_angle > 5 * np.pi / 6 and ooa_angle < 7 * np.pi / 6:
-                ooa_quantity = ooa_angle * -1
+    def get_ooa_angle_from_quantity(self, ooa_quantity):
+        ooa_angle = ooa_quantity.copy()
+        if ooa_quantity > np.pi:
+            ooa_angle = ooa_angle * (1 / 3) + (np.pi / 2)
+            try:
+                assert 5 * np.pi / 6 < ooa_angle < 7 * np.pi / 6
+            except AssertionError:
+                print(ooa_quantity, ooa_angle)
+        else:
+            ooa_angle = ooa_angle * (1 / 3) - (np.pi / 6)
+            try:
+                assert -np.pi / 6 < ooa_angle < np.pi / 6
+            except AssertionError:
+                print(ooa_quantity, ooa_angle)
 
+        return ooa_angle
 
+    def get_ooa_quantity_from_angle(self):
+        pass
+
+    def get_inplane_bounds(self, i):
+
+        if self.flyby_directions[i] == 'inner':
+            lb =  0; ub = 2 * np.pi
+        else:
+            lb = np.pi; ub = 2 * np.pi
+        return lb, ub
+
+    def get_outofplane_bounds(self):
+        # Assuming Earth-Neptune, Mercury is 7.005 degrees, with 5% margin of safety.
+        # Venus is 3.395 degrees, max difference is 10.400 degrees if exactly opposite
+
+        return -10.400 * 1.05 * np.pi / 180, 10.400 * 1.05 * np.pi / 180 # rad
 
 
     def get_bounds(self):
@@ -1288,6 +1301,10 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
 
         swingby_outofplane_angle_lb = self.bounds[0][12]
         swingby_outofplane_angle_ub = self.bounds[1][12]
+        if self.dynamic_bounds['swingby_outofplane']:
+            swingby_outofplane_angle_lb, swingby_outofplane_angle_ub = self.get_outofplane_bounds()
+            # print('swingby_outofplane', swingby_outofplane_angle_lb, swingby_outofplane_angle_ub)
+
 
         free_coefficients_lb = self.bounds[0][13]
         free_coefficients_ub = self.bounds[1][13]
@@ -1316,11 +1333,12 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
             if self.manual_tof_bounds != None:
                 lower_bounds.append(self.manual_tof_bounds[0][leg] * constants.JULIAN_DAY)
                 upper_bounds.append(self.manual_tof_bounds[1][leg] * constants.JULIAN_DAY)
-            elif self.dynamic_bounds:
+            elif self.dynamic_bounds['time_of_flight']:
                 current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
                                                                          time_of_flight_ub))
                 lower_bounds.append(current_time_of_flight_bounds[0])
                 upper_bounds.append(current_time_of_flight_bounds[1])
+                # print('tof', current_time_of_flight_bounds[0], current_time_of_flight_bounds[1])
             else:
                 lower_bounds.append(time_of_flight_lb)
                 upper_bounds.append(time_of_flight_ub)
@@ -1333,9 +1351,15 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
         for _ in range(self.no_of_gas):
             lower_bounds.append(orbit_ori_angle_lb)
             upper_bounds.append(orbit_ori_angle_ub)
-        for _ in range(self.no_of_gas):
-            lower_bounds.append(swingby_inplane_angle_lb)
-            upper_bounds.append(swingby_inplane_angle_ub)
+        for ga in range(self.no_of_gas):
+            if self.dynamic_bounds['swingby_inplane']:
+                lb, ub = self.get_inplane_bounds(ga)
+                lower_bounds.append(lb)
+                upper_bounds.append(ub)
+                # print('swingby_inplane', lb, ub)
+            else:
+                lower_bounds.append(swingby_inplane_angle_lb)
+                upper_bounds.append(swingby_inplane_angle_ub)
         for _ in range(self.no_of_gas):
             lower_bounds.append(swingby_outofplane_angle_lb)
             upper_bounds.append(swingby_outofplane_angle_ub)
@@ -1406,8 +1430,15 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
         np.array(design_parameter_vector[time_of_flight_index:incoming_velocity_index]) # incoming velocities
         swingby_altitudes = np.array([x for x in
                   design_parameter_vector[incoming_velocity_index:swingby_altitude_index]]) # swingby_altitudes
+
         orbit_ori_angles = \
         np.array(design_parameter_vector[swingby_altitude_index:orbit_ori_angle_index]) # orbit_ori_angle
+        # print(f'pre{orbit_ori_angles}')
+        if self.dynamic_bounds['orbit_ori_angle']:
+            orbit_ori_angles = np.array([self.get_ooa_angle_from_quantity(i) for i in orbit_ori_angles])
+            # print('ooa', orbit_ori_angles)
+
+
         swingby_inplane_angles = \
         np.array(design_parameter_vector[orbit_ori_angle_index:swingby_inplane_angle_index])
         swingby_outofplane_angles = \
@@ -1424,13 +1455,13 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
                       design_parameter_vector[free_coefficient_index:revolution_index]]) # number of revolutions
 
         transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
-                                                            time_of_flights,
-                                                            bodies,
-                                                            central_body,
-                                                            no_of_free_parameters=self.no_of_free_parameters,
-                                                            manual_base_functions=self.manual_base_functions,
-                                                            number_of_revolutions=number_of_revolutions,
-                                                            dynamic_shaping_functions=self.dynamic_shaping_functions)
+                                                        time_of_flights,
+                                                        bodies,
+                                                        central_body,
+                                                        no_of_free_parameters=self.no_of_free_parameters,
+                                                        manual_base_functions=self.manual_base_functions,
+                                                        number_of_revolutions=number_of_revolutions,
+                                                        dynamic_shaping_functions=self.dynamic_bounds['shaping_function'])
 
         planetary_radii_sequence = np.zeros(self.no_of_gas)
         for i, body in enumerate(self.transfer_body_order[1:-1]):
