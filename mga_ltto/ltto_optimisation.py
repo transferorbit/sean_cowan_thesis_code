@@ -16,6 +16,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     
     # General imports
     import os
+    import math
     import pygmo as pg
     import multiprocessing as mp
     import sys
@@ -56,12 +57,13 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     ## General parameters
     manual_tof_bounds = None
     dynamic_bounds = {'time_of_flight' : False,
-                      'orbit_ori_angle' : False,
-                      'swingby_outofplane' : False,
-                      'swingby_inplane' : False,
-                      'shaping_function' : False}
+            'orbit_ori_angle' : False,
+            'swingby_outofplane' : False,
+            'swingby_inplane' : False,
+            'shaping_function' : False}
     write_results_to_file = True
     manual_base_functions = False
+    topology_type = None #float or None
     zero_revs = False
     objectives = ['dv'] #dv, tof, pmf, dmf
     
@@ -70,235 +72,264 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 ####################################################################
 
 
-    subdirectory=  '/EMJ_gen150pop300_standard_test1'
-    free_param_count = 2
-    num_gen = 150
-    pop_size = 300
-    cpu_count = os.cpu_count() // 2# not very relevant because differnent machines + asynchronous
+    # subdirectory_list = ['/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90',
+    #                      '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90',
+    #                      '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90']
+
+    free_param_count = 1
+    num_gen = 300
+    pop_size = 1200
+    cpu_count = os.cpu_count() // 2# not very relevant because different machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')
     number_of_islands = cpu_count # // 2 to only access physical cores.
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #             'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
-    #             'Free coefficient [-]', 'Number of revolutions [-]']
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', r'DSM $\Delta V$ [m/s]',
-    #         'Free coefficient [-]', 'Number of revolutions [-]']
-    # bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
-    #         'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]', 
-    #               'Orbit orientation angle [rad]', 'Free coefficient [-]', 'Number of revolutions [-]']
+
     bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Departure in-plane angle [rad]', 
                   'Departure out-of-plane angle [rad]', 'Arrival velocity [m/s]', 'Arrival in-plane angle [rad]', 
                   'Arrival out-of-plane angle [rad]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 
                   'Swingby periapsis [m]', 'Orbit orientation angle [rad]', 'Swingby in-plane Angle [rad]', 
                   'Swingby out-of-plane angle [rad]', 'Free coefficient [-]', 'Number of revolutions [-]']
 
-    ## MORANTE ##
+    # manual no_of_runs
+    # no_of_runs = 8
+    # departure_date_range = (61200, 61600) #MJD
+    # ddate_step = (departure_date_range[1] - departure_date_range[0]) / no_of_runs
+    # ddate_lb = departure_date_range[0]
 
-    # transfer_body_order = ["Earth", "Venus"]
-    #
-    # departure_date = (10592.5, 11321.5)
-    # departure_velocity = (1999.9999, 2000)
-    # arrival_velocity = (1000,3000)
-    # time_of_flight = (100, 400)
-    # incoming_velocity = (100, 15000)
-    # swingby_periapsis = (2e5, 2e8)
-    # free_coefficient = (-3e4, 3e4)
-    # number_of_revs = (0, 4)
-    # zero_revs = True
-    # Isp = 3000
-    # m0 = 360
+    # manual ddate_step
+    # ddate_step = 60
+    ddate_step = 400
 
-    ## ENGLANDER ##
-    # transfer_body_order = ["Earth", "Earth", "Venus", "Venus", "Mercury", "Mercury"]
-    # Isp = 3200
-    # m0 = 1300
-    # dep_date_lb = dateConversion(calendar_date='2009, 8, 1').date_to_mjd()
-    # dep_date_ub = dateConversion(calendar_date='2012, 4, 27').date_to_mjd()
-    # bounds = [[dep_date_lb, 0, 0, 10, 100, 2e5, 0, -10**4, 0],
-    #     [dep_date_ub, 1925, 500, 10000, 10000, 2e7, 2000, 10**4, 6]]
+    # departure_date_range = (62000, 62400) # EJ #MJD
+    # departure_date_range = (62400, 62800) # EJ #MJD
+    # departure_date_range = (62800, 63200) # EJ #MJD
 
-    ## FAN ##
+    # departure_date_range = (61600, 62000) # EMJ #MJD
+    # departure_date_range = (62000, 62400) # EMJ #MJD
+    # departure_date_range = (62400, 62800) # EMJ #MJD
 
-    # transfer_body_order = ["Earth", "Jupiter"]
-    #
-    # jd2000_dep_date_lb = 61420 - 51544.5
-    # jd2000_dep_date_ub = 63382 - 51544.5
-    #
-    # departure_date=  (jd2000_dep_date_lb, jd2000_dep_date_ub)
-    # departure_velocity = (0, 0)
-    # arrival_velocity = (0, 0)
-    # time_of_flight = (2500, 3000)
-    # incoming_velocity = (100, 15000)
-    # swingby_periapsis = (2e5, 2e8)
-    # free_coefficient = (-3e4, 3e4)
-    # number_of_revs = (0, 4)
-    # Isp = 3200 #guess
-    # m0 = 1300 #guess
-
-    # transfer_body_order = ["Earth", "Mars"]
-    #
-    # jd2000_dep_date_lb = 61420 - 51544.5
-    # jd2000_dep_date_ub = 63382 - 51544.5
-    #
-    # departure_date=  (jd2000_dep_date_lb, jd2000_dep_date_ub)
-    # departure_velocity = (0, 0)
-    # arrival_velocity = (0, 5000)
-    # time_of_flight = (100, 1500)
-    # incoming_velocity = (100, 15000)
-    # swingby_periapsis = (2e5, 2e8)
-    # free_coefficient = (-3e4, 3e4)
-    # number_of_revs = (0, 4)
-    # Isp = 3200 #guess
-    # m0 = 1300 #guess
-
-    # transfer_body_order = ["Mars", "Jupiter"]
-    #
-    # jd2000_dep_date_lb = 61420 - 51544.5
-    # jd2000_dep_date_ub = 63382 - 51544.5
-    #
-    # departure_date=  (11263.51 - 20, 11263.51 + 20) #from island_0
-    # departure_velocity = (0, 0)
-    # arrival_velocity = (0, 0)
-    # time_of_flight = (500, 3000)
-    # incoming_velocity = (100, 15000)
-    # swingby_periapsis = (2e5, 2e8)
-    # free_coefficient = (-3e4, 3e4)
-    # number_of_revs = (0, 4)
-    # Isp = 3200 #guess
-    # m0 = 1300 #guess
+    # departure_date_range = (62000, 62400) # EEMJ #MJD
+    # departure_date_range = (62400, 62800) # EEMJ #MJD
+    # departure_date_range = (62800, 63200) # EEMJ #MJD
     
-    transfer_body_order = ["Earth", "Mars", "Jupiter"]
+    # departure_date_range = (61600, 62000) # EEEMJ #MJD
+    # departure_date_range = (62000, 62400) # EEEMJ #MJD
+    departure_date_range = (62400, 62800) # EEEMJ #MJD
 
-    # jd2000_dep_date_lb = 61420 - 51544.5
-    # jd2000_dep_date_ub = 63382 - 51544.5
-    #
-    # departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
-    # departure_velocity = (1, 2000)
-    # arrival_velocity = (0, 0)
-    # time_of_flight = (100, 3000)
-    # incoming_velocity = (0, 5000)
-    # swingby_periapsis = (2e3, 2e8)
-    # free_coefficient = (-3e4, 3e4)
-    # number_of_revs = (0, 4)
-    # Isp = 3200 #guess
-    # m0 = 1300 #guess
+    no_of_runs = math.ceil((departure_date_range[1] - departure_date_range[0]) / ddate_step)
+    ddate_lb = departure_date_range[0]
 
-    departure_date=  (11263.51 - 30, 11263.51 + 30) #from island_0 EM_gen150
-    departure_velocity = (0, 0)
-    departure_inplane_angle = (0, 0)
-    departure_outofplane_angle = (0, 0)
-    arrival_velocity = (0, 3000)
-    arrival_inplane_angle = (0, 2 * np.pi)
-    arrival_outofplane_angle = (-np.pi / 4, np.pi / 4)
-    time_of_flight = (100, 4500)
-    incoming_velocity = (0, 5000)
-    swingby_periapsis = (2e5, 2e8)
-    orbit_ori_angle = (0, 2 * np.pi)
-    swingby_inplane_angle = (0, 2 * np.pi)
-    swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
-    free_coefficient = (-3e4, 3e4)
-    number_of_revs = (0, 2)
-    Isp = 3200 #guess
-    m0 = 1300 #guess
-    # manual_tof_bounds = [[100, 500], [1000, 4000]]
+    for i in range(no_of_runs):
+        #create various subdirectory names
+        # subdirectory = subdirectory_list[i]
 
-    bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
-               departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
-               arrival_outofplane_angle[0], time_of_flight[0], incoming_velocity[0],
-               swingby_periapsis[0], orbit_ori_angle[0], swingby_inplane_angle[0],
-               swingby_outofplane_angle[0], free_coefficient[0], number_of_revs[0]], 
-              [departure_date[1], departure_velocity[1], departure_inplane_angle[1],
-               departure_outofplane_angle[1], arrival_velocity[1], arrival_inplane_angle[1],
-               arrival_outofplane_angle[1], time_of_flight[1], incoming_velocity[1],
-               swingby_periapsis[1], orbit_ori_angle[1], swingby_inplane_angle[1],
-               swingby_outofplane_angle[1], free_coefficient[1], number_of_revs[1]]]
-    
-    # bounds = [[departure_date[0], departure_velocity[0], arrival_velocity[0], time_of_flight[0],
-    #            incoming_velocity[0], swingby_periapsis[0], orbit_ori_angle[0], free_coefficient[0],
-    #            number_of_revs[0]], 
-    #           [departure_date[1], departure_velocity[1], arrival_velocity[1], time_of_flight[1],
-    #            incoming_velocity[1], swingby_periapsis[1], orbit_ori_angle[1], free_coefficient[1],
-    #            number_of_revs[1]]]
+        #create the departure date variation
+        ddate_ub = ddate_lb + ddate_step
+        departure_date = (ddate_lb - 51544.5, ddate_ub - 51544.5)
+        print(f'Current departure date window: [{ddate_lb}, {ddate_ub}]')
 
-    # bounds = [[departure_date[0], departure_velocity[0], arrival_velocity[0], time_of_flight[0],
-    #            incoming_velocity[0], swingby_periapsis[0], free_coefficient[0], number_of_revs[0]], 
-    #           [departure_date[1], departure_velocity[1], arrival_velocity[1], time_of_flight[1],
-    #            incoming_velocity[1], swingby_periapsis[1], free_coefficient[1], number_of_revs[1]]]
+        subdirectory = \
+        f'/EEEMJ_lb{departure_date_range[0]}_ub{departure_date_range[1]}_test116/{int(ddate_lb)}_{int(ddate_ub)}'
+        print(f'Current save directory: {subdirectory}')
 
-    caldatelb = dateConversion(mjd2000=bounds[0][0]).mjd_to_date()
-    caldateub = dateConversion(mjd2000=bounds[1][0]).mjd_to_date()
-    print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
-    mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
-            transfer_body_order)
+        ddate_lb = ddate_ub
 
-    mga_low_thrust_problem = \
-    MGALowThrustTrajectoryOptimizationProblemAllAngles(transfer_body_order=transfer_body_order,
-              no_of_free_parameters=free_param_count, 
-              bounds=bounds, 
-              manual_base_functions=manual_base_functions, 
-              objectives=objectives, 
-              Isp=Isp,
-              m0=m0,
-              no_of_points=no_of_points,
-              zero_revs=zero_revs,
-              dynamic_bounds=dynamic_bounds,
-              manual_tof_bounds=manual_tof_bounds)
+        ## FAN ##
 
-    prob = pg.problem(mga_low_thrust_problem)
-    
-    mp.freeze_support()
-    # number_of_islands = cpu_count
+        # transfer_body_order = ["Earth", "Jupiter"]
+        # 
+        # # jd2000_dep_date_lb = 61420 - 51544.5
+        # # jd2000_dep_date_ub = 63382 - 51544.5
+        # # 
+        # # departure_date=  (jd2000_dep_date_lb, jd2000_dep_date_ub)
+
+        # # departure_date=  (62654 - 51544.5 - 30, 62654 - 51544.5 + 30)
+        # departure_velocity = (0, 0)
+        # departure_inplane_angle = (0, 0)
+        # departure_outofplane_angle = (0, 0)
+        # arrival_velocity = (0, 0)
+        # arrival_inplane_angle = (0, 0)
+        # arrival_outofplane_angle = (0, 0)
+        # time_of_flight = (100, 4500)
+        # incoming_velocity = (0, 5000)
+        # swingby_periapsis = (2e5, 1e9)
+        # orbit_ori_angle = (0, 2 * np.pi)
+        # swingby_inplane_angle = (0, 2 * np.pi)
+        # swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
+        # free_coefficient = (-1e4, 1e4)
+        # number_of_revs = (0, 2)
+        # Isp = 3200 #guess
+        # m0 = 1300 #guess
+        # manual_tof_bounds = [[500], [4500]]
+
+        # transfer_body_order = ["Earth", "Mars", "Jupiter"]
+
+        # # jd2000_dep_date_lb = 61420 - 51544.5
+        # # jd2000_dep_date_ub = 63382 - 51544.5
+        # # departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
+
+        # # departure_date=  (61872 - 51544.5 - 30, 61872 - 51544.5  + 30) #10328 from paper
+        # departure_velocity = (0, 0)
+        # departure_inplane_angle = (0, 0)
+        # departure_outofplane_angle = (0, 0)
+        # arrival_velocity = (0, 0)
+        # arrival_inplane_angle = (0,0)
+        # arrival_outofplane_angle = (0, 0)
+        # time_of_flight = (100, 4500)
+        # incoming_velocity = (0, 5000)
+        # swingby_periapsis = (2e5, 1e9)
+        # orbit_ori_angle = (0, 2 * np.pi)
+        # swingby_inplane_angle = (0, 2 * np.pi)
+        # swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
+        # free_coefficient = (-1e4, 1e4)
+        # number_of_revs = (0, 2)
+        # Isp = 3200 #guess
+        # m0 = 1300 #guess
+        # manual_tof_bounds = [[100, 500], [1500, 4500]]
+
+        # transfer_body_order = ["Earth", "Earth", "Mars", "Jupiter"]
+
+        # # jd2000_dep_date_lb = 61420 - 51544.5
+        # # jd2000_dep_date_ub = 63382 - 51544.5
+        # # departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
+
+        # # departure_date=  (61452 - 51544.5 - 30, 61452 - 51544.5  + 30) #10328 from paper
+        # # departure_date =  (61620 - 51544.5, 61680 - 51544.5)
+        # departure_velocity = (0, 0)
+        # departure_inplane_angle = (0, 0)
+        # departure_outofplane_angle = (0, 0)
+        # arrival_velocity = (0, 0)
+        # arrival_inplane_angle = (0, 0)
+        # arrival_outofplane_angle = (0, 0)
+        # time_of_flight = (100, 4500)
+        # incoming_velocity = (0, 5000)
+        # swingby_periapsis = (2e5, 1e9)
+        # orbit_ori_angle = (0, 2 * np.pi)
+        # swingby_inplane_angle = (0, 2 * np.pi)
+        # swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
+        # free_coefficient = (-1e4, 1e4)
+        # number_of_revs = (0, 2)
+        # Isp = 3200 #guess
+        # m0 = 1300 #guess
+        # manual_tof_bounds = [[20, 100, 500], [500, 1500, 4500]]
+
+        transfer_body_order = ["Earth", "Earth", "Earth", "Mars", "Jupiter"]
+
+        # jd2000_dep_date_lb = 61420 - 51544.5
+        # jd2000_dep_date_ub = 63382 - 51544.5
+        # departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
+
+        # departure_date=  (61872 - 51544.5 - 30, 61872 - 51544.5  + 30) #10328 from paper
+        departure_velocity = (0, 0)
+        departure_inplane_angle = (0, 0)
+        departure_outofplane_angle = (0, 0)
+        arrival_velocity = (0, 0)
+        arrival_inplane_angle = (0, 0)
+        arrival_outofplane_angle = (0, 0)
+        time_of_flight = (100, 4500)
+        incoming_velocity = (0, 5000)
+        swingby_periapsis = (2e5, 1e9)
+        orbit_ori_angle = (0, 2 * np.pi)
+        swingby_inplane_angle = (0, 2 * np.pi)
+        swingby_outofplane_angle = (-np.pi / 4, np.pi / 4)
+        free_coefficient = (-1e4, 1e4)
+        number_of_revs = (0, 2)
+        Isp = 3200 #guess
+        m0 = 1300 #guess
+        manual_tof_bounds = [[20, 20, 100, 500], [500, 500, 1500, 4500]]
+
+        bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
+                   departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
+                   arrival_outofplane_angle[0], time_of_flight[0], incoming_velocity[0],
+                   swingby_periapsis[0], orbit_ori_angle[0], swingby_inplane_angle[0],
+                   swingby_outofplane_angle[0], free_coefficient[0], number_of_revs[0]], 
+                  [departure_date[1], departure_velocity[1], departure_inplane_angle[1],
+                   departure_outofplane_angle[1], arrival_velocity[1], arrival_inplane_angle[1],
+                   arrival_outofplane_angle[1], time_of_flight[1], incoming_velocity[1],
+                   swingby_periapsis[1], orbit_ori_angle[1], swingby_inplane_angle[1],
+                   swingby_outofplane_angle[1], free_coefficient[1], number_of_revs[1]]]
+
+        caldatelb = dateConversion(mjd2000=bounds[0][0]).mjd_to_date()
+        caldateub = dateConversion(mjd2000=bounds[1][0]).mjd_to_date()
+        print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
+        mga_sequence_characters = util.transfer_body_order_conversion.get_mga_characters_from_list(
+                transfer_body_order)
+
+        mga_low_thrust_problem = \
+        MGALowThrustTrajectoryOptimizationProblemAllAngles(transfer_body_order=transfer_body_order,
+                  no_of_free_parameters=free_param_count, 
+                  bounds=bounds, 
+                  manual_base_functions=manual_base_functions, 
+                  objectives=objectives, 
+                  Isp=Isp,
+                  m0=m0,
+                  no_of_points=no_of_points,
+                  zero_revs=zero_revs,
+                  dynamic_bounds=dynamic_bounds,
+                  manual_tof_bounds=manual_tof_bounds)
+
+        prob = pg.problem(mga_low_thrust_problem)
+        
+        mp.freeze_support()
+        # number_of_islands = cpu_count
 
 ###################################################################
 # LTTO Optimisation ###############################################
 ###################################################################
 
-    my_population = pg.population(prob, size=pop_size, seed=seed)
-    if len(objectives) == 1:
-        algorithm = pg.algorithm(pg.gaco(gen=1))
-    elif len(objectives) == 2:
-        algorithm = pg.algorithm(pg.maco(gen=1))
-        # modulus_pop = pop_size % 4
-        # if modulus_pop != 0:
-        #     pop_size += (4-modulus_pop)
-        #     print(f'Population size not divisible by 4, increased by {4-modulus_pop}')
-    else:
-        raise RuntimeError('An number of objectives was provided that is not permitted')
+        my_population = pg.population(prob, size=pop_size, seed=seed)
+        if len(objectives) == 1:
+            algorithm = pg.algorithm(pg.sga(gen=1))
+        elif len(objectives) == 2:
+            algorithm = pg.algorithm(pg.nsga2(gen=1))
+            modulus_pop = pop_size % 4
+            if modulus_pop != 0:
+                pop_size += (4-modulus_pop)
+                print(f'Population size not divisible by 4, increased by {4-modulus_pop}')
+        else:
+            raise RuntimeError('An number of objectives was provided that is not permitted')
 
-    # my_island = pg.mp_island()
-    print('Creating archipelago')
-    archi = pg.archipelago(n=number_of_islands, algo = algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
+        if isinstance(topology_type, float) and 0 < topology_type <= 1:
+            topology = pg.fully_connected(w=topology_type)
+        elif topology_type == None:
+            topology = pg.unconnected()
+        else:
+            raise RuntimeError("The type of topology given is not permitted")
 
-    ## New
-    list_of_x_dicts, list_of_f_dicts, champions_x, \
-    champions_f, ndf_x, ndf_f = topo.manualTopology.perform_evolution(archi,
-                        number_of_islands,
-                        num_gen,
-                        objectives)
+        # my_island = pg.mp_island()
+        print('Creating archipelago')
+        archi = pg.archipelago(n=number_of_islands, t=topology, algo = algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
+
+        ## New
+        list_of_x_dicts, list_of_f_dicts, champions_x, \
+        champions_f, ndf_x, ndf_f = topo.manualTopology.perform_evolution(archi,
+                            number_of_islands,
+                            num_gen,
+                            objectives)
 
 ###########################################################################
 # Post processing #########################################################
 ###########################################################################
-    if write_results_to_file:
-        topo.manualTopology.create_files(type_of_optimisation='ltto',
-                            number_of_islands=number_of_islands,
-                            island_problem=mga_low_thrust_problem,
-                            champions_x=champions_x,
-                            champions_f=champions_f,
-                            list_of_f_dicts=list_of_f_dicts,
-                            list_of_x_dicts=list_of_x_dicts,
-                            ndf_f=ndf_f,
-                            ndf_x=ndf_x,
-                            no_of_points=no_of_points,
-                            Isp=Isp, 
-                            m0=m0,
-                            mga_sequence_characters=mga_sequence_characters,
-                            output_directory=output_directory,
-                            subdirectory=subdirectory,
-                            free_param_count=free_param_count,
-                            num_gen=num_gen,
-                            pop_size=pop_size,
-                            cpu_count=cpu_count,
-                            bounds=bounds,
-                            bound_names=bound_names)
+        if write_results_to_file:
+            topo.manualTopology.create_files(type_of_optimisation='ltto',
+                                number_of_islands=number_of_islands,
+                                island_problem=mga_low_thrust_problem,
+                                champions_x=champions_x,
+                                champions_f=champions_f,
+                                list_of_f_dicts=list_of_f_dicts,
+                                list_of_x_dicts=list_of_x_dicts,
+                                ndf_f=ndf_f,
+                                ndf_x=ndf_x,
+                                no_of_points=no_of_points,
+                                Isp=Isp, 
+                                m0=m0,
+                                mga_sequence_characters=mga_sequence_characters,
+                                output_directory=output_directory,
+                                subdirectory=subdirectory,
+                                free_param_count=free_param_count,
+                                num_gen=num_gen,
+                                pop_size=pop_size,
+                                cpu_count=cpu_count,
+                                bounds=bounds,
+                                bound_names=bound_names,
+                                archi=archi)

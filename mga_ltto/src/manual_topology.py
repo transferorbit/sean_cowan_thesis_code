@@ -18,8 +18,8 @@ import multiprocessing as mp
 import random
 
 
-# import sys
-# sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
+import sys
+sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle-test/build/tudatpy")
 
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
@@ -281,6 +281,7 @@ class manualTopology:
                     champ_f_dict_current_gen[j] = champions_f[j] 
             list_of_x_dicts.append(champs_dict_current_gen)
             list_of_f_dicts.append(champ_f_dict_current_gen)
+            # print('Topology', archi.get_topology())
 
             archi.wait_check()
 
@@ -430,7 +431,8 @@ class manualTopology:
                         pop_size=None,
                         cpu_count=None,
                         bounds=None,
-                        bound_names=None):
+                        bound_names=None,
+                        archi=None):
         if type_of_optimisation == 'ltto':
             no_of_sequence_recursions = 1
 
@@ -555,8 +557,17 @@ class manualTopology:
         optimisation_characteristics['CPU count,'] = cpu_count
         optimisation_characteristics['Isp'] = Isp
         optimisation_characteristics['m0'] = m0
+        optimisation_characteristics['Dynamic ToF'] = mga_low_thrust_problem.dynamic_bounds['time_of_flight']
+        optimisation_characteristics['Dynamic OOA'] = mga_low_thrust_problem.dynamic_bounds['orbit_ori_angle']
+        optimisation_characteristics['Dynamic Swingby out-of-plane angle'] = \
+        mga_low_thrust_problem.dynamic_bounds['swingby_outofplane']
+        optimisation_characteristics['Dynamic Swingby in-plane angle'] = \
+        mga_low_thrust_problem.dynamic_bounds['swingby_inplane']
+        optimisation_characteristics['Dynamic Shaping functions'] = \
+        mga_low_thrust_problem.dynamic_bounds['swingby_inplane']
         optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
                 type_of_optimisation == 'mgaso' else number_of_islands)
+        optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info()
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:

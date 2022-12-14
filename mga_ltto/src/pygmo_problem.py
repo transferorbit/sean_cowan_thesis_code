@@ -104,6 +104,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         [9.53667594  ,    0.05386179  ,    2.48599187   ,    49.95424423  ,   92.59887831   , 113.66242448],
         [19.18916464 ,     0.04725744 ,     0.77263783  ,    313.23810451 ,   170.95427630  ,   74.01692503],
         [30.06992276 ,     0.00859048 ,     1.77004347  ,    -55.12002969 ,    44.96476227  , 131.78422574]]
+
         astronomical_unit = 149597870.7e3 #m
         central_body_mu = 1.3271244e20 # m^3 / s^2
 
@@ -127,14 +128,14 @@ class MGALowThrustTrajectoryOptimizationProblem:
         if previous_body == next_body:
             # print("Option 1")
             assert pperiod_previous == pperiod_next
-            bounds = [pperiod_previous / 2, pperiod_previous * 20]
-        elif max([sma_previous, sma_next]) < 2:
+            bounds = [pperiod_previous / 4, pperiod_previous * 4]
+        elif max([sma_previous, sma_next]) < 2: # if smaller than 2 AU (Smaller than Jupiter)
             # print("Option 2")
-            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 0.5 *  max([pperiod_previous,
+            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 4 *  max([pperiod_previous,
                                                                         pperiod_next])]
         elif max([sma_previous, sma_next]) >= 2:
             # print("Option 3")
-            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 0.25 * max([pperiod_previous,
+            bounds = [0.1 * min([pperiod_previous, pperiod_next]), 4 * max([pperiod_previous,
                                                                         pperiod_next])]
         else:
             raise RuntimeError("The periods provided are formatted incorrectly")
@@ -1251,8 +1252,13 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
 
         if self.flyby_directions[i] == 'inner':
             lb =  0; ub = 2 * np.pi
-        else:
+        elif self.flyby_directions[i] == 'outer':
             lb = np.pi; ub = 2 * np.pi
+        elif self.flyby_directions[i] == 'same':
+            lb =  0; ub = 2 * np.pi
+        else:
+            raise RuntimeError(f"The type of flyby direction, {self.flyby_directions[i]}, is not defined properly")
+
         return lb, ub
 
     def get_outofplane_bounds(self):
@@ -1299,11 +1305,11 @@ class MGALowThrustTrajectoryOptimizationProblemAllAngles(MGALowThrustTrajectoryO
         swingby_inplane_angle_lb = self.bounds[0][11]
         swingby_inplane_angle_ub = self.bounds[1][11]
 
+        if self.dynamic_bounds['swingby_outofplane']:
+            self.bounds[0][12], self.bounds[1][12] = self.get_outofplane_bounds()
+            # print('swingby_outofplane', swingby_outofplane_angle_lb, swingby_outofplane_angle_ub)
         swingby_outofplane_angle_lb = self.bounds[0][12]
         swingby_outofplane_angle_ub = self.bounds[1][12]
-        if self.dynamic_bounds['swingby_outofplane']:
-            swingby_outofplane_angle_lb, swingby_outofplane_angle_ub = self.get_outofplane_bounds()
-            # print('swingby_outofplane', swingby_outofplane_angle_lb, swingby_outofplane_angle_ub)
 
 
         free_coefficients_lb = self.bounds[0][13]
