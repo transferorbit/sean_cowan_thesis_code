@@ -431,7 +431,6 @@ class manualTopology:
                         pop_size=None,
                         cpu_count=None,
                         bounds=None,
-                        bound_names=None,
                         archi=None):
         if type_of_optimisation == 'ltto':
             no_of_sequence_recursions = 1
@@ -450,8 +449,11 @@ class manualTopology:
                 # print("Champion: ", champions[i])
                 mga_low_thrust_problem = island_problems[layer][i] if type_of_optimisation == \
                 'mgaso' else island_problem
+
                 mga_low_thrust_problem.fitness(champions_x[layer][i] if type_of_optimisation == \
                 'mgaso' else champions_x[i], post_processing=True) # 2 is one loop
+
+                bound_names = mga_low_thrust_problem.bound_names
         
                 # State history
                 state_history = \

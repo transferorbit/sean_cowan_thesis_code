@@ -29,9 +29,17 @@ from src.trajectory3d import trajectory_3d
 # util.objective_per_generation_visualisation(dir=data_directory, no_of_islands=24)
 
 
-data_directory = "pp_ltto/EEMJ_lb61200_ub61600_test90/"
-util.get_scattered_objectives(data_directory)
+# data_directory = "pp_ltto/ddate_gs/EEMJ_lb62800_ub63200_test101/"
+# util.get_scattered_objectives(data_directory)
 
+data_directory = "pp_ltto/EEMJ_topocomp_24_repeat/EEMJ_g300p1200_test119/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24)
+data_directory = "pp_ltto/EEMJ_topocomp_24_repeat/EEMJ_g300p1200_test122/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24)
+data_directory = "pp_ltto/EEMJ_topocomp_24_repeat/EEMJ_g300p1200_test124/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24)
+data_directory = "pp_ltto/EEMJ_topocomp_24_repeat/EEMJ_g300p1200_test126/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24)
 
 
 

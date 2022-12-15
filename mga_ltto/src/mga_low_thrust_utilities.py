@@ -386,9 +386,9 @@ def get_node_free_parameters(transfer_body_order: list,
                              swingby_outofplane_angles : np.ndarray = np.array([None]),
                              dsm_deltav: np.ndarray=np.array([None]), 
                              departure_velocity: float = 0,
-                             arrival_velocity: float = 0,
                              departure_inplane_angle : float = 0,
                              departure_outofplane_angle: float = 0,
+                             arrival_velocity: float = 0,
                              arrival_inplane_angle : float = 0,
                              arrival_outofplane_angle : float = 0) -> list:
     """
@@ -860,7 +860,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
 
 def objective_per_generation_visualisation(dir=None, 
                                            dir_of_dir=None, 
-                                           no_of_islands=8):
+                                           no_of_islands=4):
 
     if dir != None:
         fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
@@ -903,6 +903,7 @@ def objective_per_generation_visualisation(dir=None,
 
 def get_scattered_objectives(dir_of_dir_of_dir=None):
 
+    dir_of_dir_of_dir_list = dir_of_dir_of_dir.split('/')[2].split('_')
     for root, dirs, files in os.walk(dir_of_dir_of_dir):
         directory_list = dirs
         break
@@ -915,8 +916,8 @@ def get_scattered_objectives(dir_of_dir_of_dir=None):
     fig, ax = plt.subplots(1, 1)
     for it, dir in enumerate(directory_list):
         dir_list = dir.split('_')
-        lb = dir_list[2]
-        ub = dir_list[3]
+        lb = dir_list[0]
+        ub = dir_list[1]
 
         champions[it] = np.loadtxt(root + dir + "/champions/champions.dat")[:, 1] / 86400 + 51544.5
         champion_fitness[it] = np.loadtxt(root + dir + "/champions/champion_fitness.dat")[:, 1]
@@ -925,9 +926,17 @@ def get_scattered_objectives(dir_of_dir_of_dir=None):
         ax.axvline(float(ub), c='k', linestyle='-', linewidth=0.5)
         ax.set_ylabel(r'$\Delta V$ [m / s]')
         ax.set_xlabel(r'ToF [days]')
+    fitness_array = np.array(list(champion_fitness.values()))
+    min_deltav_value = np.min(fitness_array)
+    ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value)}')
+    trans = transforms.blended_transform_factory(
+    ax.get_yticklabels()[0].get_transform(), ax.transData)
+    ax.text(0,min_deltav_value, f"{int(min_deltav_value)}", color="red", transform=trans, 
+            ha="right", va="center")
     ax.legend()
     ax.grid()
-    ax.set_title(dir_list[0])
+    ax.set_title(dir_of_dir_of_dir_list [0])
+    ax.set_ylim([15000, 20000])
     
 
 def pareto_front(dir=None,
