@@ -860,7 +860,23 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
 
 def objective_per_generation_visualisation(dir=None, 
                                            dir_of_dir=None, 
-                                           no_of_islands=4):
+                                           no_of_islands=4,
+                                           title=1):
+    """
+    Function that takes directories and returns the champions per generation for one or multiple islands
+
+    Parameters
+    ----------
+    dir : str
+        String representing directory of island_x
+    dir_of_dir : str
+        String ending with /islands/ that represents all islands to be plotted
+
+    Returns
+    -------
+    fig, ax : plt.figure
+        Figure plotting the champion fitness per generation.
+    """
 
     if dir != None:
         fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
@@ -896,23 +912,30 @@ def objective_per_generation_visualisation(dir=None,
     ax.get_yticklabels()[0].get_transform(), ax.transData)
     ax.text(0,min_deltav_value, "{:.0f}".format(min_deltav_value), color="red", transform=trans, 
             ha="right", va="center")
-    ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
-    # ax.set_title(dir_list[1], fontweight='semibold', fontsize=18)
+    # ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
+    ax.set_title(dir_list[title], fontweight='semibold', fontsize=18)
     # ax.set_yscale('log')
-    ax.set_ylim([0, 40000])
+    ax.set_ylim([10000, 80000])
 
-def get_scattered_objectives(dir_of_dir_of_dir=None):
+def get_scattered_objectives(dir_of_dir_of_dir=None,
+                             title=2,
+                             add_local_optimisation=False,
+                             no_of_islands=4):
 
     dir_of_dir_of_dir_list = dir_of_dir_of_dir.split('/')[2].split('_')
+    # print(dir_of_dir_of_dir_list)
     for root, dirs, files in os.walk(dir_of_dir_of_dir):
         directory_list = dirs
+        # print(directory_list)
         break
 
     color_list = \
     ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
     
     champion_fitness = {}
+    champion_fitness_local = {}
     champions = {}
+    champions_local = {}
     fig, ax = plt.subplots(1, 1)
     for it, dir in enumerate(directory_list):
         dir_list = dir.split('_')
@@ -920,13 +943,25 @@ def get_scattered_objectives(dir_of_dir_of_dir=None):
         ub = dir_list[1]
 
         champions[it] = np.loadtxt(root + dir + "/champions/champions.dat")[:, 1] / 86400 + 51544.5
-        champion_fitness[it] = np.loadtxt(root + dir + "/champions/champion_fitness.dat")[:, 1]
+        champion_fitness[it] = np.loadtxt(root + dir + "/champions/champion_fitness.dat")[:, 1] 
         ax.scatter(champions[it], champion_fitness[it], c=color_list[it], label=f'{lb} - {ub}')
-        ax.axvline(float(lb), c='k', linestyle='-', linewidth=0.5)
-        ax.axvline(float(ub), c='k', linestyle='-', linewidth=0.5)
+        if add_local_optimisation:
+            champion_fitness_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population.dat")[:, 1]
+            champions_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
+            ax.scatter(champions_local[it], champion_fitness_local[it], c=color_list[it], marker="*")
+            for it2 in range(no_of_islands):
+                # ax.axvline((champions_local[it][it2] / 86400) + 51544.5, ymin=(champion_fitness_local[it][it2] - 15000) / 5000,
+                #            ymax=(champion_fitness[it][it2] - 15000) / 5000, c=color_list[it], linestyle='--', linewidth=0.5)
+                x_points = [champions[it][it2], champions_local[it][it2]]
+                f_points = [champion_fitness[it][it2], champion_fitness_local[it][it2]]
+                ax.plot(x_points, f_points, c=color_list[it], linestyle='--', linewidth=0.5)
+        # ax.axvline(float(lb), c='k', linestyle='-', linewidth=1)
+        # ax.axvline(float(ub), c='k', linestyle='-', linewidth=1)
         ax.set_ylabel(r'$\Delta V$ [m / s]')
-        ax.set_xlabel(r'ToF [days]')
-    fitness_array = np.array(list(champion_fitness.values()))
+        ax.set_xlabel(r'Departure Date [JD]')
+
+    fitness_array = np.array(list(champion_fitness.values())) if not add_local_optimisation else \
+                            np.array(list(champion_fitness_local.values())) 
     min_deltav_value = np.min(fitness_array)
     ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value)}')
     trans = transforms.blended_transform_factory(
@@ -935,7 +970,7 @@ def get_scattered_objectives(dir_of_dir_of_dir=None):
             ha="right", va="center")
     ax.legend()
     ax.grid()
-    ax.set_title(dir_of_dir_of_dir_list [0])
+    ax.set_title(dir_of_dir_of_dir.split('/')[title])
     ax.set_ylim([15000, 20000])
     
 

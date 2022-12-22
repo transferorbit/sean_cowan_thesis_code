@@ -17,15 +17,15 @@ import pygmo as pg
 import multiprocessing as mp
 import random
 
-
-import sys
-sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle-test/build/tudatpy")
+# import sys
+# sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle-test/build/tudatpy")
 
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 
 # import mga_low_thrust_utilities as mga_util
-from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
+from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblemAllAngles, \
+    MGALowThrustTrajectoryOptimizationProblemOptimAngles
 import src.mga_low_thrust_utilities as util
 
 class manualTopology:
@@ -557,16 +557,21 @@ class manualTopology:
         optimisation_characteristics['Number of generations,'] = num_gen
         optimisation_characteristics['Population size,'] = pop_size
         optimisation_characteristics['CPU count,'] = cpu_count
-        optimisation_characteristics['Isp'] = Isp
-        optimisation_characteristics['m0'] = m0
-        optimisation_characteristics['Dynamic ToF'] = mga_low_thrust_problem.dynamic_bounds['time_of_flight']
-        optimisation_characteristics['Dynamic OOA'] = mga_low_thrust_problem.dynamic_bounds['orbit_ori_angle']
-        optimisation_characteristics['Dynamic Swingby out-of-plane angle'] = \
+        optimisation_characteristics['Isp,'] = Isp
+        optimisation_characteristics['m0,'] = m0
+        optimisation_characteristics['Manual base functions,'] = mga_low_thrust_problem.manual_base_functions
+        optimisation_characteristics['Zero revs,'] = mga_low_thrust_problem.zero_revs
+        optimisation_characteristics['Dynamic time_of_flight,'] = mga_low_thrust_problem.dynamic_bounds['time_of_flight']
+        optimisation_characteristics['Dynamic orbit_ori_angle,'] = mga_low_thrust_problem.dynamic_bounds['orbit_ori_angle']
+        optimisation_characteristics['Dynamic swingby_outofplane,'] = \
         mga_low_thrust_problem.dynamic_bounds['swingby_outofplane']
-        optimisation_characteristics['Dynamic Swingby in-plane angle'] = \
+        optimisation_characteristics['Dynamic swingby_inplane,'] = \
         mga_low_thrust_problem.dynamic_bounds['swingby_inplane']
-        optimisation_characteristics['Dynamic Shaping functions'] = \
+        optimisation_characteristics['Dynamic shaping_function,'] = \
         mga_low_thrust_problem.dynamic_bounds['swingby_inplane']
+        optimisation_characteristics[f'Objective 1,'] = mga_low_thrust_problem.objectives[0]
+        if len(mga_low_thrust_problem.objectives) > 1:
+            optimisation_characteristics[f'Objective 2,'] = mga_low_thrust_problem.objectives[1]
         optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
                 type_of_optimisation == 'mgaso' else number_of_islands)
         optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info()
@@ -578,15 +583,17 @@ class manualTopology:
                     min = ' UB'
                 optimisation_characteristics[bound_names[j] + min + ','] = bounds[k][j]
         if mga_low_thrust_problem.manual_tof_bounds != None:
+            it = 0
             for i in range(len(mga_low_thrust_problem.manual_tof_bounds[0])):
                 optimisation_characteristics[
-                        f'Manual ToF bounds LB {mga_low_thrust_problem.legstrings[i]},'] = \
+                        f'Manual ToF bounds Leg {it} - {mga_low_thrust_problem.legstrings[i]} LB,'] = \
                         mga_low_thrust_problem.manual_tof_bounds[0][i]
                 optimisation_characteristics[
-                        f'Manual ToF bounds UB {mga_low_thrust_problem.legstrings[i]},'] = \
+                        f'Manual ToF bounds Leg {it} - {mga_low_thrust_problem.legstrings[i]} UB,'] = \
                         mga_low_thrust_problem.manual_tof_bounds[1][i]
-            optimisation_characteristics.pop('Time of Flight [s] LB,')
-            optimisation_characteristics.pop('Time of Flight [s] UB,')
+                it += 1
+            # optimisation_characteristics.pop('Time of Flight [s] LB,')
+            # optimisation_characteristics.pop('Time of Flight [s] UB,')
 
         # ndf of all islands together # only ltto
         # ndf_f_all_islands = [pg.non_dominated_front_2d(ndf_f[j]) for i in range(number_of_islands)] # determine how to sort
@@ -1055,3 +1062,130 @@ def run_mgso_optimisation(departure_planet : str,
                             cpu_count=cpu_count,
                             bounds=bounds)
 
+
+def perform_local_optimisation(dir_of_dir=None, 
+                               no_of_islands=4,
+                               max_eval=2000,
+                               max_time=300,
+                               set_verbose=False,
+                               print_results=False):
+    """
+    dir_of_dir : str
+    A directory as a string containing champions, islands, and optimisation_characteristics
+    no_of_islands : int
+    An integer representing the number of islands that were used for the optimisation
+    """
+
+    dir_list = dir_of_dir.split('/')
+    fitness_value_dict = {}
+    variable_value_dict = {}
+    auxiliary_info = np.loadtxt(dir_of_dir + 'islands/island_0/auxiliary_info.dat', delimiter=',', dtype=str)
+    optim_chars = np.loadtxt(dir_of_dir + 'optimisation_characteristics.dat', delimiter=',', dtype=str)
+
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
+    optim_chars_dict = {}
+    for i in range(len(optim_chars)):
+        optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
+
+    transfer_body_order = util.transfer_body_order_conversion.get_mga_list_from_characters(
+                                                                    auxiliary_info_dict['MGA Sequence'])
+    free_param_count = int(optim_chars_dict["Free parameter count"])
+    bounds = [[float(value) for key, value in optim_chars_dict.items() if key.split(' ')[-1] == 'LB' 
+               and key.split(' ')[0] != 'Manual'],
+              [float(value) for key, value in optim_chars_dict.items() if key.split(' ')[-1] == 'UB'
+               and key.split(' ')[0] != 'Manual']]
+
+    manual_base_functions = optim_chars_dict["Manual base functions"]
+    objectives = [optim_chars_dict["Objective 1"]]
+    no_of_points = int(optim_chars_dict["No of points"])
+    zero_revs = True if optim_chars_dict["Zero revs"] == "True" else False
+
+    dynamic_bounds = {key.split(' ')[1] : True if value == "True" else False for key, value in optim_chars_dict.items() if key.split(' ')[0] == 'Dynamic'}
+
+    manual_tof_bounds = [[float(value) for key, value in optim_chars_dict.items() if key.split(' ')[0] == 'Manual' and
+                            key.split(' ')[-1] == 'LB'], 
+                         [float(value) for key, value in optim_chars_dict.items() if key.split(' ')[0] == 'Manual' and
+                            key.split(' ')[-1] == 'UB']]
+    # print('Bounds : ', bounds)
+
+    Isp = int(auxiliary_info_dict["Isp"])
+    m0 = int(auxiliary_info_dict["m0"])
+
+
+    mga_low_thrust_problem = \
+    MGALowThrustTrajectoryOptimizationProblemAllAngles(transfer_body_order=transfer_body_order,
+              no_of_free_parameters=free_param_count, 
+              bounds=bounds, 
+              manual_base_functions=manual_base_functions, 
+              objectives=objectives, 
+              Isp=Isp,
+              m0=m0,
+              no_of_points=no_of_points,
+              zero_revs=zero_revs,
+              dynamic_bounds=dynamic_bounds,
+              manual_tof_bounds=manual_tof_bounds)
+
+    # pop_size = int(optim_chars_dict['Population size'])
+    # pop_size = no_of_islands # because deterministic method, so 1 island converges to same thing
+    prob = pg.problem(mga_low_thrust_problem)
+
+    my_optimiser = pg.nlopt(solver='neldermead')
+    my_optimiser.maxeval = max_eval
+    my_optimiser.ftol_rel = 0.001
+    my_optimiser.maxtime = max_time
+
+    my_algorithm = pg.algorithm(my_optimiser)
+    if set_verbose:
+        my_algorithm.set_verbosity(1)
+    archi = pg.archipelago(t=pg.topology(pg.unconnected()))#, udi = my_island)
+
+    for i in range(no_of_islands):
+        my_population = pg.population(prob)
+        fitness_value_dict[i] = np.loadtxt(dir_of_dir + f'islands/island_{i}/champ_f_per_gen.dat')
+        variable_value_dict[i] = np.loadtxt(dir_of_dir + f'islands/island_{i}/champs_per_gen.dat')
+        # print(fitness_value_dict[i][-1, 1:])
+        my_population.push_back(variable_value_dict[i][-1, 1:], f=fitness_value_dict[i][-1, 1:])
+        my_island = pg.island(algo=my_algorithm, pop=my_population)
+        archi.push_back(my_island)
+
+    initial_population = np.array(archi.get_champions_f()).copy()
+    # mp.freeze_support()
+    if print_results:
+        print('Creating archipelago')
+        print('Evolving ..')
+    archi.evolve()
+    archi.wait_check()
+
+    final_population = np.array(archi.get_champions_f())
+    final_population_dict = {it: fitness for it, fitness in enumerate(final_population)}
+
+    final_population_x = np.array(archi.get_champions_x())
+    final_population_x_dict = {it: dpv for it, dpv in enumerate(final_population_x)}
+
+    diff_pop = np.array([initial_population[i] - final_population[i] for i in range(len(initial_population))])
+    diff_pop_dict = {it: fitness for it, fitness in enumerate(diff_pop)}
+
+    perc_pop = np.array([diff_pop[i] * 100 / initial_population[i] for i in range(len(initial_population))])
+    perc_pop_dict = {it: fitness for it, fitness in enumerate(perc_pop)}
+
+    if print_results:
+        print('Evolution finished')
+
+        print('Initial fitness population', initial_population.reshape(1, 24))
+        print('Final fitness population', final_population.reshape(1, 24))
+
+        print('Absolute improvement :', diff_pop.reshape(1, 24))
+        print('Improvement percentage :', perc_pop.reshape(1, 24))
+
+        print('Initial minimum : ', np.min(initial_population))
+        print('Final minimum : ', np.min(final_population))
+
+    save2txt(final_population_dict, 'final_population.dat', dir_of_dir + 'local_optimisation/')
+    save2txt(final_population_x_dict, 'final_population_x.dat', dir_of_dir + 'local_optimisation/')
+    save2txt(diff_pop_dict, 'absolute_improvement.dat', dir_of_dir + 'local_optimisation/')
+    save2txt(perc_pop_dict, 'percentage_improvement.dat', dir_of_dir + 'local_optimisation/')
+
+    # return archi, initial_population

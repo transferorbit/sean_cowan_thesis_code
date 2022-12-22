@@ -63,7 +63,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'swingby_outofplane' : False,
             'swingby_inplane' : False,
             'shaping_function' : False}
-    write_results_to_file = True
+    write_results_to_file = False
     manual_base_functions = False
     topology_type = None #float or None
     zero_revs = False
@@ -79,8 +79,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #                      '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90']
 
     free_param_count = 1
-    num_gen = 300
-    pop_size = 1200
+    num_gen = 3
+    pop_size = 120
     cpu_count = os.cpu_count() // 2# not very relevant because different machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')
@@ -94,7 +94,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     #manual ddate_step
     # ddate_step = 60
-    ddate_step = 400
+    # ddate_step = 400
     
     # departure_date_range = (62000, 62400) # EJ #MJD
     # departure_date_range = (62400, 62800) # EJ #MJD
@@ -108,29 +108,31 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # departure_date_range = (61600, 62000) # EEMJ #MJD
     # departure_date_range = (62000, 62400) # EEMJ #MJD
     
-    departure_date_range = (61600, 62000) # EEEMJ #MJD
+    # departure_date_range = (61600, 62000) # EEEMJ #MJD
     # departure_date_range = (62000, 62400) # EEEMJ #MJD
     # departure_date_range = (62400, 62800) # EEEMJ #MJD
     
-    no_of_runs = math.ceil((departure_date_range[1] - departure_date_range[0]) / ddate_step)
-    ddate_lb = departure_date_range[0]
+    # no_of_runs = math.ceil((departure_date_range[1] - departure_date_range[0]) / ddate_step)
+    # ddate_lb = departure_date_range[0]
+
+    no_of_runs = 1
 
     for i in range(no_of_runs):
         #create various subdirectory names
-        # subdirectory = subdirectory_list[i]
+        # # subdirectory = subdirectory_list[i]
+        #
+        # #create the departure date variation
+        # ddate_ub = ddate_lb + ddate_step
+        # departure_date = (ddate_lb - 51544.5, ddate_ub - 51544.5)
+        # print(f'Current departure date window: [{ddate_lb}, {ddate_ub}]')
+        #
+        # # subdirectory = \
+        # # f'/EEEMJ_lb{departure_date_range[0]}_ub{departure_date_range[1]}_test114/{int(ddate_lb)}_{int(ddate_ub)}'
+        # # print(f'Current save directory: {subdirectory}')
+        #
+        # ddate_lb = ddate_ub
 
-        #create the departure date variation
-        ddate_ub = ddate_lb + ddate_step
-        departure_date = (ddate_lb - 51544.5, ddate_ub - 51544.5)
-        print(f'Current departure date window: [{ddate_lb}, {ddate_ub}]')
-
-        subdirectory = \
-        f'/EEEMJ_lb{departure_date_range[0]}_ub{departure_date_range[1]}_test114/{int(ddate_lb)}_{int(ddate_ub)}'
-        print(f'Current save directory: {subdirectory}')
-
-        ddate_lb = ddate_ub
-
-        # subdirectory = '/EEMJ_g300p1200_test126'
+        subdirectory = '/EEEMJ_optchars_test2'
 
         ## FAN ##
 
@@ -216,7 +218,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         # jd2000_dep_date_ub = 63382 - 51544.5
         # departure_date = (jd2000_dep_date_lb, jd2000_dep_date_ub)
 
-        # departure_date=  (61872 - 51544.5 - 30, 61872 - 51544.5  + 30) #10328 from paper
+        departure_date=  (61872 - 51544.5 - 30, 61872 - 51544.5  + 30) #10328 from paper
         departure_velocity = (0, 0)
         departure_inplane_angle = (0, 0)
         departure_outofplane_angle = (0, 0)
@@ -236,24 +238,24 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         manual_tof_bounds = [[20, 20, 100, 500], [500, 500, 1500, 4500]]
 
         #OptimAngles
-        # bounds = [[departure_date[0], time_of_flight[0], incoming_velocity[0],
-        #            swingby_periapsis[0], orbit_ori_angle[0], swingby_inplane_angle[0],
-        #            swingby_outofplane_angle[0], free_coefficient[0], number_of_revs[0]], 
-        #           [departure_date[1], time_of_flight[1], incoming_velocity[1],
-        #            swingby_periapsis[1], orbit_ori_angle[1], swingby_inplane_angle[1],
-        #            swingby_outofplane_angle[1], free_coefficient[1], number_of_revs[1]]]
-
-        #AllAngles
-        bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
-                   departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
-                   arrival_outofplane_angle[0], time_of_flight[0], incoming_velocity[0],
+        bounds = [[departure_date[0], time_of_flight[0], incoming_velocity[0],
                    swingby_periapsis[0], orbit_ori_angle[0], swingby_inplane_angle[0],
                    swingby_outofplane_angle[0], free_coefficient[0], number_of_revs[0]], 
-                  [departure_date[1], departure_velocity[1], departure_inplane_angle[1],
-                   departure_outofplane_angle[1], arrival_velocity[1], arrival_inplane_angle[1],
-                   arrival_outofplane_angle[1], time_of_flight[1], incoming_velocity[1],
+                  [departure_date[1], time_of_flight[1], incoming_velocity[1],
                    swingby_periapsis[1], orbit_ori_angle[1], swingby_inplane_angle[1],
                    swingby_outofplane_angle[1], free_coefficient[1], number_of_revs[1]]]
+
+        #AllAngles
+        # bounds = [[departure_date[0], departure_velocity[0], departure_inplane_angle[0],
+        #            departure_outofplane_angle[0], arrival_velocity[0], arrival_inplane_angle[0],
+        #            arrival_outofplane_angle[0], time_of_flight[0], incoming_velocity[0],
+        #            swingby_periapsis[0], orbit_ori_angle[0], swingby_inplane_angle[0],
+        #            swingby_outofplane_angle[0], free_coefficient[0], number_of_revs[0]], 
+        #           [departure_date[1], departure_velocity[1], departure_inplane_angle[1],
+        #            departure_outofplane_angle[1], arrival_velocity[1], arrival_inplane_angle[1],
+        #            arrival_outofplane_angle[1], time_of_flight[1], incoming_velocity[1],
+        #            swingby_periapsis[1], orbit_ori_angle[1], swingby_inplane_angle[1],
+        #            swingby_outofplane_angle[1], free_coefficient[1], number_of_revs[1]]]
 
         caldatelb = dateConversion(mjd2000=bounds[0][0]).mjd_to_date()
         caldateub = dateConversion(mjd2000=bounds[1][0]).mjd_to_date()
@@ -262,7 +264,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                 transfer_body_order)
 
         mga_low_thrust_problem = \
-        MGALowThrustTrajectoryOptimizationProblemAllAngles(transfer_body_order=transfer_body_order,
+        MGALowThrustTrajectoryOptimizationProblemOptimAngles(transfer_body_order=transfer_body_order,
                   no_of_free_parameters=free_param_count, 
                   bounds=bounds, 
                   manual_base_functions=manual_base_functions, 
