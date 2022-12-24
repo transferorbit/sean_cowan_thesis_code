@@ -63,9 +63,9 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'swingby_outofplane' : False,
             'swingby_inplane' : False,
             'shaping_function' : False}
-    write_results_to_file = False
+    write_results_to_file = True
     manual_base_functions = False
-    topology_type = None #float or None
+    topology_type = 0.01 #float or None
     zero_revs = False
     objectives = ['dv'] #dv, tof, pmf, dmf
     
@@ -132,7 +132,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         #
         # ddate_lb = ddate_ub
 
-        subdirectory = '/EEEMJ_optchars_test2'
+        subdirectory = '/EEEMJ_optcharsalgo_test2'
 
         ## FAN ##
 
@@ -287,7 +287,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
         my_population = pg.population(prob, size=pop_size, seed=seed)
         if len(objectives) == 1:
-            algorithm = pg.algorithm(pg.sga(gen=1))
+            algorithm = pg.algorithm(pg.sga(gen=1, mutation='uniform', seed=seed))
         elif len(objectives) == 2:
             algorithm = pg.algorithm(pg.nsga2(gen=1))
             modulus_pop = pop_size % 4

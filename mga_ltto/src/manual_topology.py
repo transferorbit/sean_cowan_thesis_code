@@ -575,6 +575,7 @@ class manualTopology:
         optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
                 type_of_optimisation == 'mgaso' else number_of_islands)
         optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info()
+        optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info()
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:

@@ -39,15 +39,15 @@ import src.manual_topology as topo
 # data_directory = "pp_ltto/ddate_gs_60/EMJ_lb62400_ub62800_test98/"
 # util.get_scattered_objectives(data_directory, add_local_optimisation=True, no_of_islands=24)
 
-data_directory = "pp_ltto/EN_testing/EEEMJN_test172/islands/"
+data_directory = "pp_ltto/pp_ltto/EEEMJ_test173/islands/"
 util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
-# data_directory = "pp_ltto/EN_testing/EMJN_test168/islands/"
+data_directory = "pp_ltto/pp_ltto/EEEMJ_test176/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
+data_directory = "pp_ltto/pp_ltto/EEEMJ_test177/islands/"
+util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
+# data_directory = "pp_ltto/EN_testing/EEEMJN_test174/islands/"
 # util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
-# data_directory = "pp_ltto/EN_testing/EEMJN_test169/islands/"
-# util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
-# data_directory = "pp_ltto/EN_testing/EEMJN_test170/islands/"
-# util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
-# data_directory = "pp_ltto/EN_testing/EJN_test166/islands/"
+# data_directory = "pp_ltto/EN_testing/EEEMJN_test174/islands/"
 # util.objective_per_generation_visualisation(dir_of_dir=data_directory, no_of_islands=24, title=2)
 
 
