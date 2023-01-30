@@ -33,37 +33,29 @@ class manualTopology:
     def __init__(self) -> None:
         pass
 
-    # @staticmethod
-    # def create_island(transfer_body_order, free_param_count, bounds, num_gen, pop_size):
-    #     mga_low_thrust_object = \
-    #     MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
-    #             no_of_free_parameters=free_param_count, bounds=bounds)
-    #     problem = pg.problem(mga_low_thrust_object)
-    #     algorithm = pg.algorithm(pg.sga(gen=num_gen))
-    #     return pg.island(algo=algorithm, prob=problem, size=pop_size, udi=pg.mp_island()), mga_low_thrust_object
-
     @staticmethod
     def create_island(iteration, 
                         transfer_body_order, 
                         free_param_count, 
                         bounds, 
-                        Isp,
-                        m0,
-                        num_gen, 
                         pop_size,
                         leg_exchange, 
                         leg_database, 
                         manual_base_functions=False, 
                         elitist_fraction=0.1,
-                        dynamic_bounds=False,
+                        dynamic_bounds=None,
                         objectives=['dv'],
+                        no_of_points=100,
+                        manual_tof_bounds=None,
+                        Isp=None,
+                        m0=None,
                         zero_revs=False):
         """
         Function that can create an island with completely random individuals or with partially
         predefined individuals that were found to be high fitness
         """
         mga_low_thrust_problem = \
-        MGALowThrustTrajectoryOptimizationProblem(transfer_body_order=transfer_body_order,
+        MGALowThrustTrajectoryOptimizationProblemOptimAngles(transfer_body_order=transfer_body_order,
                 no_of_free_parameters=free_param_count, 
                 bounds=bounds,
                 manual_base_functions=manual_base_functions, 
@@ -71,7 +63,9 @@ class manualTopology:
                 Isp=Isp,
                 m0=m0,
                 dynamic_bounds=dynamic_bounds,
-                zero_revs=zero_revs)
+                no_of_points=no_of_points,
+                zero_revs=zero_revs,
+                manual_tof_bounds=manual_tof_bounds)
 
         no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
         no_of_random_individuals = pop_size - no_of_predefined_individuals
@@ -134,8 +128,6 @@ class manualTopology:
                             free_param_count, 
                             pop_size,
                             bounds,
-                            Isp,
-                            m0,
                             max_no_of_gas,
                             number_of_sequences_per_planet,
                             itbs,
@@ -143,16 +135,18 @@ class manualTopology:
                             leg_exchange,
                             leg_database,
                             manual_base_functions, 
-                            dynamic_shaping_functions,
                             dynamic_bounds,
                             elitist_fraction,
                             seed,
                             objectives,
-                            zero_revs):
+                            evaluated_sequences_chars_list,
+                            Isp=None,
+                            m0=None,
+                            zero_revs=None):
 
         current_max_no_of_gas = max_no_of_gas - iteration
         current_island_problems = []
-        temp_evaluated_sequences = []
+        temp_evaluated_sequences_chars = []
         temp_ptbs = []
 
         no_of_possible_planets = len(planet_list)
@@ -196,30 +190,47 @@ class manualTopology:
                         possible_planets=planet_list, max_no_of_gas=current_max_no_of_gas)
                 transfer_body_order = ptbs + random_sequence + [arrival_planet]
 
+                # Check if the transfer body order is unique
+                while not manualTopology.check_uniqueness(transfer_body_order, evaluated_sequences_chars_list,
+                                                      temp_evaluated_sequences_chars):
+                    random_sequence = manualTopology.create_random_transfer_body_order(
+                            possible_planets=planet_list, max_no_of_gas=current_max_no_of_gas)
+                    transfer_body_order = ptbs + random_sequence + [arrival_planet]
+
+
             temp_ptbs.append(ptbs)
-            temp_evaluated_sequences.append(transfer_body_order) 
+            temp_evaluated_sequences_chars.append(util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order))
             print(transfer_body_order)
             island_to_be_added, current_island_problem = \
             manualTopology.create_island(iteration=iteration, 
                                         transfer_body_order=transfer_body_order,
                                         free_param_count=free_param_count, 
                                         bounds=bounds, 
-                                        Isp=Isp, 
-                                        m0=m0, 
-                                        num_gen=1,
                                         pop_size=pop_size, 
                                         leg_exchange=leg_exchange, 
                                         leg_database=leg_database,
                                         manual_base_functions=manual_base_functions, 
-                                        objectives=objectives,
-                                        dynamic_bounds=dynamic_bounds,
                                         elitist_fraction=elitist_fraction, 
+                                        dynamic_bounds=dynamic_bounds,
+                                        objectives=objectives,
+                                        Isp=Isp, 
+                                        m0=m0, 
                                         zero_revs=zero_revs)
 
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
-        return temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi
+        return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
+
+    @staticmethod
+    def check_uniqueness(tbo, evaluated_sequences_chars_list, temp_evaluated_sequences_chars):
+        tbo_chars = util.transfer_body_order_conversion.get_mga_characters_from_list(tbo) 
+        for i in evaluated_sequences_chars_list + temp_evaluated_sequences_chars:
+            if tbo_chars == i:
+                print(f'{tbo_chars} is not unique')
+                return False
+        print(f'{tbo_chars} is unique')
+        return True
 
     @staticmethod
     def perform_evolution(archi, 
@@ -270,7 +281,7 @@ class manualTopology:
                 return champs_f, ndf_f
 
         for i in range(num_gen): # step between which topology steps are executed
-            print('Evolving Gen : %i / %i' % (i+1, num_gen))
+            print('Evolving Gen : %i / %i' % (i+1, num_gen), end='\r')
             archi.evolve()
             champs_dict_current_gen = {}
             champ_f_dict_current_gen = {}
@@ -332,11 +343,12 @@ class manualTopology:
                 dep_index = it
             if i == arrival_planet or i == arrival_planet[0]:
                 arr_index = it
-        if arr_index < dep_index:
-            number_of_truncations = len(planet_list) - dep_index - 1
+
+        if arr_index < dep_index: #transfer to inner planet
+            number_of_truncations = len(planet_list) - dep_index# - 1 #do not include final target
             # print(number_of_truncations)
-        else:
-            number_of_truncations = len(planet_list) - arr_index - 1
+        else: #transfer to outer planet
+            number_of_truncations = len(planet_list) - arr_index# - 1
             # print(number_of_truncations)
         for i in range(number_of_truncations):
             planet_list.pop()
@@ -406,32 +418,33 @@ class manualTopology:
 
     @staticmethod
     def create_files(type_of_optimisation=None,
-                        no_of_sequence_recursions=None,
-                        number_of_islands_array=[None],
-                        number_of_islands=None,
-                        island_problems=None,
-                        island_problem=None,
-                        champions_x=None,
-                        champions_f=None,
-                        list_of_lists_of_f_dicts={0:None},
-                        list_of_lists_of_x_dicts={0:None},
-                        list_of_f_dicts=None,
-                        list_of_x_dicts=None,
-                        ndf_f=None,
-                        ndf_x=None,
-                        no_of_points=None,
-                        Isp=None, 
-                        m0=None,
-                        unsorted_evaluated_sequences_database=None,
-                        mga_sequence_characters=None,
-                        output_directory=None,
-                        subdirectory=None,
-                        free_param_count=None,
-                        num_gen=None,
-                        pop_size=None,
-                        cpu_count=None,
-                        bounds=None,
-                        archi=None):
+                         no_of_sequence_recursions=None,
+                         number_of_islands_array=[None],
+                         number_of_islands=None,
+                         island_problems=None,
+                         island_problem=None,
+                         champions_x=None,
+                         champions_f=None,
+                         list_of_lists_of_f_dicts={0:None},
+                         list_of_lists_of_x_dicts={0:None},
+                         list_of_f_dicts=None,
+                         list_of_x_dicts=None,
+                         ndf_f=None,
+                         ndf_x=None,
+                         no_of_points=None,
+                         Isp=None, 
+                         m0=None,
+                         unsorted_evaluated_sequences_database=None,
+                         mga_sequence_characters=None,
+                         output_directory=None,
+                         subdirectory=None,
+                         free_param_count=None,
+                         num_gen=None,
+                         pop_size=None,
+                         cpu_count=None,
+                         bounds=None,
+                         archi=None,
+                         compute_mass=False):
         if type_of_optimisation == 'ltto':
             no_of_sequence_recursions = 1
 
@@ -464,7 +477,8 @@ class manualTopology:
                 mga_low_thrust_problem.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(
                             no_of_points)
 
-                delivery_mass = mga_low_thrust_problem.get_delivery_mass()
+                if compute_mass:
+                    delivery_mass = mga_low_thrust_problem.get_delivery_mass()
             
                 # Node times
                 node_times_list = mga_low_thrust_problem.node_times
@@ -505,8 +519,9 @@ class manualTopology:
                 'mgaso' else mga_sequence_characters
                 auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                     enumerate(thrust_acceleration.items())])
-                auxiliary_info['Delivery mass,'] = delivery_mass
-                auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
+                if compute_mass:
+                    auxiliary_info['Delivery mass,'] = delivery_mass
+                    auxiliary_info['Delivery mass fraction,'] = delivery_mass / m0
 
                 # Get ndf
                 if len(mga_low_thrust_problem.objectives) != 1:
@@ -574,8 +589,8 @@ class manualTopology:
             optimisation_characteristics[f'Objective 2,'] = mga_low_thrust_problem.objectives[1]
         optimisation_characteristics['Number of islands,'] = (number_of_islands_array[0] if
                 type_of_optimisation == 'mgaso' else number_of_islands)
-        optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info()
-        optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info()
+        optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info().replace("\n", "").strip()
+        optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info().replace("\n", "").strip()
         for j in range(len(bounds[0])):
             for k in range(len(bounds)):
                 if k == 0:
@@ -759,35 +774,40 @@ class legDatabaseMechanics:
 
 
 
-def run_mgso_optimisation(departure_planet : str,
+def run_mgaso_optimisation(departure_planet : str,
                             arrival_planet : str,
                             free_param_count : int,
-                            Isp : int,
-                            m0 : int,
-                            num_gen : int,
-                            pop_size : int,
-                            no_of_points : int,
-                            bounds : list,
+                            Isp : int = None,
+                            m0 : int = None,
+                            num_gen : int = 2,
+                            pop_size : int = 100,
+                            no_of_points : int = 100,
+                            bounds : list = None,
                             output_directory : str = '',
                             subdirectory : str = '',
                             possible_ga_planets : list = None,
                             max_no_of_gas = 1,
                             no_of_sequence_recursions = 1,
                             elitist_fraction=0.1,
-                            number_of_sequences_per_planet : list =  [],
+                            number_of_sequences_per_planet = None,
+                            fraction_ss_evaluated = None,
                             seed : int = 421,
                             write_results_to_file=False,
                             manual_base_functions=False,
-                            dynamic_shaping_functions=False,
-                            dynamic_bounds=False,
+                            dynamic_bounds=None,
                             leg_exchange = False,
-                            top_x_sequences = 10,
+                            top_x_sequences = 10, # for what legs to replace
                             objectives=['dv'],
                             zero_revs=False):
 
+
     # if os.path.exists(output_directory + subdirectory):
     #     shutil.rmtree(output_directory + subdirectory)
+    compute_mass = False
+    if any(x == 'pmf' or x == 'dm' or x == 'dmf' for x in objectives):
+        compute_mass = True
 
+    ### Determine possible flyby planets
     if possible_ga_planets != None:
         planet_list = possible_ga_planets
         planet_characters = \
@@ -801,14 +821,13 @@ def run_mgso_optimisation(departure_planet : str,
             arrival_planet) if max_no_of_gas != 0 else [0]
         planet_characters = manualTopology.remove_excess_planets(planet_characters, departure_planet, arrival_planet)
         print(f'GA planets limited to planets within {arrival_planet}')
-    
-    combinations_total = (len(planet_list)+1)**(max_no_of_gas)# or no_of_sequence_recursions
-    combinations_evaluated=  number_of_sequences_per_planet[1]*len(planet_list)*no_of_sequence_recursions
-    print(f'The combinational coverage that will be achieved {combinations_evaluated} / {combinations_total}')
+
+
     unique_identifier = '/topology_database'
 
     # TODO : replace with list of lists
     
+    ### Create empty files that are written to later
     if write_results_to_file:
         evaluated_seq_database_file = output_directory + subdirectory + unique_identifier +  '/evaluated_sequences_database.txt'
         sorted_evaluated_seq_database_file = output_directory + subdirectory + '/sorted_evaluated_sequences_database.txt'
@@ -841,7 +860,10 @@ def run_mgso_optimisation(departure_planet : str,
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
 
     # print(len(planet_list)
-    evaluated_sequences_results = 'Sequence, Delta V, ToF, Delivery Mass Fraction \n'
+    evaluated_sequences_results = 'Sequence, Delta V, ToF\n'
+    mass_dict = {'dmf' : 'Delivery Mass Fraction', 'pmf' : 'Propellant Mass Fraction'}
+    if compute_mass:
+        evaluated_sequences_results.replace('\n', f', {mass_dict[objectives[0]]}')
     leg_results = 'Leg, Delta V, ToF, #rev\n'
 
     # border case for max_no_of_gas == 0
@@ -850,19 +872,22 @@ def run_mgso_optimisation(departure_planet : str,
     #     no_of_sequence_recursions = 1
     #     range_no_of_sequence_recursions = [0]
         number_of_sequences_per_planet = [0]
+    if fraction_ss_evaluated is not None:
+            number_of_sequences_per_planet = []
 
     # variable definitions
     champions_x = {}
     champions_f = {}
     island_problems = {}
-    evaluated_sequences_dict = {}
+    evaluated_sequences_results_dict = {}
+    evaluated_sequences_chars_list = []
     itbs = []
     number_of_islands_array = np.zeros(no_of_sequence_recursions+1, dtype=int) # list of number of islands per recursion
     list_of_lists_of_x_dicts = []# list containing list of dicts of champs per gen
     list_of_lists_of_f_dicts = []
     
 ###########################################################################
-# MGSO Optimisation ###############################################
+# MGASO Optimisation ###############################################
 ###########################################################################
     
     # Loop for number of sequence recursions
@@ -870,16 +895,36 @@ def run_mgso_optimisation(departure_planet : str,
     for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
         print('Iteration: ', p, '\n')
 
+        # Projected combinatorial complexity covered
+        combinations_remaining = lambda planet_list, max_no_of_gas, p : len(planet_list)**(max_no_of_gas-p)# or no_of_sequence_recursions
+        combinations_remaining = combinations_remaining(planet_list, max_no_of_gas, p)# or no_of_sequence_recursions
+
+        if fraction_ss_evaluated is not None:
+            print(f'fraction_ss: {fraction_ss_evaluated}')
+            to_be_evaluated_sequences_current_layer = int(fraction_ss_evaluated[p] * combinations_remaining) + 1
+            print(f'tobeevaluated : {to_be_evaluated_sequences_current_layer}')
+            if int(to_be_evaluated_sequences_current_layer / len(planet_list)) == 0:
+                number_of_sequences_per_planet.append(1)
+            else:
+                number_of_sequences_per_planet.append(int(to_be_evaluated_sequences_current_layer / len(planet_list)))
+            print(f'new spp : {number_of_sequences_per_planet}')
+
+
+    
+        # Number of sequences to be evaluated in this recursion
+        # 1 in the line below because the number of sequences is constant
+        combinations_evaluated = lambda spp, planet_list: spp*len(planet_list)
+        combinations_evaluated = combinations_evaluated(number_of_sequences_per_planet[p], planet_list)
+        print(f'The combinational coverage that is to be achieved in this layer is {combinations_evaluated} / {combinations_remaining}')
+
         # Creation of the archipelago
-        temp_ptbs, temp_evaluated_sequences, number_of_islands, current_island_problems, archi = \
+        temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi = \
         manualTopology.create_archipelago(p,
                                         departure_planet,
                                         arrival_planet, 
                                         free_param_count, 
                                         pop_size,
                                         bounds,
-                                        Isp,
-                                        m0,
                                         max_no_of_gas,
                                         number_of_sequences_per_planet,
                                         itbs,
@@ -887,13 +932,16 @@ def run_mgso_optimisation(departure_planet : str,
                                         leg_exchange,
                                         separate_leg_database,
                                         manual_base_functions, 
-                                        dynamic_shaping_functions,
                                         dynamic_bounds,
                                         elitist_fraction,
                                         seed,
                                         objectives,
+                                        evaluated_sequences_chars_list,
+                                        Isp=Isp,
+                                        m0=Isp,
                                         zero_revs=zero_revs)
 
+        evaluated_sequences_chars_list += temp_evaluated_sequences_chars
         number_of_islands_array[p] = number_of_islands
         island_problems[p] = current_island_problems
 
@@ -917,7 +965,7 @@ def run_mgso_optimisation(departure_planet : str,
         delta_v = {}
         delta_v_per_leg = {}
         tof = {}
-        evaluated_sequences_dict[p] = [[] for _ in range(number_of_islands)]
+        evaluated_sequences_results_dict[p] = [[] for _ in range(number_of_islands)]
 
         for j in range(number_of_islands):
 
@@ -933,22 +981,25 @@ def run_mgso_optimisation(departure_planet : str,
             thrust_acceleration = \
             island_problems[p][j].transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
 
-            mass_history, delivery_mass, invalid_trajectory = \
-            util.get_mass_propagation(thrust_acceleration, Isp, m0)
+            if compute_mass:
+                mass_history, delivery_mass, invalid_trajectory = \
+                util.get_mass_propagation(thrust_acceleration, Isp, m0)
             # print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
-            mga_sequence_characters = \
-                    util.transfer_body_order_conversion.get_mga_characters_from_list(
-                                    temp_evaluated_sequences[j])
-            current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400,
-                    delivery_mass / m0]
-            evaluated_sequences_results += "%s, %d, %d, %f\n" % tuple(current_sequence_result)
+            mga_sequence_characters = temp_evaluated_sequences_chars[j]
+            current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400]
+            current_sequence_result_string = "%s, %d, %d\n" % tuple(current_sequence_result)
+            if compute_mass:
+                current_sequence_result_string.replace('\n', f', {delivery_mass / m0}\n')
+                current_sequence_result.append(delivery_mass / m0)
+            evaluated_sequences_results += current_sequence_result_string
+
             # evaluated_sequences_database[0].append(mga_sequence_characters)
             # evaluated_sequences_database[1].append(current_sequence_result)
             evaluated_sequences_database.append(current_sequence_result)
 
-            evaluated_sequences_dict[p][j] = current_sequence_result
+            evaluated_sequences_results_dict[p][j] = current_sequence_result
 
             # Save separate leg information
             current_sequence_leg_mechanics_object = separateLegMechanics(mga_sequence_characters,
@@ -1033,11 +1084,18 @@ def run_mgso_optimisation(departure_planet : str,
 
         # evaluate sorted database
         unsorted_evaluated_sequences_database = evaluated_sequences_database.copy()
-        evaluated_sequences_database.sort(key=lambda elem : elem[1])
-        sorted_evaluated_sequences_database = evaluated_sequences_database.copy()
-        sorted_evaluated_sequences_results = 'Sequence, Delta V, ToF, Delivery Mass Fraction\n'
-        for i in evaluated_sequences_database:
-            sorted_evaluated_sequences_results += "%s, %d, %d, %f\n" % tuple(i)
+        unsorted_evaluated_sequences_database.sort(key=lambda elem : elem[1])
+        sorted_evaluated_sequences_database = unsorted_evaluated_sequences_database.copy()
+
+        # sorted_evaluated_sequences_results = 'Sequence, Delta V, ToF, Delivery Mass Fraction\n'
+        sorted_evaluated_sequences_results = 'Sequence, Delta V, ToF\n'
+        if compute_mass:
+            sorted_evaluated_sequences_results.replace('\n', f', {mass_dict[objectives[0]]}')
+
+        for i in sorted_evaluated_sequences_database:
+            sorted_evaluated_sequences_results += "%s, %d, %d\n" % tuple(i)
+            if compute_mass:
+                sorted_evaluated_sequences_results.replace('\n', f', {delivery_mass / m0}\n')
 
         with open(sorted_evaluated_seq_database_file, 'w') as file_object:
             file_object.write(sorted_evaluated_sequences_results)
@@ -1061,7 +1119,8 @@ def run_mgso_optimisation(departure_planet : str,
                             num_gen=num_gen,
                             pop_size=pop_size,
                             cpu_count=cpu_count,
-                            bounds=bounds)
+                            bounds=bounds,
+                            archi=archi)
 
 
 def perform_local_optimisation(dir_of_dir=None, 

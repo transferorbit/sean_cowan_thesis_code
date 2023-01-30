@@ -22,6 +22,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     import sys
     import numpy as np
     import warnings
+    import argparse
     
     # If conda environment does not work
     # import sys
@@ -29,6 +30,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     
     from tudatpy.kernel import constants
     
+    parser = argparse.ArgumentParser(description='This file runs an LTTO process')
+    parser.add_argument('--id', default='0', dest='id', action='store', required=False)
+    # args = parser.parse_args(['--id'])
+    args = parser.parse_args()
+    # print(args)
+    # print(args.id)
+    id = args.id
+
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
     from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem, \
@@ -65,7 +74,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'shaping_function' : False}
     write_results_to_file = True
     manual_base_functions = False
-    topology_type = 0.01 #float or None
+    topology_type = None #float or None
     zero_revs = False
     objectives = ['dv'] #dv, tof, pmf, dmf
     
@@ -132,7 +141,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
         #
         # ddate_lb = ddate_ub
 
-        subdirectory = '/EEEMJ_optcharsalgo_test2'
+        subdirectory = f'/EEEMJ_optcharsalgo_test{id}'
 
         ## FAN ##
 
@@ -287,7 +296,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
         my_population = pg.population(prob, size=pop_size, seed=seed)
         if len(objectives) == 1:
-            algorithm = pg.algorithm(pg.sga(gen=1, mutation='uniform', seed=seed))
+            algorithm = pg.algorithm(pg.sga(gen=1))
+            # algorithm.set_verbosity(1)
         elif len(objectives) == 2:
             algorithm = pg.algorithm(pg.nsga2(gen=1))
             modulus_pop = pop_size % 4

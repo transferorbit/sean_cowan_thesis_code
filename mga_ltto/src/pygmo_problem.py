@@ -60,6 +60,7 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.no_of_legs = len(transfer_body_order) - 1
 
         self.no_of_free_parameters = no_of_free_parameters
+        # self.no_of_free_parameters = 2 if len(transfer_body_order) <= 3 else 1
         self.total_no_of_free_coefficients = self.no_of_free_parameters*3*(self.no_of_legs)
 
         self.bounds = bounds
@@ -93,6 +94,10 @@ class MGALowThrustTrajectoryOptimizationProblem:
         self.manual_base_functions = manual_base_functions
         self.dynamic_bounds = dynamic_bounds
         self.manual_tof_bounds = manual_tof_bounds
+        self.bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Arrival velocity [m/s]',
+                           'Time of Flight [s]', 'Incoming velocity [m/s]', 'Swingby periapsis [m]',
+                           'Free coefficient [-]', 'Number of revolutions [-]']
+
 
     def get_tof_bound(self, leg_number : int, original_bounds : tuple):
 
@@ -1840,13 +1845,13 @@ class MGALowThrustTrajectoryOptimizationProblemOptimAngles(MGALowThrustTrajector
             mass_penalty = 0
             negative_distance_penalty = 0
             if e == 'Error with validity of trajectory: the delivery mass is negative.':
-                print(e)
+                # print(e)
                 mass_penalty = 10**16
             elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
-                print(e)
+                # print(e)
                 negative_distance_penalty = 10**16
             else:
-                print('Unspecified error : ', e)
+                # print('Unspecified error : ', e)
                 other_penalty = 10**16
 
             if len(self.objectives) == 1:

@@ -15,6 +15,13 @@ performing the actual optimization.
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+plt.rcParams['figure.dpi'] = 250
+plt.rcParams['savefig.dpi'] = 250
+plt.rcParams['font.size'] = 18
+plt.rcParams['font.family'] = "Arial"
+plt.rcParams['figure.figsize'] = (8, 8)
+
+
 import matplotlib.transforms as transforms
 
 # Tudatpy imports
@@ -23,10 +30,11 @@ from tudatpy.kernel.numerical_simulation import environment_setup
 from tudatpy.kernel.trajectory_design import shape_based_thrust
 from tudatpy.kernel.trajectory_design import transfer_trajectory
 from tudatpy.kernel.interface import spice
+from tudatpy.io import save2txt
 spice.load_standard_kernels()
 
+
 from src.trajectory3d import trajectory_3d
-import src.mga_low_thrust_utilities as util
 
 # import warnings
 # warnings.filterwarnings("error")
@@ -831,9 +839,9 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
 
     #Only plot relevant bodies
     tbo_list = \
-    util.transfer_body_order_conversion.get_mga_list_from_characters(auxiliary_info_dict['MGA Sequence'])
+    transfer_body_order_conversion.get_mga_list_from_characters(auxiliary_info_dict['MGA Sequence'])
 
-    fig, ax = util.trajectory_3d(
+    fig, ax = trajectory_3d(
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
@@ -842,6 +850,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
             frame_orientation= 'ECLIPJ2000',
             thrust_history=thrust_history_dict,
             projection=projection)
+    plt.figure(constrained_layout=True)
     # print(auxiliary_info_dict)
     ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
@@ -861,7 +870,9 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
 def objective_per_generation_visualisation(dir=None, 
                                            dir_of_dir=None, 
                                            no_of_islands=4,
-                                           title=1):
+                                           title=1,
+                                           add_local_optimisation=False,
+                                           save_fig=False):
     """
     Function that takes directories and returns the champions per generation for one or multiple islands
 
@@ -870,7 +881,7 @@ def objective_per_generation_visualisation(dir=None,
     dir : str
         String representing directory of island_x
     dir_of_dir : str
-        String ending with /islands/ that represents all islands to be plotted
+        String representing directories that include the islands/ champions/ (and local_optimisation/) directories 
 
     Returns
     -------
@@ -885,49 +896,80 @@ def objective_per_generation_visualisation(dir=None,
         dir_list = dir_of_dir.split('/')
         fitness_value_dict = {}
         variable_value_dict = {}
+        if add_local_optimisation:
+            try:
+                champion_fitness_local = np.loadtxt(dir_of_dir + "/local_optimisation/final_population.dat")[:, 1]
+            except FileNotFoundError:
+                raise RuntimeError("The local optimisation has not been performed properly yet.")
         for i in range(no_of_islands):
-            fitness_value_dict[i] = np.loadtxt(dir_of_dir + f'island_{i}/champ_f_per_gen.dat')
-            variable_value_dict[i] = np.loadtxt(dir_of_dir + f'island_{i}/champs_per_gen.dat')
-        auxiliary_info = np.loadtxt(dir_of_dir + 'island_0/auxiliary_info.dat', delimiter=',', dtype=str)
+            fitness_value_dict[i] = np.loadtxt(dir_of_dir + f'islands/island_{i}/champ_f_per_gen.dat')
+            variable_value_dict[i] = np.loadtxt(dir_of_dir + f'islands/island_{i}/champs_per_gen.dat')
+            if add_local_optimisation:
+                fitness_value_dict[i] = np.vstack([fitness_value_dict[i], [fitness_value_dict[i][-1, 0]+11,
+                                                                           champion_fitness_local[i]]])
+        auxiliary_info = np.loadtxt(dir_of_dir + 'islands/island_0/auxiliary_info.dat', delimiter=',', dtype=str)
+            # champions_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
     auxiliary_info_dict = {}
     for i in range(len(auxiliary_info)):
         auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
 
     fitness_array = np.zeros((len(fitness_value_dict[0][:,0]), no_of_islands))
     for i in range(no_of_islands):
-        fitness_array[:, i] = fitness_value_dict[i][:, 1]
+        fitness_array[:, i] = fitness_value_dict[i][:, 1] #if not add_local_optimisation else fitness_value_dict[i][:, 1]
 
+    min_deltav_value_before_local = np.min(fitness_array[:-1, :])
     min_deltav_value = np.min(fitness_array)
     
-    fig, ax = plt.subplots(1, 1, figsize=(15, 8))
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    plt.figure(constrained_layout=True)
     for island in range(no_of_islands):
         ax.plot(fitness_value_dict[island][:,0], fitness_value_dict[island][:,1], label=f'Island {island}')
         # ax.legend()
     ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value / 1000)}')
+    if add_local_optimisation:
+        ax.axhline(min_deltav_value_before_local, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value_before_local / 1000)}')
+    trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+    ax.text(0,min_deltav_value, "{:.0f}".format(min_deltav_value), color="red", transform=trans, 
+            ha="right", va="center")
+    if add_local_optimisation:
+        ax.text(0,min_deltav_value_before_local, "{:.0f}".format(min_deltav_value_before_local),
+                color="red", transform=trans, ha="right", va="center")
+        ax.fill_between([len(fitness_value_dict[0]), len(fitness_value_dict[0])+10], 10000, 40000, color='lightskyblue')
+
+
     ax.set_ylabel(r'$\Delta V$ [m / s]')
     ax.set_xlabel(r'Generation count [-]')
     # ax.legend()
     ax.grid()
-    trans = transforms.blended_transform_factory(
-    ax.get_yticklabels()[0].get_transform(), ax.transData)
-    ax.text(0,min_deltav_value, "{:.0f}".format(min_deltav_value), color="red", transform=trans, 
-            ha="right", va="center")
     # ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
-    ax.set_title(dir_list[title], fontweight='semibold', fontsize=18)
+    title_elem = dir_of_dir.split('/')[title].split('_')
+    ax.set_title(f'{title_elem[0]} — 24 islands')
     # ax.set_yscale('log')
-    ax.set_ylim([10000, 80000])
+    ax.set_ylim([10000, 40000])
+    if save_fig:
+        if add_local_optimisation:
+            fig.savefig('figures/' + f"{dir_of_dir.split('/')[title]}_local.jpg", bbox_inches="tight")
+        else:
+            fig.savefig('figures/' + f"{dir_of_dir.split('/')[title]}.jpg", bbox_inches="tight")
 
 def get_scattered_objectives(dir_of_dir_of_dir=None,
+                             dir_of_dir=None,
                              title=2,
                              add_local_optimisation=False,
-                             no_of_islands=4):
+                             no_of_islands=4,
+                             save_fig=False):
 
-    dir_of_dir_of_dir_list = dir_of_dir_of_dir.split('/')[2].split('_')
-    # print(dir_of_dir_of_dir_list)
-    for root, dirs, files in os.walk(dir_of_dir_of_dir):
-        directory_list = dirs
-        # print(directory_list)
-        break
+    if dir_of_dir_of_dir != None:
+        # dir_of_dir_of_dir_list = dir_of_dir_of_dir.split('/')[2].split('_')
+        for root, dirs, files in os.walk(dir_of_dir_of_dir):
+            directory_list = dirs
+            break
+        grid_search = True
+    elif dir_of_dir != None:
+        dir_of_dir_list = dir_of_dir.split('/')
+        directory_list = [dir_of_dir_list[2]]
+        root = dir_of_dir_list[0] +"/" + dir_of_dir_list[1] + "/"
+        grid_search = False
 
     color_list = \
     ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
@@ -936,15 +978,21 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
     champion_fitness_local = {}
     champions = {}
     champions_local = {}
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
     for it, dir in enumerate(directory_list):
-        dir_list = dir.split('_')
-        lb = dir_list[0]
-        ub = dir_list[1]
+        if grid_search:
+            dir_list = dir.split('_')
+            lb = dir_list[0]
+            ub = dir_list[1]
 
         champions[it] = np.loadtxt(root + dir + "/champions/champions.dat")[:, 1] / 86400 + 51544.5
         champion_fitness[it] = np.loadtxt(root + dir + "/champions/champion_fitness.dat")[:, 1] 
-        ax.scatter(champions[it], champion_fitness[it], c=color_list[it], label=f'{lb} - {ub}')
+        optim_chars = np.loadtxt(dir_of_dir + 'optimisation_characteristics.dat', delimiter=',', dtype=str)
+        optim_chars_dict = {}
+        for i in range(len(optim_chars)):
+            optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
+
+        ax.scatter(champions[it], champion_fitness[it], c=color_list[it], label=f'{lb} - {ub} [JD]' if grid_search else '')
         if add_local_optimisation:
             champion_fitness_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population.dat")[:, 1]
             champions_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
@@ -963,15 +1011,32 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
     fitness_array = np.array(list(champion_fitness.values())) if not add_local_optimisation else \
                             np.array(list(champion_fitness_local.values())) 
     min_deltav_value = np.min(fitness_array)
-    ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value)}')
+    ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value)} [m/s]')
     trans = transforms.blended_transform_factory(
     ax.get_yticklabels()[0].get_transform(), ax.transData)
     ax.text(0,min_deltav_value, f"{int(min_deltav_value)}", color="red", transform=trans, 
             ha="right", va="center")
     ax.legend()
     ax.grid()
-    ax.set_title(dir_of_dir_of_dir.split('/')[title])
-    ax.set_ylim([15000, 20000])
+    if grid_search:
+        title_elem = dir_of_dir_of_dir.split('/')[title].split('_')
+        ax.set_title(f'{title_elem[0]} — {title_elem[1].replace("lb","")} - {title_elem[2].replace("ub","")} [JD] — {title_elem[3]}')
+    else:
+        title_elem = directory_list[0].split('_')
+        lb = optim_chars_dict['Departure date [mjd2000] LB'] 
+        lb_float = float(lb)+ 51544.5
+        ub = optim_chars_dict['Departure date [mjd2000] UB'] 
+        ub_float = float(ub)+ 51544.5
+        ax.set_title(f'{title_elem[0]} — {lb} - {ub} [JD]')
+
+    ax.set_ylim([20000, 35000])
+    if not grid_search:
+        ax.set_xlim([lb_float, ub_float])
+    if save_fig:
+        if add_local_optimisation:
+            fig.savefig('figures/' + f"{dir_of_dir_of_dir.split('/')[title] if grid_search else dir_of_dir.split('/')[title]}_local.jpg", bbox_inches="tight")
+        else:
+            fig.savefig('figures/' + f"{dir_of_dir_of_dir.split('/')[title] if grid_search else dir_of_dir.split('/')[title]}.jpg", bbox_inches="tight")
     
 
 def pareto_front(dir=None,
@@ -998,7 +1063,7 @@ def pareto_front(dir=None,
     # thrust_acceleration = np.loadtxt(dir + 'thrust_acceleration.dat')
     # Isp = auxiliary_info_dict['Isp']
     # m0 = auxiliary_info_dict['m0']
-    # mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration,
+    # mass_history, delivery_mass, invalid_trajectory = get_mass_propagation(thrust_acceleration,
     #                                                                             Isp, m0)
 
     y_values = pareto_front[:, 1]
@@ -1008,6 +1073,7 @@ def pareto_front(dir=None,
     tof_values /= 86400 # to days
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    plt.figure(constrained_layout=True)
     ax.plot(tof_values, y_values)
     if deltav_as_obj:
         ax.set_ylabel(r'$\Delta V$ [km / s]')
@@ -1053,12 +1119,13 @@ def thrust_propagation(dir=None):
     # print(node_times)
 
     mga_sequence_characters = auxiliary_info_dict['MGA Sequence']
-    list_of_mga_sequence_char = util.transfer_body_order_conversion.get_mga_list_from_characters(mga_sequence_characters)
+    list_of_mga_sequence_char = transfer_body_order_conversion.get_mga_list_from_characters(mga_sequence_characters)
     color_list = \
     ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
     linestyle = '--'
 
     fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+    plt.figure(constrained_layout=True)
     ax.plot(time_history, thrust_acceleration[:, 1], linestyle=':', label=r'$a_r$')
     ax.plot(time_history, thrust_acceleration[:, 2], linestyle='-.', label=r'$a_\theta$')
     ax.plot(time_history, thrust_acceleration[:, 3], linestyle='--', label=r'$a_z$')
@@ -1076,3 +1143,147 @@ def thrust_propagation(dir=None):
     ax.legend()
     ax.set_title(mga_sequence_characters, fontweight='semibold', fontsize=18)
     ax.grid()
+
+def get_stats(dir_of_dir=None, 
+              print_stats=False,
+              plot_quantity=False,
+              save_fig=False,
+              quantity_to_analyse=None,
+              title=1,
+              bins=20):
+
+    optim_chars = np.loadtxt(dir_of_dir + 'optimisation_characteristics.dat', delimiter=',', dtype=str)
+    optim_chars_dict = {}
+    for i in range(len(optim_chars)):
+        optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
+    free_param_count = int(optim_chars_dict["Free parameter count"])
+
+    auxiliary_info = np.loadtxt(dir_of_dir + 'islands/island_0/auxiliary_info.dat', delimiter=',', dtype=str)
+    auxiliary_info_dict = {}
+    for i in range(len(auxiliary_info)):
+        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
+    mga_chars = auxiliary_info_dict['MGA Sequence']
+    no_of_legs = len(mga_chars) - 1
+    no_of_gas = len(mga_chars) - 2
+    time_of_flight_index = 8 + no_of_legs
+    incoming_velocity_index = time_of_flight_index + no_of_gas
+    swingby_altitude_index = incoming_velocity_index + no_of_gas
+    orbit_ori_angle_index = swingby_altitude_index + no_of_gas
+    swingby_inplane_angle_index = orbit_ori_angle_index + no_of_gas
+    swingby_outofplane_angle_index = swingby_inplane_angle_index + no_of_gas
+    free_coefficient_index = swingby_outofplane_angle_index + 3*free_param_count*no_of_legs
+    revolution_index = free_coefficient_index + no_of_legs
+
+    if quantity_to_analyse == 'dv':
+        file_to_analyse = np.loadtxt(dir_of_dir + 'champions/champion_fitness.dat', delimiter='\t')
+    else:
+        file_to_analyse = np.loadtxt(dir_of_dir + 'champions/champions.dat', delimiter='\t')
+    
+    bound_names = ['Departure date [mjd2000]', 'Time of Flight [s]', 'Incoming velocity [m/s]', 
+              'Swingby periapsis [m]', 'Orbit orientation angle [rad]', 'Swingby in-plane Angle [rad]', 
+              'Swingby out-of-plane angle [rad]', 'Free coefficient [-]', 'Number of revolutions [-]']
+
+    bound_quantity = {'dv' : 'Departure Velocity [m/s]', 
+                      'dep_date' : bound_names[0],
+                      'tof' : bound_names[1],
+                      'inc_vel' : bound_names[2],
+                      'swi_per' : bound_names[3],
+                      'ooa' : bound_names[4],
+                      'ip_ang' : bound_names[5],
+                      'oop_ang' : bound_names[6],
+                      'fc_legs' : bound_names[7],
+                      'fc_axes' : bound_names[7],
+                      'revs' : bound_names[8]}
+
+    dict_of_indices = {'dv' : [1], 
+                       'dep_date' : [1], 
+                       'tof' : [8 + i for i in range(time_of_flight_index-8)], 
+                       'inc_vel' : [time_of_flight_index + i for i in range(incoming_velocity_index -
+                                                                            time_of_flight_index)],
+                       'swi_per' : [incoming_velocity_index + i for i in range(swingby_altitude_index -
+                                                                               incoming_velocity_index)],
+                       'ooa' : [swingby_altitude_index + i for i in range(orbit_ori_angle_index -
+                                                                          swingby_altitude_index)],
+                       'ip_ang' : [orbit_ori_angle_index + i for i in range(swingby_inplane_angle_index -
+                                                                            orbit_ori_angle_index)],
+                       'oop_ang' : [swingby_inplane_angle_index + i for i in range(swingby_outofplane_angle_index -
+                                                                                   swingby_inplane_angle_index)],
+                       'fc_legs' : [swingby_outofplane_angle_index + i for i in range(free_coefficient_index -
+                                                                                 swingby_outofplane_angle_index)],
+                       'fc_axes' : [swingby_outofplane_angle_index + i for i in range(free_coefficient_index -
+                                                                                 swingby_outofplane_angle_index)],
+                       'revs' : [free_coefficient_index+ i for i in range(revolution_index - free_coefficient_index)]
+                       }
+
+    values_to_analyse = file_to_analyse[:, dict_of_indices[quantity_to_analyse]]
+
+    if quantity_to_analyse == 'tof' or quantity_to_analyse == 'dep_date':
+        values_to_analyse = values_to_analyse / 86400
+
+    min_stats = np.min(values_to_analyse)
+    mean_stats = np.mean(values_to_analyse)
+
+    if quantity_to_analyse == 'fc_legs':
+        values_to_analyse = np.abs(values_to_analyse)
+        mean_stats = np.mean(values_to_analyse)
+
+        values_to_analyse = [[values_to_analyse[j][i + p*3*free_param_count] for i in range(3) for j in
+                             range(len(values_to_analyse))] for p in range(no_of_legs)]
+
+
+    if quantity_to_analyse == 'fc_axes':
+        values_to_analyse = np.abs(values_to_analyse)
+        mean_stats = np.mean(values_to_analyse)
+        radial_values_to_analyse = [values_to_analyse[j][i*3*free_param_count] for i in
+                                    range(no_of_legs) for j in range(len(values_to_analyse))]
+        normal_values_to_analyse = [values_to_analyse[j][1 + i*3*free_param_count] for i in
+                                    range(no_of_legs) for j in range(len(values_to_analyse))]
+        axial_values_to_analyse = [values_to_analyse[j][2 + i*3*free_param_count] for i in
+                                    range(no_of_legs) for j in range(len(values_to_analyse))]
+        values_to_analyse = [radial_values_to_analyse, normal_values_to_analyse, axial_values_to_analyse]
+
+    dict = {f'min {quantity_to_analyse},' : min_stats, f'mean {quantity_to_analyse},' : mean_stats}
+    if quantity_to_analyse != 'dv':
+        max_stats = np.max(values_to_analyse)
+        dict = {f'min {quantity_to_analyse},' : min_stats, f'mean {quantity_to_analyse},' : mean_stats,
+                f'max {quantity_to_analyse},' : max_stats}
+    if print_stats:
+        print(dict)
+
+    list_of_gas = transfer_body_order_conversion.get_mga_list_from_characters(mga_chars)[1:-1]
+    list_of_legs = transfer_body_order_conversion.get_list_of_legs_from_characters(mga_chars)
+
+    direction_list = ["Radial", "Normal", "Axial"]
+    labels = {'dv' : [],
+              'tof' : [f"{i}" for i in list_of_legs],
+              'inc_vel' : [f"{i}" for i in list_of_gas],
+              'swi_per' : [f"{i}" for i in list_of_gas],
+              'ooa' : [f"{i}" for i in list_of_gas],
+              'ip_ang' : [f"{i}" for i in list_of_gas],
+              'oop_ang' : [f"{i}" for i in list_of_gas],
+              'fc_legs' : [f"{i}" for i in list_of_legs],
+              'fc_axes' : direction_list,
+              'revs' : [f"{i}" for i in list_of_legs]}
+
+    if plot_quantity:
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        ax.hist(values_to_analyse, bins=bins, label=labels[quantity_to_analyse])
+        ax.set_ylabel('Frequency [-]')
+        ax.set_xlabel(bound_quantity[quantity_to_analyse])
+        title_elem = dir_of_dir.split('/')[title].split('_')
+        ax.set_title(f'{title_elem[0]} — 24 islands')
+        # ax.set_xticks([])
+        # if quantity_to_analyse == 'swi_per':
+        #     ax.set_xscale('log')
+        ax.grid()
+        ax.legend()
+    if save_fig:
+        fig.savefig('figures/' + f"{dir_of_dir.split('/')[title]}_{quantity_to_analyse}histo.jpg", bbox_inches="tight")
+        
+
+    save2txt(dict, 'get_stats.dat', dir_of_dir)
+
+
+
+
