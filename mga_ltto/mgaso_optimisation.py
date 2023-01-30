@@ -31,9 +31,10 @@ if __name__ == '__main__':
     from tudatpy.kernel import constants
 
     parser = argparse.ArgumentParser(description='This file runs an LTTO process')
-    parser.add_argument('--id', default='0', dest='id', action='store', required=False)
-    parser.add_argument('--spp', default='1', dest='spp', action='store', required=False)
-    parser.add_argument('--frac', default='0.1', dest='frac', action='store', required=False)
+    parser.add_argument('--id', default='0', dest='id', action='store', required=False) # id test number
+    parser.add_argument('--spp', default='1', dest='spp', action='store', required=False) # sequences per planet
+    parser.add_argument('--frac', default='0', dest='frac', action='store', required=False) #fraction sequences evaluated
+    parser.add_argument('--ips', default='1', dest='ips', action='store', required=False) # islands per sequence
     # args = parser.parse_args(['--id'])
     args = parser.parse_args()
     # print(args)
@@ -41,6 +42,7 @@ if __name__ == '__main__':
     id = args.id
     spp = int(args.spp)
     frac = float(args.frac)
+    ips = int(args.ips)
     
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgaso while in the directory that includes those files
@@ -79,8 +81,9 @@ if __name__ == '__main__':
     max_no_of_gas = 3
     no_of_sequence_recursions = 2
     fraction_ss_evaluated = [frac for _ in range(no_of_sequence_recursions)]
-    number_of_sequences_per_planet = [spp for _ in range(max_no_of_gas)]
+    number_of_sequences_per_planet = [spp for _ in range(no_of_sequence_recursions)]
     elitist_fraction = 0.3
+    islands_per_sequence = ips
     manual_base_functions = False
     dynamic_bounds = {'time_of_flight' : False,
             'orbit_ori_angle' : False,
@@ -140,6 +143,7 @@ if __name__ == '__main__':
                                 possible_ga_planets=possible_ga_planets,
                                 max_no_of_gas=max_no_of_gas,
                                 no_of_sequence_recursions=no_of_sequence_recursions,
+                                islands_per_sequence=islands_per_sequence,
                                 elitist_fraction=elitist_fraction,
                                 number_of_sequences_per_planet=number_of_sequences_per_planet,
                                 fraction_ss_evaluated=fraction_ss_evaluated,

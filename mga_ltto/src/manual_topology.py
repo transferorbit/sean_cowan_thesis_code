@@ -67,13 +67,16 @@ class manualTopology:
                 zero_revs=zero_revs,
                 manual_tof_bounds=manual_tof_bounds)
 
-        no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
-        no_of_random_individuals = pop_size - no_of_predefined_individuals
-        pop_size_calc = lambda x, y: x + y
         if len(objectives) == 1:
             algorithm = pg.algorithm(pg.sga(gen=1))
         else:
             algorithm = pg.algorithm(pg.nsga2(gen=1))
+
+        if leg_exchange:
+            # This is an artifact from when I was doing Morante2019 multiobjective experiments
+            no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
+            no_of_random_individuals = pop_size - no_of_predefined_individuals
+            pop_size_calc = lambda x, y: x + y
             if pop_size < 5:
                 no_of_random_individuals += 5 - pop_size
                 pop_size = no_of_random_individuals + no_of_predefined_individuals
@@ -93,7 +96,6 @@ class manualTopology:
             # assert pop_size % 4, 0
                 # print(f'Number of random individuals increased by {modulus}. no_of_random_individuals : {no_of_random_individuals}') 
 
-        if leg_exchange:
             population = pg.population(prob=mga_low_thrust_problem, size=no_of_random_individuals)
             island_mga_characters = \
             util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order)
@@ -123,61 +125,68 @@ class manualTopology:
     
     @staticmethod
     def create_archipelago(iteration,
-                            departure_planet,
-                            arrival_planet, 
-                            free_param_count, 
-                            pop_size,
-                            bounds,
-                            max_no_of_gas,
-                            number_of_sequences_per_planet,
-                            itbs,
-                            planet_list, 
-                            leg_exchange,
-                            leg_database,
-                            manual_base_functions, 
-                            dynamic_bounds,
-                            elitist_fraction,
-                            seed,
-                            objectives,
-                            evaluated_sequences_chars_list,
-                            Isp=None,
-                            m0=None,
-                            zero_revs=None):
+                           departure_planet,
+                           arrival_planet, 
+                           free_param_count, 
+                           pop_size,
+                           bounds,
+                           max_no_of_gas,
+                           number_of_sequences_per_planet,
+                           islands_per_sequence,
+                           itbs,
+                           planet_list, 
+                           leg_exchange,
+                           leg_database,
+                           manual_base_functions, 
+                           dynamic_bounds,
+                           elitist_fraction,
+                           seed,
+                           objectives,
+                           evaluated_sequences_chars_list,
+                           Isp=None,
+                           m0=None,
+                           zero_revs=None):
 
         current_max_no_of_gas = max_no_of_gas - iteration
         current_island_problems = []
         temp_evaluated_sequences_chars = []
+        # temp_unique_evaluated_sequences_chars = []
         temp_ptbs = []
 
         no_of_possible_planets = len(planet_list)
         combinations_left = no_of_possible_planets**(max_no_of_gas-iteration)# or no_of_sequence_recursions
 
-        print('Creating archipelago')
-        print('Leg exchange enabled') if leg_exchange == True else None
+        print('Leg exchange enabled') if leg_exchange == True else print('Leg exchange disabled') 
 
-        no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
-        no_of_random_individuals = pop_size - no_of_predefined_individuals
         print(f'Population size : {pop_size}')
-        print(f'Number of random individuals : {no_of_random_individuals}')
-        print(f'Number of predefined individuals : {no_of_predefined_individuals}')
+        # no_of_predefined_individuals = int(pop_size * elitist_fraction) if iteration != 0 else 0
+        # no_of_random_individuals = pop_size - no_of_predefined_individuals
+        # print(f'Number of random individuals : {no_of_random_individuals}')
+        # print(f'Number of predefined individuals : {no_of_predefined_individuals}')
 
+        print("""
+              ====================
+              Creating archipelago
+              ====================
+              """)
         archi = pg.archipelago(n=0, seed=seed)
 
         # Add islands with pre-defined sequences
         if iteration == 0:
-            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list)) + 1
+            number_of_sequences = number_of_sequences_per_planet[iteration]*(len(planet_list)) + 1
             directtransferbump = 1
         else:
-            number_of_islands = number_of_sequences_per_planet[iteration]*(len(planet_list))
+            number_of_sequences = number_of_sequences_per_planet[iteration]*(len(planet_list))
             directtransferbump = 0
 
             # keep number of islands to a maximum if combinatorial space is small enough
-            if number_of_islands >= combinations_left:
-                print('Number of islands from %i to %i' % (number_of_islands, combinations_left))
-                number_of_islands = combinations_left
+            if number_of_sequences >= combinations_left:
+                print('Number of sequences from %i to %i' % (number_of_sequences , combinations_left))
+                number_of_sequences = combinations_left
 
-        print('Number of islands: ', number_of_islands, '\n')
-        for i in range(number_of_islands):
+        number_of_islands = number_of_sequences * islands_per_sequence
+        print('Number of islands: ',number_of_islands , '\n')
+        for i in range(number_of_sequences):
             if i == 0 and iteration == 0:
                 transfer_body_order = [departure_planet, arrival_planet]
                 ptbs = [departure_planet]
@@ -199,26 +208,33 @@ class manualTopology:
 
 
             temp_ptbs.append(ptbs)
-            temp_evaluated_sequences_chars.append(util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order))
             print(transfer_body_order)
-            island_to_be_added, current_island_problem = \
-            manualTopology.create_island(iteration=iteration, 
-                                        transfer_body_order=transfer_body_order,
-                                        free_param_count=free_param_count, 
-                                        bounds=bounds, 
-                                        pop_size=pop_size, 
-                                        leg_exchange=leg_exchange, 
-                                        leg_database=leg_database,
-                                        manual_base_functions=manual_base_functions, 
-                                        elitist_fraction=elitist_fraction, 
-                                        dynamic_bounds=dynamic_bounds,
-                                        objectives=objectives,
-                                        Isp=Isp, 
-                                        m0=m0, 
-                                        zero_revs=zero_revs)
+            # temp_unique_evaluated_sequences_chars.append( \
+            #         util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order))
+            for j in range(islands_per_sequence):
+                temp_evaluated_sequences_chars.append( \
+                        util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order))
+                island_to_be_added, current_island_problem = \
+                manualTopology.create_island(iteration=iteration, 
+                                            transfer_body_order=transfer_body_order,
+                                            free_param_count=free_param_count, 
+                                            bounds=bounds, 
+                                            pop_size=pop_size, 
+                                            leg_exchange=leg_exchange, 
+                                            leg_database=leg_database,
+                                            manual_base_functions=manual_base_functions, 
+                                            elitist_fraction=elitist_fraction, 
+                                            dynamic_bounds=dynamic_bounds,
+                                            objectives=objectives,
+                                            Isp=Isp, 
+                                            m0=m0, 
+                                            zero_revs=zero_revs)
 
-            current_island_problems.append(current_island_problem)
-            archi.push_back(island_to_be_added)
+                print(f'Island {j+1}/{islands_per_sequence} added', end='\r')
+                current_island_problems.append(current_island_problem)
+                archi.push_back(island_to_be_added)
+
+        assert number_of_islands == len(current_island_problems)
 
         return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
 
@@ -227,9 +243,9 @@ class manualTopology:
         tbo_chars = util.transfer_body_order_conversion.get_mga_characters_from_list(tbo) 
         for i in evaluated_sequences_chars_list + temp_evaluated_sequences_chars:
             if tbo_chars == i:
-                print(f'{tbo_chars} is not unique')
+                print(f'\n{tbo_chars} is not unique')
                 return False
-        print(f'{tbo_chars} is unique')
+        print(f'\n{tbo_chars} is unique')
         return True
 
     @staticmethod
@@ -297,7 +313,11 @@ class manualTopology:
             archi.wait_check()
 
 
-        print('Evolution finished')
+        print("""
+              ==================
+              Evolution finished
+              ==================
+              """)
         return list_of_x_dicts, list_of_f_dicts, champions_x, champions_f, ndf_x, ndf_f
 
     @staticmethod
@@ -444,7 +464,10 @@ class manualTopology:
                          cpu_count=None,
                          bounds=None,
                          archi=None,
-                         compute_mass=False):
+                         compute_mass=False,
+                         fraction_ss_evaluated=None,
+                         number_of_sequences_per_planet=None):
+
         if type_of_optimisation == 'ltto':
             no_of_sequence_recursions = 1
 
@@ -576,6 +599,10 @@ class manualTopology:
         optimisation_characteristics['m0,'] = m0
         optimisation_characteristics['Manual base functions,'] = mga_low_thrust_problem.manual_base_functions
         optimisation_characteristics['Zero revs,'] = mga_low_thrust_problem.zero_revs
+        for j in range(no_of_sequence_recursions):
+            optimisation_characteristics[f'Fraction of sequences - Layer {j},'] = fraction_ss_evaluated[j]
+        for j in range(no_of_sequence_recursions):
+            optimisation_characteristics[f'Number of sequences per planet - Layer {j},'] = number_of_sequences_per_planet[j]
         optimisation_characteristics['Dynamic time_of_flight,'] = mga_low_thrust_problem.dynamic_bounds['time_of_flight']
         optimisation_characteristics['Dynamic orbit_ori_angle,'] = mga_low_thrust_problem.dynamic_bounds['orbit_ori_angle']
         optimisation_characteristics['Dynamic swingby_outofplane,'] = \
@@ -788,6 +815,7 @@ def run_mgaso_optimisation(departure_planet : str,
                             possible_ga_planets : list = None,
                             max_no_of_gas = 1,
                             no_of_sequence_recursions = 1,
+                            islands_per_sequence=1,
                             elitist_fraction=0.1,
                             number_of_sequences_per_planet = None,
                             fraction_ss_evaluated = None,
@@ -872,8 +900,9 @@ def run_mgaso_optimisation(departure_planet : str,
     #     no_of_sequence_recursions = 1
     #     range_no_of_sequence_recursions = [0]
         number_of_sequences_per_planet = [0]
-    if fraction_ss_evaluated is not None:
-            number_of_sequences_per_planet = []
+
+    if fraction_ss_evaluated[0] != 0:
+        number_of_sequences_per_planet = []
 
     # variable definitions
     champions_x = {}
@@ -899,15 +928,17 @@ def run_mgaso_optimisation(departure_planet : str,
         combinations_remaining = lambda planet_list, max_no_of_gas, p : len(planet_list)**(max_no_of_gas-p)# or no_of_sequence_recursions
         combinations_remaining = combinations_remaining(planet_list, max_no_of_gas, p)# or no_of_sequence_recursions
 
-        if fraction_ss_evaluated is not None:
-            print(f'fraction_ss: {fraction_ss_evaluated}')
-            to_be_evaluated_sequences_current_layer = int(fraction_ss_evaluated[p] * combinations_remaining) + 1
-            print(f'tobeevaluated : {to_be_evaluated_sequences_current_layer}')
-            if int(to_be_evaluated_sequences_current_layer / len(planet_list)) == 0:
+        if fraction_ss_evaluated[p] != 0:
+            to_be_evaluated_sequences_current_layer = int(fraction_ss_evaluated[p] * combinations_remaining)
+            # print(f'tobeevaluated : {to_be_evaluated_sequences_current_layer}')
+            if to_be_evaluated_sequences_current_layer // len(planet_list) == 0:
                 number_of_sequences_per_planet.append(1)
             else:
-                number_of_sequences_per_planet.append(int(to_be_evaluated_sequences_current_layer / len(planet_list)))
-            print(f'new spp : {number_of_sequences_per_planet}')
+                number_of_sequences_per_planet.append(to_be_evaluated_sequences_current_layer // len(planet_list) + 1)
+        else:
+            fraction_ss_evaluated[p] = (number_of_sequences_per_planet[p]) * len(planet_list) / combinations_remaining
+        print(f'fraction_ss: {fraction_ss_evaluated[p]}')
+        print(f'new spp : {number_of_sequences_per_planet[p]}')
 
 
     
@@ -927,6 +958,7 @@ def run_mgaso_optimisation(departure_planet : str,
                                         bounds,
                                         max_no_of_gas,
                                         number_of_sequences_per_planet,
+                                        islands_per_sequence,
                                         itbs,
                                         planet_list, 
                                         leg_exchange,
@@ -975,18 +1007,18 @@ def run_mgaso_optimisation(departure_planet : str,
             # for MO, the 0 indicates that the best dV is chosen for the database
             island_problems[p][j].fitness(champions_x[p][j], post_processing=True)
             delta_v[j] = island_problems[p][j].transfer_trajectory_object.delta_v
-            # print(delta_v)
             delta_v_per_leg[j] = island_problems[p][j].transfer_trajectory_object.delta_v_per_leg
             tof[j]=  island_problems[p][j].transfer_trajectory_object.time_of_flight
             thrust_acceleration = \
             island_problems[p][j].transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
 
             if compute_mass:
-                mass_history, delivery_mass, invalid_trajectory = \
-                util.get_mass_propagation(thrust_acceleration, Isp, m0)
+                _, delivery_mass, _= util.get_mass_propagation(thrust_acceleration, Isp, m0)
             # print(delta_v, delta_v_per_leg, tof)
 
             # Save evaluated sequences to database with extra information
+            # temp_unique_evaluated_sequences_chars = list(dict.fromkeys(temp_evaluated_sequences_chars))
+
             mga_sequence_characters = temp_evaluated_sequences_chars[j]
             current_sequence_result = [mga_sequence_characters, delta_v[j], tof[j] / 86400]
             current_sequence_result_string = "%s, %d, %d\n" % tuple(current_sequence_result)
@@ -1006,7 +1038,6 @@ def run_mgaso_optimisation(departure_planet : str,
                     champions_x[p][j], delta_v_per_leg[j])
             current_sequence_leg_results = \
             current_sequence_leg_mechanics_object.get_sequence_leg_specifics()
-            # print(current_sequence_leg_results)
             for leg in current_sequence_leg_results:
                 leg_results += "%s, %d, %d, %d\n" % tuple(leg) # only values
                 # print(leg_results)
@@ -1120,7 +1151,9 @@ def run_mgaso_optimisation(departure_planet : str,
                             pop_size=pop_size,
                             cpu_count=cpu_count,
                             bounds=bounds,
-                            archi=archi)
+                            archi=archi,
+                            fraction_ss_evaluated=fraction_ss_evaluated,
+                            number_of_sequences_per_planet=number_of_sequences_per_planet)
 
 
 def perform_local_optimisation(dir_of_dir=None, 
@@ -1232,7 +1265,11 @@ def perform_local_optimisation(dir_of_dir=None,
     perc_pop_dict = {it: fitness for it, fitness in enumerate(perc_pop)}
 
     if print_results:
-        print('Evolution finished')
+        print("""
+              ==================
+              Evolution finished
+              ==================
+              """)
 
         print('Initial fitness population', initial_population.reshape(1, 24))
         print('Final fitness population', final_population.reshape(1, 24))
