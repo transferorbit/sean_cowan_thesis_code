@@ -14,7 +14,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # IMPORT STATEMENTS #######################################################
 ###########################################################################
     
-    # General imports
+    # General 
     import os
     import math
     import pygmo as pg
@@ -24,12 +24,21 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     import warnings
     import argparse
     
+    # Tudatpy
+    from tudatpy.kernel import constants
+
+    #Local
+    import core.multipurpose.pygmo_problem as prob
+    import core.multipurpose.mga_low_thrust_utilities as util
+    import core.multipurpose.create_files as post
+    import core.multipurpose.perform_evolution as evol
+    from misc.date_conversion import dateConversion
+    
     # If conda environment does not work
     # import sys
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     
-    from tudatpy.kernel import constants
-    
+    #Argparse
     parser = argparse.ArgumentParser(description='This file runs an LTTO process')
     parser.add_argument('--id', default='0', dest='id', action='store', required=False)
     # args = parser.parse_args(['--id'])
@@ -40,13 +49,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
-    from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem, \
-            MGALowThrustTrajectoryOptimizationProblemDSM, MGALowThrustTrajectoryOptimizationProblemOOA, \
-            MGALowThrustTrajectoryOptimizationProblemOOADAAA, MGALowThrustTrajectoryOptimizationProblemAllAngles, \
-            MGALowThrustTrajectoryOptimizationProblemOptimAngles
-    import src.mga_low_thrust_utilities as util
-    import src.manual_topology as topo
-    from src.date_conversion import dateConversion
+
     
     
 ###########################################################################
@@ -273,7 +276,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
                 transfer_body_order)
 
         mga_low_thrust_problem = \
-        MGALowThrustTrajectoryOptimizationProblemOptimAngles(transfer_body_order=transfer_body_order,
+        prob.MGALowThrustTrajectoryOptimizationProblemOptimAngles(transfer_body_order=transfer_body_order,
                   no_of_free_parameters=free_param_count, 
                   bounds=bounds, 
                   manual_base_functions=manual_base_functions, 
@@ -320,7 +323,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 
         ## New
         list_of_x_dicts, list_of_f_dicts, champions_x, \
-        champions_f, ndf_x, ndf_f = topo.manualTopology.perform_evolution(archi,
+        champions_f, ndf_x, ndf_f = evol.perform_evolution(archi,
                             number_of_islands,
                             num_gen,
                             objectives)
@@ -329,7 +332,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # Post processing #########################################################
 ###########################################################################
         if write_results_to_file:
-            topo.manualTopology.create_files(type_of_optimisation='ltto',
+            post.create_files(type_of_optimisation='ltto',
                                 number_of_islands=number_of_islands,
                                 island_problem=mga_low_thrust_problem,
                                 champions_x=champions_x,

@@ -1,6 +1,17 @@
+'''
+Author: Sean Cowan
+Purpose: MSc Thesis
+Date Created: 14-09-2022
+
+This file includes an adaptation of the trajectory_3d plotting function from tudatpy.
+'''
+
+# General
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import List, Dict, Union
+
+# Tudatpy
 import tudatpy
 from tudatpy.kernel.numerical_simulation import environment_setup
 # from tudatpy.kernel.interface import spice_interface

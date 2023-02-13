@@ -15,26 +15,31 @@ if __name__ == '__main__':
 # IMPORT STATEMENTS #######################################################
 ###########################################################################
     
-    # General imports
+    # General 
     import numpy as np
     import os
-    import pygmo as pg
-    # import multiprocessing as mp
     import sys
     import argparse
+
+    # Tudatpy
+    from tudatpy.kernel import constants
+
+    #Local
+    import core.mgaso.run_optimisation as run
+    from misc.date_conversion import dateConversion
     
     # If conda environment does not work
     # import sys
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/build/tudatpy")
     # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle/tudatpy/tudatpy")
-    
-    from tudatpy.kernel import constants
 
+    #Argparse
     parser = argparse.ArgumentParser(description='This file runs an LTTO process')
     parser.add_argument('--id', default='0', dest='id', action='store', required=False) # id test number
     parser.add_argument('--spp', default='1', dest='spp', action='store', required=False) # sequences per planet
     parser.add_argument('--frac', default='0', dest='frac', action='store', required=False) #fraction sequences evaluated
     parser.add_argument('--ips', default='1', dest='ips', action='store', required=False) # islands per sequence
+    parser.add_argument('--fitprop', default='1.0', dest='fitprop', action='store', required=False) # islands per sequence
     # args = parser.parse_args(['--id'])
     args = parser.parse_args()
     # print(args)
@@ -43,14 +48,11 @@ if __name__ == '__main__':
     spp = int(args.spp)
     frac = float(args.frac)
     ips = int(args.ips)
+    fitprop = float(args.fitprop)
     
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgaso while in the directory that includes those files
-    # from pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
-    # import mga_low_thrust_utilities as util
-    import src.manual_topology as topo
-    from src.date_conversion import dateConversion
-    
+
 ###########################################################################
 # General parameters ######################################################
 ###########################################################################
@@ -61,10 +63,11 @@ if __name__ == '__main__':
     Population size; unknown
     """
 
-    output_directory = current_dir + '/pp_mgaso'
+    output_directory = current_dir + '/../pp_mgaso'
+    # output_directory = '../pp_mgaso'
     julian_day = constants.JULIAN_DAY
     seed = 421
-    no_of_points = 1000
+    no_of_points = 100
 
     write_results_to_file = True
 
@@ -79,7 +82,7 @@ if __name__ == '__main__':
     """
     subdirectory = f'/mgaso_testlocal{id}'
     max_no_of_gas = 3
-    no_of_sequence_recursions = 2
+    no_of_sequence_recursions = 3
     fraction_ss_evaluated = [frac for _ in range(no_of_sequence_recursions)]
     number_of_sequences_per_planet = [spp for _ in range(no_of_sequence_recursions)]
     elitist_fraction = 0.3
@@ -131,7 +134,7 @@ if __name__ == '__main__':
     caldateub = dateConversion(bounds[1][0]).mjd_to_date()
     print(f'Departure date bounds : [{caldatelb}, {caldateub}]')
     
-    topo.run_mgaso_optimisation(departure_planet=departure_planet,
+    run.run_mgaso_optimisation(departure_planet=departure_planet,
                                 arrival_planet=arrival_planet,
                                 free_param_count=free_param_count,
                                 num_gen=num_gen,
@@ -154,5 +157,6 @@ if __name__ == '__main__':
                                 leg_exchange=leg_exchange,
                                 top_x_sequences=20,
                                 objectives=objectives,
-                                zero_revs=zero_revs)
+                                zero_revs=zero_revs,
+                                fitness_proportion=fitprop)
 

@@ -1,7 +1,17 @@
-import tudatpy
-from tudatpy.kernel.astro import time_conversion
+'''
+Author: Sean Cowan
+Purpose: MSc Thesis
+Date Created: Unknown
+
+This file implements some conversion functions, using tudatpy conversion functions and datetime.
+'''
+
+# General
 import datetime
 
+# Tudatpy
+import tudatpy
+from tudatpy.kernel.astro import time_conversion
 
 class dateConversion:
 

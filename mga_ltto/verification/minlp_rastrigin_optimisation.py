@@ -38,8 +38,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     # spice.load_standard_kernels()
     
     current_dir = os.getcwd()
-    output_directory = current_dir + '/verification_results'
-    write_results_to_file = True
+    output_directory = current_dir + '/test_minlp_batch'
+    write_results_to_file = False
     
 ###########################################################################
 # General parameters ######################################################
@@ -51,45 +51,12 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     Population size; unknown
     """
     
-    julian_day = constants.JULIAN_DAY
-    
     seed = 421
     
-    # bodies_to_create = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"]
-    # central_body_mu = 1.3271244e20 # m^3 / s^2
-    #
-    # planet_kep_states = []
-    # for i in bodies_to_create:
-    #     current_cartesian_elements = spice.get_body_cartesian_state_at_epoch(i,
-    #             "Sun",
-    #             "ECLIPJ2000",
-    #             'None',
-    #             bounds[0][0])
-    #     planet_kep_states.append(element_conversion.cartesian_to_keplerian(current_cartesian_elements,
-    #         central_body_mu))
-    #
-    # print(planet_kep_states)
+    my_problem = pg.minlp_rastrigin(5,5) 
+    print(f'Best known solution : {my_problem.best_known()}')
 
-####################################################################
-# LTTO Problem Setup ###############################################
-####################################################################
-
-    bound_names= ['Departure date [mjd2000]', 'Departure velocity [m/s]', 'Time of Flight [s]',
-            'Free coefficient [-]', "Number of revolutions [-]"]
-
-    no_of_points = 500
-    # verification optimisation paramters
-    # test minlp optimization
-    # my_problem = pg.minlp_rastrigin(5,5) 
-    # num_gen = 100
-    # pop_size = 30000
-    # subdirectory = '/minlp_rastrigin'
-    my_problem = pg.ackley(6)
-    print(my_problem.best_known())
-    num_gen = 1
-    pop_size = 300000
-    subdirectory = '/neldermead_rastrigin'
-
+    pop_size = 500
     prob = my_problem #optimisation verification
     mp.freeze_support()
     cpu_count = os.cpu_count() # not very relevant because differnent machines + asynchronous
@@ -98,30 +65,14 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # LTTO Optimisation ###############################################
 ###################################################################
 
-    my_population = pg.population(prob, size=pop_size, seed=seed)
-    my_algorithm = pg.algorithm(pg.nlopt(solver='neldermead'))
-    # my_algorithm = pg.algorithm(pg.sga(gen=1))
-    print('Creating archipelago')
-    archi = pg.archipelago(n=number_of_islands, algo = my_algorithm, prob=prob, pop_size = pop_size)#, udi = my_island)
+    pop = pg.population(prob, size=pop_size, seed=seed)
+    algo = pg.algorithm(pg.gaco())
+    algo.set_verbosity(1)
+    # algo = pg.algorithm(pg.sga(gen=1))
 
-    list_of_f_dicts = []
-    list_of_x_dicts = []
-    for i in range(num_gen): # step between which topology steps are executed
-        print('Evolving Gen : %i / %i' % (i, num_gen))
-        archi.evolve()
-        # archi.status
-        # archi.wait_check()
-        champs_dict_per_gen = {}
-        champ_f_dict_per_gen = {}
-        for j in range(number_of_islands):
-            champs_dict_per_gen[j] = archi.get_champions_x()[j]
-            champ_f_dict_per_gen[j] = archi.get_champions_f()[j]
-        list_of_x_dicts.append(champs_dict_per_gen)
-        list_of_f_dicts.append(champ_f_dict_per_gen)
-        # champion_fitness_dict_per_gen[i] = archi.get_champions_f()
-        archi.wait_check()
+    print('Evolution started')
+    pop = algo.evolve(pop)
     print('Evolution finished')
-    # print(list_of_f_dicts, list_of_x_dicts)
 
 
 
@@ -129,24 +80,3 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
 # Post processing #########################################################
 ###########################################################################
 
-    champions = archi.get_champions_x()
-    champion_fitness = archi.get_champions_f()
-
-    # for optimisation verification
-    print(champions)
-    print(champion_fitness)
-
-    champions_dict = {}
-    champion_fitness_dict = {}
-    thrust_acceleration_list=  []
-    for i in range(number_of_islands):
-            current_island_f = {}
-            current_island_x = {}
-            unique_identifier = "/island_" + str(i) + "/"
-            for j in range(num_gen):
-                current_island_f[j] = list_of_f_dicts[j][i]
-                current_island_x[j] = list_of_x_dicts[j][i]
-            save2txt(current_island_f, 'champ_f_per_gen.dat', output_directory
-                    + subdirectory + unique_identifier)
-            save2txt(current_island_x, 'champs_per_gen.dat', output_directory +
-                    subdirectory + unique_identifier)

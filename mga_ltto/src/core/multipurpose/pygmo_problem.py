@@ -9,12 +9,14 @@ This module creates a PyGMO compatible problem class that represents the mga low
 # IMPORT STATEMENTS #######################################################
 ###########################################################################
 
-# General imports
+# General 
 import numpy as np
 
-# Tudatpy imports
+# Tudatpy 
 from tudatpy.kernel import constants
-import src.mga_low_thrust_utilities as util
+
+# Local
+import core.multipurpose.mga_low_thrust_utilities as util
 
 #######################################################################
 # PROBLEM CLASS #######################################################

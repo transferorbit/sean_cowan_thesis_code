@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 from tudatpy.kernel import constants
 
 current_dir = os.getcwd()
-sys.path.append(current_dir) # this only works if you run ltto and mgso while in the directory that includes those files
+sys.path.append(current_dir) # this only works if you run ltto and mgaso while in the directory that includes those files
 
 # import mga_low_thrust_utilities as util
 from src.pygmo_problem import MGALowThrustTrajectoryOptimizationProblem
