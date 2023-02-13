@@ -144,7 +144,7 @@ def create_archipelago(iteration,
     current_max_no_of_gas = max_no_of_gas - iteration
     current_island_problems = []
     temp_evaluated_sequences_chars = []
-    # temp_unique_evaluated_sequences_chars = []
+    # temp_evaluated_sequences_chars = []
     temp_ptbs = []
 
     no_of_possible_planets = len(planet_list)
@@ -204,7 +204,9 @@ Creating archipelago
                 transfer_body_order = ptbs + random_sequence + [arrival_planet]
                 it+=1
                 if it>20:
-                    raise RuntimeError("There are only duplicate transfers left over. Something is wrong.")
+                    # raise RuntimeError("There are only duplicate transfers left over. Something is wrong.")
+                    print("There are only duplicate transfers left over.")
+                    break
         else:
             ptbs = [departure_planet] + itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
             transfer_body_order = ptbs + [arrival_planet]
@@ -217,7 +219,7 @@ Creating archipelago
 
         temp_ptbs.append(ptbs)
         print(transfer_body_order)
-        # temp_unique_evaluated_sequences_chars.append( \
+        # temp_evaluated_sequences_chars.append( \
         #         util.transfer_body_order_conversion.get_mga_characters_from_list(transfer_body_order))
         for j in range(islands_per_sequence):
             temp_evaluated_sequences_chars.append( \
@@ -242,6 +244,8 @@ Creating archipelago
             current_island_problems.append(current_island_problem)
             archi.push_back(island_to_be_added)
 
+    temp_evaluated_sequences_chars = list(dict.fromkeys(temp_evaluated_sequences_chars))
+
     assert number_of_islands == len(current_island_problems)
 
     return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
@@ -263,6 +267,8 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
                    subdirectory=None, itbs=None, fitness_proportion=1.0, compute_mass=False, max_no_of_gas=None,
                    Isp=None, m0=None, write_results_to_file=False, no_of_points=100):
 
+    # print(f'temp_eval_sequences_chars : {temp_evaluated_sequences_chars}')
+    # print(f'eval_seq_database : {evaluated_sequences_database}')
     # Write mga sequences to evaluated sequence database file
     evaluated_sequences_results_dict[p] = [[] for _ in range(number_of_islands_array[p])]
     min_delta_v_per_sequence = {} # per layer
@@ -278,12 +284,29 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
             sequence_from_other_layer = util.transfer_body_order_conversion.get_mga_list_from_characters(i[0])
             if len(sequence_from_other_layer) > p+2:
                 print(itbs, sequence_from_other_layer)
-                if itbs[p-1] == sequence_from_other_layer[p]:
+
+                if set(itbs) == set(sequence_from_other_layer[1:len(itbs)+1]):
                     print(f'Added {i[0]} from another layer to fitness evaluation')
+                    min_delta_v_per_sequence[i[0]] = i[1]
+                    mean_delta_v_per_sequence[i[0]] = i[2]
                     fitness_per_sequence_prev[i[0]] = fitness_per_sequence_calc(i[1], i[2], fitness_proportion)
 
-    # Save unique sequences
-    temp_unique_evaluated_sequences_chars = list(dict.fromkeys(temp_evaluated_sequences_chars))
+                # Check if all the list elements
+                # check_count = 0
+                # for q in range(len(itbs)):
+                #     if itbs[p-1-q] == sequence_from_other_layer[p-q]:
+                #
+                #         check_count +=1
+                #         print(f'Added {i[0]} from another layer to fitness evaluation')
+                #         min_delta_v_per_sequence[i[0]] = i[1]
+                #         mean_delta_v_per_sequence[i[0]] = i[2]
+                #         fitness_per_sequence_prev[i[0]] = fitness_per_sequence_calc(i[1], i[2], fitness_proportion)
+
+    fitness_per_sequence = {}
+    fitness_per_sequence.update(fitness_per_sequence_prev)
+
+    if max_no_of_gas == 0:
+        raise RuntimeError("The maximum number of gas allowed is 0. Something is wrong.")
 
     island_number = 0
     for i in range(number_of_sequences_array[p]):
@@ -291,7 +314,8 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
         delta_v_per_leg = []
         tof = []
         delivery_masses = []
-        current_sequence_chars = temp_unique_evaluated_sequences_chars[i]
+        current_sequence_chars = temp_evaluated_sequences_chars[i]
+        # print('current_chars :', current_sequence_chars)
 
         for j in range(islands_per_sequence_array[p]):
             # if len(objectives) == 2:
@@ -342,13 +366,8 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
 
         evaluated_sequences_results_dict[p][i] = current_sequence_result
 
-    if max_no_of_gas == 0:
-        raise RuntimeError("The maximum number of gas allowed is 0. Something is wrong.")
-
-    fitness_per_sequence = {}
-    for i in range(number_of_sequences_array[p]):
         if p == 0 and i == 0:
-            sequence_dt = temp_unique_evaluated_sequences_chars[0]
+            sequence_dt = temp_evaluated_sequences_chars[0]
             min_delta_v_dt = {sequence_dt : min_delta_v_per_sequence[sequence_dt]}
             mean_delta_v_dt = {sequence_dt : mean_delta_v_per_sequence[sequence_dt]}
 
@@ -358,29 +377,29 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
 
             min_delta_v_per_sequence.pop(sequence_dt)
             mean_delta_v_per_sequence.pop(sequence_dt)
-            temp_unique_evaluated_sequences_chars.pop(0)
+            # temp_evaluated_sequences_chars.pop(0)
             continue
 
-        # fitness_per_sequence[temp_unique_evaluated_sequences_chars[i-1]] = fitness_proportion * \
-        #         min_delta_v_per_sequence[temp_unique_evaluated_sequences_chars[i-1]] \ + (1-fitness_proportion) * \
-        #         mean_delta_v_per_sequence[temp_unique_evaluated_sequences_chars[i-1]]
-        fitness_per_sequence[temp_unique_evaluated_sequences_chars[i-1]] = \
-        fitness_per_sequence_calc(min_delta_v_per_sequence[temp_unique_evaluated_sequences_chars[i-1]],
-                                  mean_delta_v_per_sequence[temp_unique_evaluated_sequences_chars[i-1]],
+        # fitness_per_sequence[temp_evaluated_sequences_chars[i-1]] = fitness_proportion * \
+        #         min_delta_v_per_sequence[temp_evaluated_sequences_chars[i-1]] \ + (1-fitness_proportion) * \
+        #         mean_delta_v_per_sequence[temp_evaluated_sequences_chars[i-1]]
+        fitness_per_sequence[current_sequence_chars] = \
+        fitness_per_sequence_calc(min_delta_v_per_sequence[current_sequence_chars],
+                                  mean_delta_v_per_sequence[current_sequence_chars],
                                   fitness_proportion) 
         if fitness_proportion == 1.0:
-            assert int(fitness_per_sequence[temp_unique_evaluated_sequences_chars[i-1]]) == \
-            int(min_delta_v_per_sequence[temp_unique_evaluated_sequences_chars[i-1]])
+            assert int(fitness_per_sequence[current_sequence_chars]) == \
+            int(min_delta_v_per_sequence[current_sequence_chars])
+
+    # Add relevant sequences from other layers
+    # Not super efficient, one could create multiple databases based on each layer of the 
+    # A class for the database of sequences and a class for each transfer, for example
 
     if write_results_to_file:
         save2txt(min_delta_v_per_sequence, 'min_dv_per_sequence.dat', output_directory + subdirectory + f'/layer_{p}/')
         save2txt(mean_delta_v_per_sequence, 'mean_dv_per_sequence.dat', output_directory + subdirectory + f'/layer_{p}/')
         save2txt(fitness_per_sequence, 'fitness_per_sequence.dat', output_directory + subdirectory + f'/layer_{p}/')
 
-    # Add relevant sequences from other layers
-    # Not super efficient, one could create multiple databases based on each layer of the 
-    # A class for the database of sequences and a class for each transfer, for example
-    fitness_per_sequence.update(fitness_per_sequence_prev)
 
     #Determine best fitness and apply that to next itbs
     best_sequence = min(fitness_per_sequence, key=fitness_per_sequence.get)

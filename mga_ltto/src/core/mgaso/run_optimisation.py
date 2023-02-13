@@ -150,14 +150,17 @@ def run_mgaso_optimisation(departure_planet : str,
 # MGASO Optimisation ###############################################
 ###########################################################################
     
+    combinations_remaining_lambda = lambda planet_list, max_no_of_gas, p : len(planet_list)**(max_no_of_gas-p) + 1 if p == 0 \
+        else len(planet_list)**(max_no_of_gas-p)# or no_of_sequence_recursions
+
+    combinations_evaluated_lambda = lambda spp, planet_list, p: spp*len(planet_list) + 1 if p == 0 else spp*len(planet_list)
     # Loop for number of sequence recursions
     # p_bump = False
     for p in range(no_of_sequence_recursions): # gonna be max_no_of_gas
         print('Iteration: ', p, '\n')
 
         # Projected combinatorial complexity covered
-        combinations_remaining = lambda planet_list, max_no_of_gas, p : len(planet_list)**(max_no_of_gas-p)# or no_of_sequence_recursions
-        combinations_remaining = combinations_remaining(planet_list, max_no_of_gas, p)# or no_of_sequence_recursions
+        combinations_remaining = combinations_remaining_lambda(planet_list, max_no_of_gas, p)# or no_of_sequence_recursions
 
         if fraction_ss_evaluated[p] != 0:
             to_be_evaluated_sequences_current_layer = int(fraction_ss_evaluated[p] * combinations_remaining)
@@ -165,18 +168,17 @@ def run_mgaso_optimisation(departure_planet : str,
             if to_be_evaluated_sequences_current_layer // len(planet_list) == 0:
                 number_of_sequences_per_planet.append(1)
             else:
-                number_of_sequences_per_planet.append(to_be_evaluated_sequences_current_layer // len(planet_list) + 1)
+                number_of_sequences_per_planet.append(to_be_evaluated_sequences_current_layer // len(planet_list))
         else:
             fraction_ss_evaluated[p] = (number_of_sequences_per_planet[p]) * len(planet_list) / combinations_remaining
         print(f'Fraction of sequences evaluated in this recursion: {fraction_ss_evaluated[p]}')
-        print(f'Absolute number of sequences evaluated in this recursion : {number_of_sequences_per_planet[p]}')
+        print(f'Absolute number of sequences per target planet evaluated in this recursion : {number_of_sequences_per_planet[p]}')
 
 
     
         # Number of sequences to be evaluated in this recursion
         # 1 in the line below because the number of sequences is constant
-        combinations_evaluated = lambda spp, planet_list: spp*len(planet_list)
-        combinations_evaluated = combinations_evaluated(number_of_sequences_per_planet[p], planet_list)
+        combinations_evaluated = combinations_evaluated_lambda(number_of_sequences_per_planet[p], planet_list, p)
         print(f'The combinational coverage that is to be achieved in this layer is {combinations_evaluated} / {combinations_remaining}')
 
         # Creation of the archipelago
