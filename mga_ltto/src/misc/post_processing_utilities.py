@@ -684,6 +684,9 @@ def compare_data_to_hs(data_file, hs_file):
     ax1 = fig.add_subplot(1, 1, 1, projection="3d")
     ax1.plot(data_state[:, 1], data_state[:, 2], data_state[:, 3], label='BEPI data')
     ax1.plot(hs_state[:, 1], hs_state[:, 2], hs_state[:, 3], label='HS recreation')
+    ax1.set_xlabel("x [m]")
+    ax1.set_ylabel("y [m]")
+    ax1.set_zlabel("z [m]")
     ax1.legend()
 
     hs_state_norm = [np.linalg.norm(i) for i in hs_state[:, 1:4]]
@@ -693,6 +696,9 @@ def compare_data_to_hs(data_file, hs_file):
     fig2 = plt.figure(figsize=(7, 6))
     ax2 = fig2.add_subplot(1, 1, 1)
     ax2.plot(data_state[:, 0], diff)
+    ax2.grid()
+    ax2.set_xlabel("Time [s]")
+    ax2.set_ylabel("Position difference [m]")
     return fig, fig2, ax1, ax2
 
 
@@ -757,7 +763,7 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
 
     # Do plotting
     it = 0
-    rot = [45, 80]
+    rot = [45, 90]
     for i in range(len(frac_values)):
         fig = plt.figure()
         fig.suptitle(f"EJ transfer - {frac_values[i]}")

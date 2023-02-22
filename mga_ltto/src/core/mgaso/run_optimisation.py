@@ -162,6 +162,8 @@ def run_mgaso_optimisation(departure_planet : str,
         # Projected combinatorial complexity covered
         combinations_remaining = combinations_remaining_lambda(planet_list, max_no_of_gas, p)# or no_of_sequence_recursions
 
+        current_seed = seed[p]
+
         if fraction_ss_evaluated[p] != 0:
             to_be_evaluated_sequences_current_layer = int(fraction_ss_evaluated[p] * combinations_remaining)
             # print(f'tobeevaluated : {to_be_evaluated_sequences_current_layer}')
@@ -187,7 +189,7 @@ def run_mgaso_optimisation(departure_planet : str,
                                 number_of_sequences_per_planet, islands_per_sequence, itbs, planet_list, leg_exchange,
                                 leg_database=leg_database,
                                 manual_base_functions=manual_base_functions, dynamic_bounds=dynamic_bounds,
-                                elitist_fraction=elitist_fraction, seed=seed, objectives=objectives,
+                                elitist_fraction=elitist_fraction, seed=current_seed, objectives=objectives,
                                 evaluated_sequences_chars_list=evaluated_sequences_chars_list, Isp=Isp, m0=Isp,
                                 zero_revs=zero_revs)
 

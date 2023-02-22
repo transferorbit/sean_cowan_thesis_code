@@ -66,7 +66,7 @@ if __name__ == '__main__':
     output_directory = current_dir + '/pp_mgaso'
     # output_directory = '../pp_mgaso'
     julian_day = constants.JULIAN_DAY
-    seed = 421
+    seed = [421, 422, 423] # One for each recursion
     no_of_points = 100
 
     write_results_to_file = True
@@ -97,14 +97,13 @@ if __name__ == '__main__':
     leg_exchange = False
     objectives = ['dv']
     zero_revs = False
-    seed = 421
     # possible_ga_planets = ["Venus", "Earth", "Mars"] # optional
     possible_ga_planets = None
     
     ## Specific parameters
     departure_planet = "Earth"
     arrival_planet = "Jupiter"
-    free_param_count = 2
+    free_param_count = 1
     # num_gen = 2
     # pop_size = 52
     num_gen = 2

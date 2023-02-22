@@ -19,9 +19,9 @@ import matplotlib.transforms as transforms
 
 # plt.rcParams['figure.dpi'] = 250
 # plt.rcParams['savefig.dpi'] = 250
-plt.rcParams['font.size'] = 6
+plt.rcParams['font.size'] = 8
 plt.rcParams['font.family'] = "Arial"
-plt.rcParams['figure.figsize'] = (12, 12)
+plt.rcParams['figure.figsize'] = (15, 10)
 #
 # Local
 from misc.trajectory3d import trajectory_3d
@@ -76,9 +76,9 @@ import misc.post_processing_utilities as post
 # data_directory = "pp_validation/bepi_data_test5/bepi_state.dat"
 # hs_directory = "pp_validation/bepi_hs_test5/islands/island_0/state_history.dat"
 # post.compare_data_to_hs(data_file=data_directory, hs_file=hs_directory)
-# post.thrust_propagation(dir=data_directory)
-
-# plt.show()
+data_directory = "pp_validation/bepi_data_test5/bepi_state.dat"
+post.thrust_propagation(dir=data_directory)
+plt.show()
 
 # if __name__ == "__main__":
 #     data_directory = "pp_ltto/EN_testing/EN_test164/"

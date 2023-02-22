@@ -180,6 +180,9 @@ Creating archipelago
             number_of_sequences = combinations_left
             final_iteration = True
 
+    # Set seed here to allow for different values in the iteration below
+    random.seed(seed)
+
     number_of_islands = number_of_sequences * islands_per_sequence
     # number_of_islands = number_of_islands.copy()
     print('Number of islands: ',number_of_islands , '\n')
@@ -192,7 +195,7 @@ Creating archipelago
             ptbs = [departure_planet] + itbs + [planet_list[(i-directtransferbump) % len(planet_list)]]
             # can add seed argument but that does not work yet as intended
             random_sequence = create_random_transfer_body_order(
-                    possible_planets=planet_list, max_no_of_gas=current_max_no_of_gas)
+                    possible_planets=planet_list, max_no_of_gas=current_max_no_of_gas, seed=seed)
             transfer_body_order = ptbs + random_sequence + [arrival_planet]
 
             # Check if the transfer body order is unique
@@ -425,7 +428,6 @@ def create_random_transfer_body_order(possible_planets, seed=None, max_no_of_gas
 
     # transfer_body_order.append(predefined_sequence) if predefined_sequence != [] else None #?
     # create random sequence of numbers with max_no_of_gas length
-    random.seed(seed)
     sequence_length = random.randrange(0, max_no_of_gas)
     sequence_digits = [random.randrange(0, len(possible_planets)) for _ in
             range(sequence_length)]
