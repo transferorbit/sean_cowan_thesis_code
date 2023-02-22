@@ -283,7 +283,7 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
         for i in evaluated_sequences_database:
             sequence_from_other_layer = util.transfer_body_order_conversion.get_mga_list_from_characters(i[0])
             if len(sequence_from_other_layer) > p+2:
-                print(itbs, sequence_from_other_layer)
+                print(sequence_from_other_layer)
 
                 if set(itbs) == set(sequence_from_other_layer[1:len(itbs)+1]):
                     print(f'Added {i[0]} from another layer to fitness evaluation')

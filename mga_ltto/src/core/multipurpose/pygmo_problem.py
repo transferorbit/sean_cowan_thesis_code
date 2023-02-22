@@ -1,4 +1,5 @@
 '''
+
 Author: Sean Cowan
 Purpose: MSc Thesis
 Date Created: 26-07-2022
@@ -11,10 +12,14 @@ This module creates a PyGMO compatible problem class that represents the mga low
 
 # General 
 import numpy as np
+import sys
+import os
 
 # Tudatpy 
 from tudatpy.kernel import constants
 
+current_dir = os.getcwd()
+sys.path.append('/Users/sean/Desktop/tudelft/thesis/code/mga_ltto/src/') # this only works if you run ltto and mgso while in the directory that includes those files
 # Local
 import core.multipurpose.mga_low_thrust_utilities as util
 
@@ -1864,11 +1869,380 @@ class MGALowThrustTrajectoryOptimizationProblemOptimAngles(MGALowThrustTrajector
 
         return objective
 
+class MGALowThrustTrajectoryOptimizationProblemSingleLeg:
+    """
+    Class to initialize, simulate, and optimize the MGA low-thrust trajectory optimization problem.
+    """
 
+    def __init__(self,
+                 transfer_body_order,
+                 departure_date,
+                 # departure_state,
+                 # arrival_state,
+                 time_of_flight,
+                 number_of_revs,
+                 departure_velocity=0,
+                 departure_ip_angle=0,
+                 departure_oop_angle=0,
+                 arrival_velocity=0,
+                 arrival_ip_angle=0,
+                 arrival_oop_angle=0,
+                 no_of_free_parameters = 0,
+                 bounds = [[], []], 
+                 depart_semi_major_axis=np.inf,
+                 depart_eccentricity=0, 
+                 target_semi_major_axis=np.inf, 
+                 target_eccentricity=0,
+                 swingby_altitude=200000000, #2e5 km
+                 Isp=3000,
+                 m0=1000,
+                 no_of_points=500,
+                 manual_base_functions=False,
+                 dynamic_bounds = {'time_of_flight' : False,
+                                   'orbit_ori_angle' : False,
+                                   'swingby_outofplane' : False,
+                                   'swingby_inplane' : False,
+                                   'shaping_function' : False},
+                 manual_tof_bounds=None,
+                 objectives=['dv'],
+                 zero_revs=False):
+
+        self.transfer_body_order = transfer_body_order
+        self.mga_characters = \
+        util.transfer_body_order_conversion.get_mga_characters_from_list(self.transfer_body_order)
+        self.no_of_gas = len(transfer_body_order)-2
+        self.target_body = transfer_body_order[0]
+        self.depart_body = transfer_body_order[-1]
+        self.no_of_legs = len(transfer_body_order) - 1
+
+        self.departure_date = departure_date
+        # self.departure_state = departure_state
+        # self.arrival_state = arrival_state
+        self.time_of_flight = time_of_flight
+        self.number_of_revs = number_of_revs
+
+        self.no_of_free_parameters = no_of_free_parameters
+        # self.no_of_free_parameters = 2 if len(transfer_body_order) <= 3 else 1
+        self.total_no_of_free_coefficients = self.no_of_free_parameters*3*(self.no_of_legs)
+
+        self.bounds = bounds
+
+        self.depart_semi_major_axis = depart_semi_major_axis
+        self.depart_eccentricity = depart_eccentricity
+        self.target_semi_major_axis = target_semi_major_axis
+        self.target_eccentricity = target_eccentricity
+
+        self.departure_velocity = departure_velocity
+        self.departure_ip_angle = departure_ip_angle
+        self.departure_oop_angle = departure_oop_angle
+
+        self.arrival_velocity = arrival_velocity
+        self.arrival_ip_angle = arrival_ip_angle
+        self.arrival_oop_angle = arrival_oop_angle
+
+        self.Isp = Isp
+        self.m0 = m0
+        self.no_of_points = no_of_points
+
+        self.objectives = objectives
+        self.zero_revs = zero_revs
+
+        self.design_parameter_vector = None
+
+        self.transfer_trajectory_object = None
+        self.delivery_mass = None
+        self.node_times = None
+
+        self.planetary_radii = {'Sun': 696000000.0, 'Mercury': 2439699.9999999995, 'Venus':
+                6051800.0, 'Earth': 6371008.366666666, 'Mars': 3389526.6666666665, 'Jupiter':
+                69946000.0, 'Saturn': 58300000.0}
+
+        self.manual_base_functions = manual_base_functions
+        self.dynamic_bounds = dynamic_bounds
+        self.manual_tof_bounds = manual_tof_bounds
+        self.bound_names= ['Free coefficient [-]']
+
+
+
+    def mjd2000_to_seconds(self, mjd2000):
+        # mjd2000 = 51544
+        # mjd += mjd2000
+        mjd2000 *= constants.JULIAN_DAY
+        return mjd2000
+        # return time_conversion.julian_day_to_seconds_since_epoch(time_conversion.modified_julian_day_to_julian_day(mjd2000))
+
+    def get_bounds(self):
+        # departure_date_lb = self.mjd2000_to_seconds(self.bounds[0][0])
+        # departure_date_ub = self.mjd2000_to_seconds(self.bounds[1][0])
+        # Departure epoch is given
+
+        # departure_velocity_lb = self.bounds[0][1]
+        # departure_velocity_ub = self.bounds[1][1]
+        #
+        # arrival_velocity_lb = self.bounds[0][2]
+        # arrival_velocity_ub = self.bounds[1][2]
+        # Departure and arrival conditions are given
+
+        # time_of_flight_lb = self.mjd2000_to_seconds(self.bounds[0][3])
+        # time_of_flight_ub = self.mjd2000_to_seconds(self.bounds[1][3])
+        # Manually defined
+
+        # incoming_velocity_lb = self.bounds[0][4]
+        # incoming_velocity_ub = self.bounds[1][4]
+        #
+        # swingby_altitude_lb = self.bounds[0][5]
+        # swingby_altitude_ub = self.bounds[1][5]
+        # Single leg only
+
+        free_coefficients_lb = self.bounds[0][0]
+        free_coefficients_ub = self.bounds[1][0]
+
+        # number_of_revolutions_lb = self.bounds[0][7]
+        # number_of_revolutions_ub = self.bounds[1][7]
+        # Manually defined
+
+        # lower_bounds = [departure_date_lb] # departure date
+        # upper_bounds = [departure_date_ub] # departure date
+        # lower_bounds.append(departure_velocity_lb) # departure velocity # FIXED
+        # upper_bounds.append(departure_velocity_ub) # departure velocity
+        # lower_bounds.append(arrival_velocity_lb) # departure velocity # FIXED
+        # upper_bounds.append(arrival_velocity_ub) # departure velocity
+        lower_bounds = []
+        upper_bounds = []
+
+        # for leg in range(self.no_of_legs): # time of flight
+        #     if self.manual_tof_bounds != None:
+        #         lower_bounds.append(self.manual_tof_bounds[0][leg] * constants.JULIAN_DAY)
+        #         upper_bounds.append(self.manual_tof_bounds[1][leg] * constants.JULIAN_DAY)
+        #     elif self.dynamic_bounds:
+        #         current_time_of_flight_bounds = self.get_tof_bound(leg, (time_of_flight_lb,
+        #                                                                  time_of_flight_ub))
+        #         lower_bounds.append(current_time_of_flight_bounds[0])
+        #         upper_bounds.append(current_time_of_flight_bounds[1])
+        #     else:
+        #         lower_bounds.append(time_of_flight_lb)
+        #         upper_bounds.append(time_of_flight_ub)
+        # for _ in range(self.no_of_gas):
+        #     lower_bounds.append(incoming_velocity_lb)
+        #     upper_bounds.append(incoming_velocity_ub)
+        # for _ in range(self.no_of_gas):
+        #     lower_bounds.append(swingby_altitude_lb)
+        #     upper_bounds.append(swingby_altitude_ub)
+        for _ in range(self.total_no_of_free_coefficients): # free coefficients
+            lower_bounds.append(free_coefficients_lb)
+            upper_bounds.append(free_coefficients_ub)
+        # for _ in range(self.no_of_legs): # number of revolutions
+        #     lower_bounds.append(number_of_revolutions_lb)
+        #     upper_bounds.append(number_of_revolutions_ub)
+
+        return (lower_bounds, upper_bounds)
+
+    def get_nobj(self):
+        if len(self.objectives) == 2:
+            return 2
+        elif len(self.objectives) == 1:
+            return 1
+        else:
+            raise RuntimeError('The amount of objectives has not bee implemented yet, please choose 1 or 2 objectives')
+
+    def get_nic(self):
+        return 0
+
+    def get_nix(self):
+        # free coefficients, number of revolutions
+        return 0 
+        # return self.no_of_legs
+
+    def get_states_along_trajectory(self, no_of_points) -> dict:
+        """
+        Returns the full state history of the hodographic shaping state interpolated at
+        'no_of_points' points
+        Parameters
+        ----------
+        no_of_points : number of points interpolated along trajectory
+        Returns
+        -------
+        dict
+        """
+        return self.transfer_trajectory_object.states_along_trajectory(no_of_points)
+
+
+    def get_inertial_thrust_accelerations_along_trajectory(self, no_of_points) -> dict:
+        """
+        Returns the full thrusty acceleration history of the hodographic shaping state interpolated
+        at 'no_of_points' points
+        Parameters
+        ----------
+        no_of_points : number of points interpolated along trajectory
+        Returns
+        -------
+        dict
+        """
+        return self.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+
+    def get_node_time_list(self):
+        """
+        Returns the node_times list variable so that it can be used for post-processing
+        """
+        return self.node_times
+
+    def get_design_parameter_vector(self):
+        return self.design_parameter_vector
+
+    def get_objectives(self, transfer_trajectory_object):
+        objective_values = []
+        for it, j in enumerate(self.objectives):
+            if j == 'dv':
+                objective_values.append(transfer_trajectory_object.delta_v)
+            elif j == 'tof':
+                objective_values.append(transfer_trajectory_object.time_of_flight)
+            elif j == 'dmf' or j == 'pmf' or j == 'dm':
+                thrust_acceleration = \
+                transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+
+                mass_history, delivery_mass, invalid_trajectory = \
+                util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
+                if delivery_mass < 0:
+                    raise RuntimeError('Error with validity of trajectory: the delivery mass is negative.')
+                # (self.m0 - delivery_mass) because of the propulsion mass
+                if j == 'dmf':
+                    objective_values.append(- delivery_mass / self.m0) # try to maximize
+                elif j == 'pmf':
+                    objective_values.append((self.m0 - delivery_mass) / self.m0) # try to minimize
+                elif j == 'dm':
+                    objective_values.append(- delivery_mass) # try to maximize
+            else:
+                raise RuntimeError('An objective was provided that is not permitted')
+        return objective_values
+
+    def get_delivery_mass(self):
+        thrust_acceleration = \
+        self.transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+        mass_history, self.delivery_mass, invalid_trajectory = \
+        util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
+        return self.delivery_mass
+
+    
+    def delivery_mass_constraint_check(self, transfer_object, Isp, m0, no_of_points=500):
+        thrust_acceleration = \
+        transfer_object.inertial_thrust_accelerations_along_trajectory(no_of_points)
+
+        mass_history, delivery_mass, invalid_trajectory = util.get_mass_propagation(thrust_acceleration, Isp, m0)
+
+
+        if invalid_trajectory:
+            raise RuntimeError('Error with validity of trajectory: the delivery mass is approaching 0 1e-7.')
+
+        return mass_history, delivery_mass
+        
+    # def get_data(self):
+    #     return self.departure_body, self.departure_state, self.arrival_body, self.arrival_state
+
+    def fitness(self, 
+                design_parameter_vector : list,
+                bodies = util.create_modified_system_of_bodies_validation(),
+                post_processing=False):
+
+        """
+        Assuming #fc == 2
+        0..6 - free_coefficients
+        """
+        # bodies = self.create_modified_system_of_bodies_validation()
+        # print("Design Parameters:", design_parameter_vector, "\n")
+        self.design_parameter_vector = design_parameter_vector
+
+        # parameters
+        central_body = 'Sun'
+
+        ### CONTINUOUS PART ###
+        departure_date = self.departure_date
+        departure_velocity = self.departure_velocity # departure velocity
+        departure_oop_angle = self.departure_oop_angle
+        departure_ip_angle = self.departure_ip_angle
+        arrival_velocity = self.arrival_velocity# arrival velocity
+        arrival_oop_angle = self.arrival_oop_angle
+        arrival_ip_angle = self.arrival_ip_angle
+        time_of_flights = [self.time_of_flight] # time of flight
+
+        ### INTEGER PART ###
+        # hodographic shaping free coefficients
+        free_coefficients = \
+        np.array(design_parameter_vector[0:self.total_no_of_free_coefficients])
+
+        number_of_revolutions = np.array([self.number_of_revs])
+
+        transfer_trajectory_object = util.get_low_thrust_transfer_object(self.transfer_body_order,
+                                                        time_of_flights,
+                                                        bodies,
+                                                        central_body,
+                                                        no_of_free_parameters=self.no_of_free_parameters,
+                                                        manual_base_functions=self.manual_base_functions,
+                                                        number_of_revolutions=number_of_revolutions,
+                                                        dynamic_shaping_functions=self.dynamic_bounds['shaping_function'])
+
+        # node times
+        self.node_times = util.get_node_times(departure_date, time_of_flights)
+        # print(node_times)
+
+        # leg free parameters 
+        leg_free_parameters = np.concatenate(np.array([np.append(number_of_revolutions[i],
+            free_coefficients[i*(self.no_of_free_parameters*3):(i+1)*(self.no_of_free_parameters*3)]) for i
+            in range(self.no_of_legs)])).reshape((self.no_of_legs, 1 + 3*
+                self.no_of_free_parameters)) # added reshape
+
+        # node free parameters
+        node_free_parameters = util.get_node_free_parameters(self.transfer_body_order,
+                                                             departure_velocity=departure_velocity,
+                                                             departure_inplane_angle=departure_ip_angle,
+                                                             departure_outofplane_angle=departure_oop_angle,
+                                                             arrival_velocity=arrival_velocity,
+                                                             arrival_inplane_angle=arrival_ip_angle,
+                                                             arrival_outofplane_angle=arrival_oop_angle)
+
+        try:
+            transfer_trajectory_object.evaluate(self.node_times, leg_free_parameters, node_free_parameters)
+            # self.delivery_mass_constraint_check(transfer_trajectory_object, self.Isp, self.m0, self.no_of_points)
+
+            # self.transfer_trajectory_object = transfer_trajectory_object
+            #
+            # if post_processing == False:
+            #     objective = self.get_objectives()
+            # else:
+            #     return
+
+            if post_processing == False:
+                objective = self.get_objectives(transfer_trajectory_object)
+            elif post_processing == True:
+                self.transfer_trajectory_object = transfer_trajectory_object
+                return
+
+
+        except RuntimeError as e:
+            mass_penalty = 0
+            negative_distance_penalty = 0
+            if e == 'Error with validity of trajectory: the delivery mass is negative.':
+                print(e)
+                mass_penalty = 10**16
+            elif e == 'Error when computing radial distance in hodographic shaping: computed distance is negative.':
+                print(e)
+                negative_distance_penalty = 10**16
+            else:
+                print('Unspecified error : ', e)
+                other_penalty = 10**16
+
+            if len(self.objectives) == 1:
+                objective = [mass_penalty + negative_distance_penalty + other_penalty]
+            else:
+                objective = [mass_penalty + negative_distance_penalty + other_penalty for _ in range(2)]
+                print(objective)
+
+        return objective
 
 #######################################################################
 # Penalty functions ###################################################
 #######################################################################
+
+
 
 
 

@@ -15,14 +15,16 @@ import os
 import pygmo as pg
 import multiprocessing as mp
 import random
+import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
 
 # Tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 
 # Local
-import core.multipurpose.pygmo_problem as prob
 import core.multipurpose.mga_low_thrust_utilities as util
+from misc.trajectory3d import trajectory_3d
 
 # import sys
 # sys.path.insert(0, "/Users/sean/Desktop/tudelft/tudat/tudat-bundle-test/build/tudatpy")
@@ -230,12 +232,12 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
             state_history_dict,
             vehicles_names=["Spacecraft"],
             central_body_name="SSB",
-            # bodies=["Sun", "Mercury", "Venus", "Earth", "Mars"],
-            bodies=["Sun"] + tbo_list,
+            bodies=["Sun", "Mercury", "Venus", "Earth"],
+            # bodies=["Sun"] + tbo_list,
             frame_orientation= 'ECLIPJ2000',
             thrust_history=thrust_history_dict,
             projection=projection)
-    plt.figure(constrained_layout=True)
+    # plt.figure(constrained_layout=True)
     # print(auxiliary_info_dict)
     ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
     # ax.scatter(fly_by_states[0, 0] , fly_by_states[0, 1] , fly_by_states[0,
@@ -248,8 +250,7 @@ def hodographic_shaping_visualisation(dir=None , dir_of_dir=None, quiver=False, 
     #         2] , marker='+', color='yellow', label='Mars fly-by')
 
 # Change the size of the figure
-    fig.set_size_inches(8, 8)
-# Show the plot
+    # fig.set_size_inches(8, 8)
     # plt.show()
 
 def objective_per_generation_visualisation(dir=None, 
@@ -668,4 +669,123 @@ def get_stats(dir_of_dir=None,
         
 
     save2txt(dict, 'get_stats.dat', dir_of_dir)
+
+def compare_data_to_hs(data_file, hs_file):
+    """
+    This function plots data that compares validation runs between real BEPICOLOMBO data and a recreation using hodographic shaping
+    """
+
+    #Load data from file
+    data_state = np.loadtxt(data_file)
+    hs_state = np.loadtxt(hs_file)
+
+    #Plot data
+    fig = plt.figure(figsize=(7, 6))
+    ax1 = fig.add_subplot(1, 1, 1, projection="3d")
+    ax1.plot(data_state[:, 1], data_state[:, 2], data_state[:, 3], label='BEPI data')
+    ax1.plot(hs_state[:, 1], hs_state[:, 2], hs_state[:, 3], label='HS recreation')
+    ax1.legend()
+
+    hs_state_norm = [np.linalg.norm(i) for i in hs_state[:, 1:4]]
+    data_state_norm = [np.linalg.norm(i) for i in data_state[:, 1:4]]
+    diff = [hs_state_norm[i] - data_state_norm[i] for i in range(len(hs_state_norm))]
+
+    fig2 = plt.figure(figsize=(7, 6))
+    ax2 = fig2.add_subplot(1, 1, 1)
+    ax2.plot(data_state[:, 0], diff)
+    return fig, fig2, ax1, ax2
+
+
+def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
+
+    # Helper class
+    class mgaso_run:
+        def __init__(self,
+                     frac=None, 
+                     fitprop=None,
+                     sequences=None,
+                     fitnesses=None,
+                     min_dvs=None,
+                     mean_dvs=None) -> None:
+
+            self.frac = frac
+            self.fitprop = fitprop
+            self.sequences = sequences
+            self.min_dvs = min_dvs
+            self.mean_dvs = mean_dvs
+            self.fitnesses = fitnesses if fitnesses != None else self.fitprop*self.min_dvs + (1-self.fitprop)*self.mean_dvs
+
+    #Get data
+    for root, dirs, files in os.walk(data_directory):
+        directory_list = sorted(dirs)
+        break
+
+    number_of_sims = len(fitprop_values) * len(frac_values)
+    sorted_database_sequences = {}
+    sorted_database_values = {}
+    it2 = 0
+    for it, dir in enumerate(directory_list):
+        if os.path.exists(root + dir + "/sorted_evaluated_sequences_database.txt") and it < number_of_sims:
+            # print(root + dir + "/sorted_evaluated_sequences_database.txt")
+            sorted_database_sequences[it2] = np.loadtxt(root + dir + "/sorted_evaluated_sequences_database.txt", dtype=str,
+                                             delimiter=",", usecols=0, skiprows=1)
+            sorted_database_values[it2] = np.loadtxt(root + dir + "/sorted_evaluated_sequences_database.txt",
+                                                    delimiter=",", usecols=(1, 2, 3), skiprows=1)
+            it2 +=1
+
+    # Make all mgaso run objects
+    mgaso_runs = []
+    max_value_per_frac = []
+    min_value_per_frac = []
+    it = 0
+    for i in range(len(frac_values)):
+        current_frac = frac_values[i]
+        fitnesses = []
+        for j in range(len(fitprop_values)):
+            current_fitprop = fitprop_values[j]
+            mgaso_runs.append(mgaso_run(frac=current_frac, 
+                                        fitprop=current_fitprop,
+                                        sequences=sorted_database_sequences[it],
+                                        min_dvs=sorted_database_values[it][:, 0],
+                                        mean_dvs=sorted_database_values[it][:, 1]))
+            fitnesses.append(mgaso_runs[it].fitnesses)
+            it += 1
+        fitnesses = list(np.concatenate(fitnesses).flat)
+        max_value_per_frac.append(max(fitnesses) + 2000)
+        min_value_per_frac.append(min(fitnesses) - 2000)
+
+
+    # Do plotting
+    it = 0
+    rot = [45, 80]
+    for i in range(len(frac_values)):
+        fig = plt.figure()
+        fig.suptitle(f"EJ transfer - {frac_values[i]}")
+
+        for j in range(len(fitprop_values)):
+            ax = fig.add_subplot(2,3,1+j)
+            run = mgaso_runs[it]
+            ax.scatter(run.sequences, run.fitnesses)
+            index_list = []
+            for it2, p in enumerate(run.sequences):
+                if p in ['EJ', 'EMJ', 'EEMJ', 'EEEMJ']:
+                    index_list.append(it2)
+
+            it+=1
+            plt.setp(ax.get_xticklabels(), rotation=rot[i], horizontalalignment='right')
+            ax.set_ylim([min_value_per_frac[i], max_value_per_frac[i]])
+            ax.title.set_text(f'Fraction explored : {fitprop_values[j]}')
+            ax.grid()
+            # ax.legend()
+            trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+            ax.text(0,min_value_per_frac[i], "{:.0f}".format(min_value_per_frac[i]), color="red", transform=trans, 
+                    ha="right", va="center")
+            trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+            ax.text(0,max_value_per_frac[i], "{:.0f}".format(max_value_per_frac[i]), color="red", transform=trans, 
+                    ha="right", va="center")
+            for q in index_list:
+                plt.gca().get_xticklabels()[q].set_color('red')
+        plt.subplots_adjust(wspace=0.5, hspace=0.5)
+
+    plt.show()
 

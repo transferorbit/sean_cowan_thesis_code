@@ -231,6 +231,8 @@ def run_mgaso_optimisation(departure_planet : str,
     #################
     # End of p loop #
     #################
+    print(f'Initial Target Body Sequence : {itbs}')
+
 
 ###########################################################################
 # Post processing #########################################################
@@ -294,5 +296,6 @@ def run_mgaso_optimisation(departure_planet : str,
                             archi=archi,
                             fraction_ss_evaluated=fraction_ss_evaluated,
                             number_of_sequences_per_planet=number_of_sequences_per_planet,
-                            planet_list=planet_list)
+                            planet_list=planet_list,
+                            itbs=itbs)
 

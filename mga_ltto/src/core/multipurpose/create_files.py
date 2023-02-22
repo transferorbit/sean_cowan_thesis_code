@@ -13,11 +13,15 @@ format that is used for this thesis
 
 # General
 import numpy as np
+import os
+import sys
 
 # Tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
 
+current_dir = os.getcwd()
+sys.path.append('/Users/sean/Desktop/tudelft/thesis/code/mga_ltto/src/') # this only works if you run ltto and mgso while in the directory that includes those files
 # Local
 import core.multipurpose.mga_low_thrust_utilities as util
 # If conda environment does not work
@@ -56,7 +60,8 @@ def create_files(type_of_optimisation=None,
                  compute_mass=False,
                  fraction_ss_evaluated=None,
                  number_of_sequences_per_planet=None,
-                 planet_list=None):
+                 planet_list=None,
+                 itbs=None):
 
     if type_of_optimisation == 'ltto':
         no_of_sequence_recursions = 1
@@ -124,8 +129,7 @@ def create_files(type_of_optimisation=None,
             for j in range(number_of_nodes):
                 auxiliary_info['Delta V for node %s,'%(j)] = delta_v_per_node[j]
             auxiliary_info['Delta V,'] = delta_v 
-            auxiliary_info['MGA Sequence,'] = util.transfer_body_order_conversion.get_mga_characters_from_list
-            (mga_low_thrust_problem.transfer_body_order)
+            auxiliary_info['MGA Sequence,'] = mga_low_thrust_problem.mga_characters
             auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
                 enumerate(thrust_acceleration.items())])
             if compute_mass:
@@ -195,6 +199,7 @@ def create_files(type_of_optimisation=None,
             optimisation_characteristics[f'Number of sequences per planet - Layer {j},'] = \
             number_of_sequences_per_planet[j]
         optimisation_characteristics['Possible GA planets,'] = ' '.join(planet_list)
+        optimisation_characteristics['Initial Target Body Sequence'] = ' '.join(itbs)
     else:
         optimisation_characteristics['Number of islands,'] = number_of_islands 
         

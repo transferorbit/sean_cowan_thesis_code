@@ -118,7 +118,7 @@ class transfer_body_order_conversion:
     def get_mga_characters_from_list(bodylist: list) -> str():
         """
         Input : ["Earth", "Venus", "Mercury"]
-        Output : ["EVY"]
+        Output : "EVY"
         """
 
         character_dict = {'Y' : "Mercury",
@@ -385,12 +385,12 @@ def get_node_times(departure_date: float,
 #     return leg_free_parameters
 
 def get_node_free_parameters(transfer_body_order: list, 
-                             swingby_periapses: np.ndarray,
-                             incoming_velocities: np.ndarray, 
-                             orbit_ori_angles : np.ndarray = np.array([None]),
-                             swingby_inplane_angles : np.ndarray = np.array([None]),
-                             swingby_outofplane_angles : np.ndarray = np.array([None]),
-                             dsm_deltav: np.ndarray=np.array([None]), 
+                             swingby_periapses: np.ndarray=None,
+                             incoming_velocities: np.ndarray=None, 
+                             orbit_ori_angles : np.ndarray = None,
+                             swingby_inplane_angles : np.ndarray = None,
+                             swingby_outofplane_angles : np.ndarray = None,
+                             dsm_deltav: np.ndarray = None, 
                              departure_velocity: float = 0,
                              departure_inplane_angle : float = 0,
                              departure_outofplane_angle: float = 0,
@@ -418,7 +418,8 @@ def get_node_free_parameters(transfer_body_order: list,
 
     node_free_parameters = []
 
-    assert len(incoming_velocities) == len(swingby_periapses)
+    if incoming_velocities is not None and swingby_periapses is not None:
+        assert len(incoming_velocities) == len(swingby_periapses) 
     # Departure node
     node_free_parameters.append(np.array([departure_velocity, departure_inplane_angle,
                                           departure_outofplane_angle]))#  departure_velocity
@@ -426,12 +427,13 @@ def get_node_free_parameters(transfer_body_order: list,
     # Swingby nodes
     for i in range(len(transfer_body_order)-2): # no_of_gas
         node_parameters = list()
-        node_parameters.append(incoming_velocities[i] if incoming_velocities[0] != None else 0)
-        node_parameters.append(swingby_inplane_angles[i] if swingby_inplane_angles[0] != None else 0)
-        node_parameters.append(swingby_outofplane_angles[i] if swingby_outofplane_angles[0] != None else 0)
-        node_parameters.append(swingby_periapses[i] if swingby_periapses[0] != None else 0)
-        node_parameters.append(orbit_ori_angles[i] if orbit_ori_angles[0] != None else 0)
-        node_parameters.append(dsm_deltav[i] if dsm_deltav[0] != None else 0)
+        node_parameters.append(incoming_velocities[i] if incoming_velocities[0]  is not None else 0)
+        node_parameters.append(swingby_inplane_angles[i] if swingby_inplane_angles[0]  is not None else 0)
+        node_parameters.append(swingby_outofplane_angles[i] if swingby_outofplane_angles[0]  is not None else 0)
+        node_parameters.append(swingby_periapses[i] if swingby_periapses[0]  is not None else 0)
+        node_parameters.append(orbit_ori_angles[i] if orbit_ori_angles[0]  is not None else 0)
+        # node_parameters.append(dsm_deltav[i] if dsm_deltav[0] is not None else 0)
+        node_parameters.append(0)
 
         node_free_parameters.append(node_parameters)
 
@@ -708,6 +710,62 @@ def create_modified_system_of_bodies(departure_date=None, central_body_mu=None, 
 
     return environment_setup.create_system_of_bodies(current_body_list_settings)
     # self.system_of_bodies = lambda : system_of_bodies
+
+def create_modified_system_of_bodies_validation(bodies=["Sun", "Mercury", "Venus", "Earth"]):
+
+
+    departure_body = 'Depart'
+    arrival_body = 'Arriva'
+    # No thrust
+    # departure_state = [1.32331228e+11, 6.66542553e+10, 8.54359784e+07, -1.70376556e+04, 2.53431018e+04, 2.73557351e+02]
+    # arrival_state = [5.11725300e+10, -3.53584027e+08, -4.79993046e+09, -1.29567837e+04, 5.42787716e+04, 5.54404347e+03]
+
+    #With thrust
+    # 639550000.0
+    departure_state = [-1.42103917e+11, -4.49049607e+10, 8.80866518e+07, 5.02094627e+03, -3.01872576e+04, -2.74769320e+02]
+    # 640040000.0
+    arrival_state = [-1.38878050e+11, -5.83263232e+10, -1.91905921e+08, 8.61923618e+03, -2.45349516e+04, -7.99796323e+02]
+
+    frame_origin = 'Sun'
+    frame_orientation = 'ECLIPJ2000'
+
+    # this needs spice
+    # print('Before spice data is needed')
+    body_list_settings = lambda : \
+        environment_setup.get_default_body_settings(bodies=bodies,
+                base_frame_origin=frame_origin, base_frame_orientation=frame_orientation)
+    # print('After spice data is needed')
+    # print(bodies)
+    current_body_list_settings = body_list_settings() #cannot be moved out of scope yet.
+    for it, i in enumerate(bodies):
+        # print(it)
+        # current_body_list_settings.add_empty_settings(i)            
+        if i == "Sun":
+            central_body_mu = 1.3271244e20 # m^3 / s^2
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.keplerian([0, 0, 0, 0, 0, 0], 1000*constants.JULIAN_DAY,
+                    central_body_mu, 'SSB', frame_orientation)
+        else:
+            current_body_list_settings.get(i).ephemeris_settings = \
+            environment_setup.ephemeris.approximate_jpl_model(i)        
+
+    # Add depart
+    current_body_list_settings.add_empty_settings(departure_body)
+    mu_depart = 1 # m^3 / s^2
+    current_body_list_settings.get(departure_body).gravity_field_settings = \
+    environment_setup.gravity_field.central(mu_depart)
+    current_body_list_settings.get(departure_body).ephemeris_settings = \
+    environment_setup.ephemeris.constant(departure_state, 'SSB', frame_orientation)
+
+    # Add arriva
+    current_body_list_settings.add_empty_settings(arrival_body)
+    mu_arriva = 1 # m^3 / s^2
+    current_body_list_settings.get(arrival_body).gravity_field_settings = \
+    environment_setup.gravity_field.central(mu_arriva)
+    current_body_list_settings.get(arrival_body).ephemeris_settings = \
+    environment_setup.ephemeris.constant(arrival_state, 'SSB', frame_orientation)
+
+    return environment_setup.create_system_of_bodies(current_body_list_settings)
 
 def get_mass_propagation(thrust_acceleration : dict, Isp, m0, g0=9.81):
 

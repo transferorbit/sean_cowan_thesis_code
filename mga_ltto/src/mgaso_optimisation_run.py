@@ -63,7 +63,7 @@ if __name__ == '__main__':
     Population size; unknown
     """
 
-    output_directory = current_dir + '/../pp_mgaso'
+    output_directory = current_dir + '/pp_mgaso'
     # output_directory = '../pp_mgaso'
     julian_day = constants.JULIAN_DAY
     seed = 421

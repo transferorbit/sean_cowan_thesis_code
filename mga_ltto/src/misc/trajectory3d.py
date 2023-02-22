@@ -10,6 +10,7 @@ This file includes an adaptation of the trajectory_3d plotting function from tud
 import matplotlib.pyplot as plt
 import numpy as np
 from typing import List, Dict, Union
+import sys
 
 # Tudatpy
 import tudatpy
@@ -17,13 +18,16 @@ from tudatpy.kernel.numerical_simulation import environment_setup
 # from tudatpy.kernel.interface import spice_interface
 from tudatpy.util import result2array
 
+sys.path.append('/Users/sean/Desktop/tudelft/thesis/code/mga_ltto/src/') # this only works if you run ltto and mgso while in the directory that includes those files
+import core.multipurpose.mga_low_thrust_utilities as util
+
 def trajectory_3d(
     vehicles_states: Dict[float, np.ndarray],
     vehicles_names: List[str],
     central_body_name:str,
     bodies: List[str] = ["Sun", "Mercury", "Venus", "Earth", "Mars", "Jupiter",
         "Saturn", "Uranus", "Neptune"],
-    frame_orientation:str = "J2000",
+    frame_orientation:str = "ECLIPJ2000",
     center_plot:bool = False,
     colors:List[str] = [],
     linestyles:List[str] = [],
@@ -120,13 +124,14 @@ def trajectory_3d(
                 base_frame_origin='SSB', base_frame_orientation="ECLIPJ2000")
 
 
-    for i in bodies:
-        current_body_list_settings = body_list_settings()
-        current_body_list_settings.add_empty_settings(i)            
-        current_body_list_settings.get(i).ephemeris_settings = \
-        environment_setup.ephemeris.approximate_jpl_model(i)        
-
-    system_of_bodies = environment_setup.create_system_of_bodies(current_body_list_settings)
+    # for i in bodies:
+    #     current_body_list_settings = body_list_settings()
+    #     current_body_list_settings.add_empty_settings(i)            
+    #     current_body_list_settings.get(i).ephemeris_settings = \
+    #     environment_setup.ephemeris.approximate_jpl_model(i)        
+    #
+    # system_of_bodies = environment_setup.create_system_of_bodies(current_body_list_settings)
+    system_of_bodies = util.create_modified_system_of_bodies_validation()
 
     for body in bodies:
         body_object = system_of_bodies.get(body)
@@ -176,14 +181,15 @@ def trajectory_3d(
         min_pos, max_pos = -max(np.fabs(min_pos), max_pos), max(np.fabs(min_pos), max_pos)
 
     # Add a legend, set the plot limits, and add axis labels
-    ax.legend()
-    # ax.set_xlim([min_pos*1.2 / au, max_pos*1.2 / au]), ax.set_ylim([min_pos*1.2 / au, max_pos*1.2 /
-    #                                                                 au]), ax.set_zlim([min_pos*1.2 /
-    #                                                                                    au,
-    #                                                                                    max_pos*1.2 /
-    #                                                                                    au])
+    # ax.legend()
+    ax.set_xlim([min_pos*1.2 / au, max_pos*1.2 / au]), ax.set_ylim([min_pos*1.2 / au, max_pos*1.2 /
+                                                                    au]), ax.set_zlim([min_pos*1.2 /
+                                                                                       au,
+                                                                                       max_pos*1.2 /
+                                                                                       au])
 
-    ax.set_xlim([-10, 10]), ax.set_ylim([-10, 10]), ax.set_zlim([-0.2, 0.2])
+    # ax.set_xlim([-10, 10]), ax.set_ylim([-10, 10]), ax.set_zlim([-0.2, 0.2])
+    # ax.set_xlim([-10, 10]), ax.set_ylim([-10, 10]), ax.set_zlim([-10, 10])
 
     ax.set_xlabel("x [AU]"), ax.set_ylabel("y [AU]"), ax.set_zlabel("z [AU]")
     if projection=='xy' or projection=='yx':
