@@ -477,7 +477,7 @@ def pareto_front(dir=None,
 
     # plt.show()
 
-def thrust_propagation(dir=None):
+def thrust_propagation(dir=None, mass=1):
 
     auxiliary_info = np.loadtxt(dir + 'auxiliary_info.dat', delimiter=',', dtype=str)
     auxiliary_info_dict = {}
@@ -510,18 +510,18 @@ def thrust_propagation(dir=None):
     ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
     linestyle = '--'
 
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    plt.figure(constrained_layout=True)
-    ax.plot(time_history, thrust_acceleration[:, 1], linestyle=':', label=r'$a_r$')
-    ax.plot(time_history, thrust_acceleration[:, 2], linestyle='-.', label=r'$a_\theta$')
-    ax.plot(time_history, thrust_acceleration[:, 3], linestyle='--', label=r'$a_z$')
-    ax.plot(time_history, thrust_norm, label='a')
+    fig, ax = plt.subplots(1, 1, constrained_layout=True)
+    ax.plot(time_history, thrust_acceleration[:, 1] * 1000 * mass, linestyle=':', label=r'$a_r$')
+    ax.plot(time_history, thrust_acceleration[:, 2] * 1000 * mass, linestyle='-.', label=r'$a_\theta$')
+    # ax.plot(time_history, thrust_acceleration[:, 3] * 1000 * mass, linestyle='--', label=r'$a_z$')
+    # ax.plot(time_history, thrust_norm * 1000 * mass, label='a')
     for i in range(len(list_of_mga_sequence_char)):
         ax.axvline(node_times[i, 1], c='k', linestyle='-', linewidth=0.5)
     # ax.axvline(node_times[0, 1], c=color_list[0], linestyle=linestyle,
     #            label=list_of_mga_sequence_char[0], ymin = np.min(thrust_norm), ymax =
     #            np.max(thrust_norm))
-    ax.set_ylabel(r'Thrust norm [m / s$^2$]')
+    # ax.set_ylabel(r'Thrust norm [m / s$^2$]')
+    ax.set_ylabel(r'Thrust norm [mN]')
     ax.set_xlabel(' Epoch [days]' )
     # ax.set_ylim([150, 1000])
     # ax.set_xlim([350, 1000])
@@ -680,29 +680,36 @@ def compare_data_to_hs(data_file, hs_file):
     hs_state = np.loadtxt(hs_file)
 
     #Plot data
-    fig = plt.figure(figsize=(7, 6))
+    fig = plt.figure(constrained_layout=True)
     ax1 = fig.add_subplot(1, 1, 1, projection="3d")
     ax1.plot(data_state[:, 1], data_state[:, 2], data_state[:, 3], label='BEPI data')
     ax1.plot(hs_state[:, 1], hs_state[:, 2], hs_state[:, 3], label='HS recreation')
-    ax1.set_xlabel("x [m]")
-    ax1.set_ylabel("y [m]")
-    ax1.set_zlabel("z [m]")
+    ax1.set_xlabel("x [m]", labelpad=15)
+    ax1.set_ylabel("y [m]", labelpad=15)
+    ax1.set_zlabel("z [m]", labelpad=15)
     ax1.legend()
 
     hs_state_norm = [np.linalg.norm(i) for i in hs_state[:, 1:4]]
     data_state_norm = [np.linalg.norm(i) for i in data_state[:, 1:4]]
     diff = [hs_state_norm[i] - data_state_norm[i] for i in range(len(hs_state_norm))]
+    diff_axes = {}
+    for i in range(1, 4):
+        diff_axes[i] = [hs_state[j, i] - data_state[j, i] for j in range(len(hs_state))]
 
-    fig2 = plt.figure(figsize=(7, 6))
+    fig2 = plt.figure(constrained_layout=True)
     ax2 = fig2.add_subplot(1, 1, 1)
-    ax2.plot(data_state[:, 0], diff)
+    # ax2.plot(data_state[:, 0], diff)
+    ax2.plot(data_state[:, 0], diff_axes[1], label='Radial')
+    ax2.plot(data_state[:, 0], diff_axes[2], label='Normal')
+    ax2.plot(data_state[:, 0], diff_axes[3], label='Axial')
     ax2.grid()
     ax2.set_xlabel("Time [s]")
     ax2.set_ylabel("Position difference [m]")
+    ax2.legend()
     return fig, fig2, ax1, ax2
 
 
-def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
+def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None, save_fig=False, title=1):
 
     # Helper class
     class mgaso_run:
@@ -766,7 +773,7 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
     rot = [45, 90]
     for i in range(len(frac_values)):
         fig = plt.figure()
-        fig.suptitle(f"EJ transfer - {frac_values[i]}")
+        fig.suptitle(f"EJ transfer - Fraction explored: {frac_values[i]}", fontweight='bold', y=0.95)
 
         for j in range(len(fitprop_values)):
             ax = fig.add_subplot(2,3,1+j)
@@ -780,7 +787,7 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
             it+=1
             plt.setp(ax.get_xticklabels(), rotation=rot[i], horizontalalignment='right')
             ax.set_ylim([min_value_per_frac[i], max_value_per_frac[i]])
-            ax.title.set_text(f'Fraction explored : {fitprop_values[j]}')
+            ax.title.set_text(f'Fitprop fraction: {fitprop_values[j]}')
             ax.grid()
             # ax.legend()
             trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
@@ -791,7 +798,9 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None):
                     ha="right", va="center")
             for q in index_list:
                 plt.gca().get_xticklabels()[q].set_color('red')
-        plt.subplots_adjust(wspace=0.5, hspace=0.5)
+        plt.subplots_adjust(wspace=0.3, hspace=0.3)
+        if save_fig:
+            fig.savefig('figures/mgaso/' + f"{data_directory.split('/')[title]}_{frac_values[i]}.jpg", bbox_inches="tight")
 
     plt.show()
 

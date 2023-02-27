@@ -24,12 +24,15 @@ class dateConversion:
         return time_conversion.julian_day_to_calendar_date(
                 time_conversion.modified_julian_day_to_julian_day(number + 51544.5))
 
-    def date_to_mjd(self):
+    def date_to_mjd(self, time=None):
         date = self.calendar_date.split(',')
         year = int(date[0])
         month = int(date[1])
         day = int(date[2])
-        date_formatted = datetime.date(year, month, day)
+        hours = int(time[0])
+        minutes = int(time[1])
+        seconds = int(time[2])
+        date_formatted = datetime.datetime(year, month, day, hours, minutes, seconds)
 
         return time_conversion.calendar_date_to_julian_day_since_epoch(date_formatted)
 

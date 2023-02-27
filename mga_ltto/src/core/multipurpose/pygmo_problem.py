@@ -17,6 +17,7 @@ import os
 
 # Tudatpy 
 from tudatpy.kernel import constants
+from tudatpy.util import result2array
 
 current_dir = os.getcwd()
 sys.path.append('/Users/sean/Desktop/tudelft/thesis/code/mga_ltto/src/') # this only works if you run ltto and mgso while in the directory that includes those files
@@ -1905,7 +1906,8 @@ class MGALowThrustTrajectoryOptimizationProblemSingleLeg:
                                    'shaping_function' : False},
                  manual_tof_bounds=None,
                  objectives=['dv'],
-                 zero_revs=False):
+                 zero_revs=False,
+                 bepi_state=None):
 
         self.transfer_body_order = transfer_body_order
         self.mga_characters = \
@@ -1946,6 +1948,7 @@ class MGALowThrustTrajectoryOptimizationProblemSingleLeg:
 
         self.objectives = objectives
         self.zero_revs = zero_revs
+        self.bepi_state = bepi_state
 
         self.design_parameter_vector = None
 
@@ -2089,16 +2092,16 @@ class MGALowThrustTrajectoryOptimizationProblemSingleLeg:
     def get_design_parameter_vector(self):
         return self.design_parameter_vector
 
-    def get_objectives(self, transfer_trajectory_object):
+    def get_objectives(self, transfer_trajectory):
         objective_values = []
         for it, j in enumerate(self.objectives):
             if j == 'dv':
-                objective_values.append(transfer_trajectory_object.delta_v)
+                objective_values.append(transfer_trajectory.delta_v)
             elif j == 'tof':
-                objective_values.append(transfer_trajectory_object.time_of_flight)
+                objective_values.append(transfer_trajectory.time_of_flight)
             elif j == 'dmf' or j == 'pmf' or j == 'dm':
                 thrust_acceleration = \
-                transfer_trajectory_object.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
+                transfer_trajectory.inertial_thrust_accelerations_along_trajectory(self.no_of_points)
 
                 mass_history, delivery_mass, invalid_trajectory = \
                 util.get_mass_propagation(thrust_acceleration, self.Isp, self.m0)
@@ -2111,6 +2114,19 @@ class MGALowThrustTrajectoryOptimizationProblemSingleLeg:
                     objective_values.append((self.m0 - delivery_mass) / self.m0) # try to minimize
                 elif j == 'dm':
                     objective_values.append(- delivery_mass) # try to maximize
+            elif j == 'int':
+
+                diff = {}
+                hs_states = transfer_trajectory.states_along_trajectory(self.no_of_points)
+                assert len(self.bepi_state) == len(hs_states)
+                # assert all([True for i in range(len(self.bepi_state)) if self.bepi_state[i, 0] == hs_times[i]])
+
+                for it, (epoch, hs_row) in enumerate(enumerate(hs_states.values())):
+                    # print(bepi_row, hs_states[it, :])
+                    diff[epoch] = np.linalg.norm(np.subtract(self.bepi_state[it, 1:4], hs_row[0:3]))
+                    sum = np.sum(result2array(diff))
+                objective_values.append(sum)
+
             else:
                 raise RuntimeError('An objective was provided that is not permitted')
         return objective_values

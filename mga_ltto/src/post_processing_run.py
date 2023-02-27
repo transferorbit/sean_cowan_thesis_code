@@ -18,10 +18,10 @@ import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 
 # plt.rcParams['figure.dpi'] = 250
-# plt.rcParams['savefig.dpi'] = 250
-plt.rcParams['font.size'] = 8
+plt.rcParams['savefig.dpi'] = 300
+plt.rcParams['font.size'] = 14
 plt.rcParams['font.family'] = "Arial"
-plt.rcParams['figure.figsize'] = (15, 10)
+plt.rcParams['figure.figsize'] = (12,8)
 #
 # Local
 from misc.trajectory3d import trajectory_3d
@@ -43,7 +43,7 @@ import misc.post_processing_utilities as post
 
 
 # data_directory = "pp_mgaso/fan2021fast_gs/"
-# post.mgaso_scatter(data_directory, fitprop_values=[1.0, 0.75,0.5, 0.25, 0.0], frac_values=[0.1, 0.3])
+# post.mgaso_scatter(data_directory, fitprop_values=[1.0, 0.75,0.5, 0.25, 0.0], frac_values=[0.1, 0.3], save_fig=True)
 
 # quantity='fc_axes'
 # post.get_stats(dir_of_dir="pp_ltto/EEEMJ_fpbounds/EEEMJ_fpb5e3_test199/",
@@ -73,12 +73,16 @@ import misc.post_processing_utilities as post
 # data_directory = "pp_ltto/EN_testing/EEEMJN_test172/"
 # post.get_scattered_objectives(dir_of_dir=data_directory, add_local_optimisation=True, no_of_islands=24, save_fig=True)
 
-# data_directory = "pp_validation/bepi_data_test5/bepi_state.dat"
-# hs_directory = "pp_validation/bepi_hs_test5/islands/island_0/state_history.dat"
-# post.compare_data_to_hs(data_file=data_directory, hs_file=hs_directory)
-data_directory = "pp_validation/bepi_data_test5/bepi_state.dat"
-post.thrust_propagation(dir=data_directory)
+data_directory = "pp_validation/bepi_data_test20/bepi_state.dat"
+hs_directory = "pp_validation/bepi_hs_test36/islands/island_0/state_history.dat"
+hs_dir = "pp_validation/bepi_hs_test37/islands/island_0/"
+post.compare_data_to_hs(data_file=data_directory, hs_file=hs_directory)
+# post.thrust_propagation(dir=hs_dir, mass=4100)
 plt.show()
+
+# data_directory = "pp_validation/bepi_data_test5/bepi_state.dat"
+# post.thrust_propagation(dir=data_directory)
+# plt.show()
 
 # if __name__ == "__main__":
 #     data_directory = "pp_ltto/EN_testing/EN_test164/"
