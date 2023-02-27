@@ -215,8 +215,9 @@ def create_files(type_of_optimisation=None,
     optimisation_characteristics[f'Objective 1,'] = mga_low_thrust_problem.objectives[0]
     if len(mga_low_thrust_problem.objectives) > 1:
         optimisation_characteristics[f'Objective 2,'] = mga_low_thrust_problem.objectives[1]
-    optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info().replace("\n", "").strip()
-    optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info().replace("\n", "").strip()
+    if len(archi) != 0:
+        optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info().replace("\n", "").strip()
+        optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info().replace("\n", "").strip()
     for j in range(len(bounds[0])):
         for k in range(len(bounds)):
             if k == 0:

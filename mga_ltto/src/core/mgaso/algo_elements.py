@@ -251,6 +251,7 @@ Creating archipelago
 
     assert number_of_islands == len(current_island_problems)
 
+
     return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
 
 def check_uniqueness(tbo, evaluated_sequences_chars_list, temp_evaluated_sequences_chars):
@@ -268,7 +269,7 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
                    leg_results=None, number_of_islands_array=None, number_of_sequences_array=None,
                    islands_per_sequence_array=None, island_problems=None, champions_x=None, output_directory=None,
                    subdirectory=None, itbs=None, fitness_proportion=1.0, compute_mass=False, max_no_of_gas=None,
-                   Isp=None, m0=None, write_results_to_file=False, no_of_points=100):
+                   Isp=None, m0=None, write_results_to_file=False, no_of_points=100, delivery_masses=None):
 
     # print(f'temp_eval_sequences_chars : {temp_evaluated_sequences_chars}')
     # print(f'eval_seq_database : {evaluated_sequences_database}')

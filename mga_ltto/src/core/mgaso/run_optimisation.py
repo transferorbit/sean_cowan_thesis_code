@@ -192,6 +192,8 @@ def run_mgaso_optimisation(departure_planet : str,
                                 elitist_fraction=elitist_fraction, seed=current_seed, objectives=objectives,
                                 evaluated_sequences_chars_list=evaluated_sequences_chars_list, Isp=Isp, m0=Isp,
                                 zero_revs=zero_revs)
+        if p == 0:
+            archi_info = archi
 
         evaluated_sequences_chars_list += temp_evaluated_sequences_chars
         number_of_islands_array[p] = number_of_islands
@@ -295,7 +297,7 @@ def run_mgaso_optimisation(departure_planet : str,
                             pop_size=pop_size,
                             cpu_count=cpu_count,
                             bounds=bounds,
-                            archi=archi,
+                            archi=archi_info,
                             fraction_ss_evaluated=fraction_ss_evaluated,
                             number_of_sequences_per_planet=number_of_sequences_per_planet,
                             planet_list=planet_list,
