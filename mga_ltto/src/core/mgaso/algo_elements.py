@@ -251,7 +251,6 @@ Creating archipelago
 
     assert number_of_islands == len(current_island_problems)
 
-
     return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
 
 def check_uniqueness(tbo, evaluated_sequences_chars_list, temp_evaluated_sequences_chars):
@@ -269,7 +268,8 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
                    leg_results=None, number_of_islands_array=None, number_of_sequences_array=None,
                    islands_per_sequence_array=None, island_problems=None, champions_x=None, output_directory=None,
                    subdirectory=None, itbs=None, fitness_proportion=1.0, compute_mass=False, max_no_of_gas=None,
-                   Isp=None, m0=None, write_results_to_file=False, no_of_points=100, delivery_masses=None):
+                   Isp=None, m0=None, write_results_to_file=False, no_of_points=100, delivery_masses=None,
+                   planet_chars=None, fitness_proportion_itbs=1.0):
 
     # print(f'temp_eval_sequences_chars : {temp_evaluated_sequences_chars}')
     # print(f'eval_seq_database : {evaluated_sequences_database}')
@@ -405,11 +405,26 @@ def determine_itbs(p, evaluated_sequences_results=None, evaluated_sequences_resu
         save2txt(fitness_per_sequence, 'fitness_per_sequence.dat', output_directory + subdirectory + f'/layer_{p}/')
 
 
+    # New version
     #Determine best fitness and apply that to next itbs
-    best_sequence = min(fitness_per_sequence, key=fitness_per_sequence.get)
-    # best_sequence_value = min(fitness_per_sequence.values())
+    fitness_ppp = {}
+    for i in planet_chars:
+        fitness_ppp[i] = []
 
-    current_itbs = util.transfer_body_order_conversion.get_mga_list_from_characters(best_sequence)[p+1]
+    for seq, fit in fitness_per_sequence.items():
+        ppp_current = seq[p+1]
+        assert ppp_current in set(planet_chars) # check that only YVEM are used 
+        fitness_ppp[ppp_current].append(fit)
+
+    sequence_fitness = [fitness_per_sequence_calc(np.min(np.array(fitness_ppp[i])),
+                      np.mean(np.array(fitness_ppp[i])), fitness_proportion_itbs) for i in planet_chars]
+    current_itbs = \
+    util.transfer_body_order_conversion.get_mga_list_from_characters(planet_chars)[np.argmin(sequence_fitness)]
+
+    #Old version
+    # best_sequence = min(fitness_per_sequence, key=fitness_per_sequence.get)
+    # current_itbs = util.transfer_body_order_conversion.get_mga_list_from_characters(best_sequence)[p+1]
+
     itbs.append(current_itbs)
     print(f'Initial Target Body Sequence : {itbs}')
 

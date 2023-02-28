@@ -52,7 +52,8 @@ def run_mgaso_optimisation(departure_planet : str,
                             top_x_sequences = 10, # for what legs to replace
                             objectives=['dv'],
                             zero_revs=False,
-                            fitness_proportion=1.0):
+                            fitness_proportion=1.0,
+                            fitprop_itbs=1.0):
 
 
     # if os.path.exists(output_directory + subdirectory):
@@ -230,7 +231,8 @@ def run_mgaso_optimisation(departure_planet : str,
                             champions_x=champions_x, output_directory=output_directory, subdirectory=subdirectory,
                             itbs=itbs, fitness_proportion=fitness_proportion, compute_mass=compute_mass,
                             max_no_of_gas=max_no_of_gas, write_results_to_file=write_results_to_file,
-                            no_of_points=no_of_points)
+                            no_of_points=no_of_points, planet_chars=planet_characters,
+                            fitness_proportion_itbs=fitprop_itbs)
 
     #################
     # End of p loop #

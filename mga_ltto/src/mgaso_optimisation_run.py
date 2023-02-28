@@ -40,6 +40,7 @@ if __name__ == '__main__':
     parser.add_argument('--frac', default='0', dest='frac', action='store', required=False) #fraction sequences evaluated
     parser.add_argument('--ips', default='1', dest='ips', action='store', required=False) # islands per sequence
     parser.add_argument('--fitprop', default='1.0', dest='fitprop', action='store', required=False) # islands per sequence
+    parser.add_argument('--fitprop_itbs', default='1.0', dest='fitprop_itbs', action='store', required=False) # islands per sequence
     # args = parser.parse_args(['--id'])
     args = parser.parse_args()
     # print(args)
@@ -49,6 +50,7 @@ if __name__ == '__main__':
     frac = float(args.frac)
     ips = int(args.ips)
     fitprop = float(args.fitprop)
+    fitprop_itbs = float(args.fitprop_itbs)
     
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgaso while in the directory that includes those files
@@ -66,7 +68,8 @@ if __name__ == '__main__':
     output_directory = current_dir + '/pp_mgaso'
     # output_directory = '../pp_mgaso'
     julian_day = constants.JULIAN_DAY
-    seed = [421, 422, 423] # One for each recursion
+    # seed = [421, 422, 423] # One for each recursion
+    seed = [266, 267, 268] # One for each recursion
     no_of_points = 100
 
     write_results_to_file = True
@@ -157,5 +160,6 @@ if __name__ == '__main__':
                                 top_x_sequences=20,
                                 objectives=objectives,
                                 zero_revs=zero_revs,
-                                fitness_proportion=fitprop)
+                                fitness_proportion=fitprop,
+                                fitprop_itbs=fitprop_itbs)
 
