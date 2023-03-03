@@ -89,6 +89,7 @@ if __name__ == '__main__':
     fraction_ss_evaluated = [frac for _ in range(no_of_sequence_recursions)]
     number_of_sequences_per_planet = [spp for _ in range(no_of_sequence_recursions)]
     elitist_fraction = 0.3
+    topology_weight = 0.01
     islands_per_sequence = ips
     manual_base_functions = False
     dynamic_bounds = {'time_of_flight' : False,
@@ -161,5 +162,6 @@ if __name__ == '__main__':
                                 objectives=objectives,
                                 zero_revs=zero_revs,
                                 fitness_proportion=fitprop,
-                                fitprop_itbs=fitprop_itbs)
+                                fitprop_itbs=fitprop_itbs,
+                                topology_weight=topology_weight)
 

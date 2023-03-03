@@ -23,6 +23,7 @@ from tudatpy.io import save2txt
 # Local
 import core.multipurpose.pygmo_problem as prob
 import core.multipurpose.mga_low_thrust_utilities as util
+import core.multipurpose.pygmo_topology as topo
 import core.mgaso.leg_mechanics as legs
 import core.mgaso.algo_elements as algo
 
@@ -139,7 +140,8 @@ def create_archipelago(iteration,
                        evaluated_sequences_chars_list=None,
                        Isp=None,
                        m0=None,
-                       zero_revs=None):
+                       zero_revs=None,
+                       topology_weight=None):
 
     current_max_no_of_gas = max_no_of_gas - iteration
     current_island_problems = []
@@ -250,6 +252,15 @@ Creating archipelago
     temp_evaluated_sequences_chars = list(dict.fromkeys(temp_evaluated_sequences_chars))
 
     assert number_of_islands == len(current_island_problems)
+
+    #Add topology
+    if topology_weight != None:
+      topology = topo.MGASOTopology(number_of_sequences=number_of_sequences, islands_per_sequence=islands_per_sequence,
+                                    topology_weight=topology_weight)
+      topology.add_connections()
+      # print(topology.num_vertices())
+      # print(topology.num_edges)
+      archi.set_topology(topology)
 
     return temp_ptbs, temp_evaluated_sequences_chars, number_of_islands, current_island_problems, archi
 

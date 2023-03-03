@@ -59,6 +59,8 @@ def create_files(type_of_optimisation=None,
                  archi=None,
                  compute_mass=False,
                  fraction_ss_evaluated=None,
+                 fitprop=None,
+                 fitprop_itbs=None,
                  number_of_sequences_per_planet=None,
                  planet_list=None,
                  itbs=None):
@@ -130,7 +132,9 @@ def create_files(type_of_optimisation=None,
                 auxiliary_info['Delta V for node %s,'%(j)] = delta_v_per_node[j]
             auxiliary_info['Delta V,'] = delta_v 
             auxiliary_info['MGA Sequence,'] = mga_low_thrust_problem.mga_characters
-            auxiliary_info['Maximum thrust,'] = np.max([np.linalg.norm(j[1:]) for _, j in
+            auxiliary_info['Maximum thrust acceleration,'] = np.max([np.linalg.norm(j[1:]) for _, j in
+                enumerate(thrust_acceleration.items())])
+            auxiliary_info['Mean thrust acceleration,'] = np.mean([np.linalg.norm(j[1:]) for _, j in
                 enumerate(thrust_acceleration.items())])
             if compute_mass:
                 auxiliary_info['Delivery mass,'] = delivery_mass
@@ -195,6 +199,8 @@ def create_files(type_of_optimisation=None,
             optimisation_characteristics[f'Number of sequences - Layer {j},'] = number_of_sequences_array[j]
         for j in range(no_of_sequence_recursions):
             optimisation_characteristics[f'Fraction of sequences - Layer {j},'] = fraction_ss_evaluated[j]
+        optimisation_characteristics[f'Fitness proportion,'] = fitprop
+        optimisation_characteristics[f'Fitness proportion ITBS,'] = fitprop_itbs
         for j in range(no_of_sequence_recursions):
             optimisation_characteristics[f'Number of sequences per planet - Layer {j},'] = \
             number_of_sequences_per_planet[j]

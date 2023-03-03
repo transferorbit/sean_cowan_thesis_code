@@ -53,7 +53,8 @@ def run_mgaso_optimisation(departure_planet : str,
                             objectives=['dv'],
                             zero_revs=False,
                             fitness_proportion=1.0,
-                            fitprop_itbs=1.0):
+                            fitprop_itbs=1.0,
+                            topology_weight=0.01):
 
 
     # if os.path.exists(output_directory + subdirectory):
@@ -192,7 +193,7 @@ def run_mgaso_optimisation(departure_planet : str,
                                 manual_base_functions=manual_base_functions, dynamic_bounds=dynamic_bounds,
                                 elitist_fraction=elitist_fraction, seed=current_seed, objectives=objectives,
                                 evaluated_sequences_chars_list=evaluated_sequences_chars_list, Isp=Isp, m0=Isp,
-                                zero_revs=zero_revs)
+                                zero_revs=zero_revs, topology_weight=topology_weight)
         if p == 0:
             archi_info = archi
 
@@ -301,6 +302,8 @@ def run_mgaso_optimisation(departure_planet : str,
                             bounds=bounds,
                             archi=archi_info,
                             fraction_ss_evaluated=fraction_ss_evaluated,
+                            fitprop=fitness_proportion,
+                            fitprop_itbs=fitprop_itbs,
                             number_of_sequences_per_planet=number_of_sequences_per_planet,
                             planet_list=planet_list,
                             itbs=itbs)
