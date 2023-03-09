@@ -63,7 +63,8 @@ def create_files(type_of_optimisation=None,
                  fitprop_itbs=None,
                  number_of_sequences_per_planet=None,
                  planet_list=None,
-                 itbs=None):
+                 itbs=None,
+                 topology_weight=0.0):
 
     if type_of_optimisation == 'ltto':
         no_of_sequence_recursions = 1
@@ -205,7 +206,7 @@ def create_files(type_of_optimisation=None,
             optimisation_characteristics[f'Number of sequences per planet - Layer {j},'] = \
             number_of_sequences_per_planet[j]
         optimisation_characteristics['Possible GA planets,'] = ' '.join(planet_list)
-        optimisation_characteristics['Initial Target Body Sequence'] = ' '.join(itbs)
+        optimisation_characteristics['Initial Target Body Sequence,'] = ' '.join(itbs)
     else:
         optimisation_characteristics['Number of islands,'] = number_of_islands 
         
@@ -222,6 +223,7 @@ def create_files(type_of_optimisation=None,
     if len(mga_low_thrust_problem.objectives) > 1:
         optimisation_characteristics[f'Objective 2,'] = mga_low_thrust_problem.objectives[1]
     if len(archi) != 0:
+        optimisation_characteristics['Topology weight,'] = topology_weight
         optimisation_characteristics['Topology Info,'] = archi.get_topology().get_extra_info().replace("\n", "").strip()
         optimisation_characteristics['Algorithm Info,'] = archi[0].get_algorithm().get_extra_info().replace("\n", "").strip()
     for j in range(len(bounds[0])):

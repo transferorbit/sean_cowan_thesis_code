@@ -41,6 +41,8 @@ if __name__ == '__main__':
     parser.add_argument('--ips', default='1', dest='ips', action='store', required=False) # islands per sequence
     parser.add_argument('--fitprop', default='1.0', dest='fitprop', action='store', required=False) # islands per sequence
     parser.add_argument('--fitprop_itbs', default='1.0', dest='fitprop_itbs', action='store', required=False) # islands per sequence
+    parser.add_argument('--top_w', default='0.0', dest='top_w', action='store', required=False) # islands per sequence
+
     # args = parser.parse_args(['--id'])
     args = parser.parse_args()
     # print(args)
@@ -51,6 +53,7 @@ if __name__ == '__main__':
     ips = int(args.ips)
     fitprop = float(args.fitprop)
     fitprop_itbs = float(args.fitprop_itbs)
+    topology_weight = float(args.top_w)
     
     current_dir = os.getcwd()
     sys.path.append(current_dir) # this only works if you run ltto and mgaso while in the directory that includes those files
@@ -72,7 +75,7 @@ if __name__ == '__main__':
     seed = [266, 267, 268] # One for each recursion
     no_of_points = 100
 
-    write_results_to_file = True
+    write_results_to_file = False
 
 ####################################################################
 # MGASO Problem Setup ###############################################
@@ -80,16 +83,16 @@ if __name__ == '__main__':
     
     """
     ITBS - Initial Target Body Sequence
-    PTBS - Predefined Target Body Sequence
+    PTB - Predefined Target Body 
     MGSA - Multiple Gravity Assist Sequence
     """
     subdirectory = f'/mgaso_testlocal{id}'
     max_no_of_gas = 3
-    no_of_sequence_recursions = 3
+    no_of_sequence_recursions = 1
     fraction_ss_evaluated = [frac for _ in range(no_of_sequence_recursions)]
     number_of_sequences_per_planet = [spp for _ in range(no_of_sequence_recursions)]
     elitist_fraction = 0.3
-    topology_weight = 0.01
+    # topology_weight = 0.1
     islands_per_sequence = ips
     manual_base_functions = False
     dynamic_bounds = {'time_of_flight' : False,
@@ -110,8 +113,8 @@ if __name__ == '__main__':
     free_param_count = 1
     # num_gen = 2
     # pop_size = 52
-    num_gen = 2
-    pop_size = 100 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
+    num_gen = 10
+    pop_size = 200 # multiple of 12 makes the division also divisible by 4 if elitist fraction is 1/3
     # assert pop_size > 62 #only for gaco
 
     departure_date=  (61872 - 51544.5 - 30, 61872 - 51544.5  + 30) #10328 from paper

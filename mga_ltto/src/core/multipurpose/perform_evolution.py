@@ -81,7 +81,8 @@ def perform_evolution(archi,
         list_of_f_dicts.append(champ_f_dict_current_gen)
         # print('Topology', archi.get_topology())
 
-        archi.wait_check()
+        # archi.wait_check()
+        archi.wait()
 
 
     print("""

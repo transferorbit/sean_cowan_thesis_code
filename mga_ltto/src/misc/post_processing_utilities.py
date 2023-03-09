@@ -18,6 +18,12 @@ import random
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 
+# for custom legend
+from matplotlib.lines import Line2D
+
+# for many colors
+import matplotlib.colors as mcolors
+
 # Tudatpy
 from tudatpy.io import save2txt
 from tudatpy.kernel import constants
@@ -258,7 +264,10 @@ def objective_per_generation_visualisation(dir=None,
                                            no_of_islands=4,
                                            title=1,
                                            add_local_optimisation=False,
-                                           save_fig=False):
+                                           save_fig=False, 
+                                           seq=0,
+                                           num_gen=200,
+                                           ips=14):
     """
     Function that takes directories and returns the champions per generation for one or multiple islands
 
@@ -275,13 +284,23 @@ def objective_per_generation_visualisation(dir=None,
         Figure plotting the champion fitness per generation.
     """
 
+    fitness_value_dict = {}
+    variable_value_dict = {}
+    auxiliary_info_dict = {}
     if dir != None:
-        fitness_values = np.loadtxt(dir + 'champ_f_per_gen.dat')
-        variable_values = np.loadtxt(dir + 'champs_per_gen.dat')
+        dir_list = dir.split('/')
+        for i in range(no_of_islands):
+            island = i + seq*no_of_islands
+            auxiliary_info_dict[i] = np.loadtxt(dir + f'layer_{seq}/islands/island_{island}/auxiliary_info.dat',
+                                                delimiter=',', dtype=str)
+            fitness_value_dict[i] = np.loadtxt(dir + f'layer_{seq}/islands/island_{island}/champ_f_per_gen.dat')
+            variable_value_dict[i] = np.loadtxt(dir + f'layer_{seq}/islands/island_{island}/champs_per_gen.dat')
+            evaluated_sequences_database = np.loadtxt(dir + f'topology_database/evaluated_sequences_database.txt',
+                                                      delimiter=',', dtype=str)
+            # print(fitness_value_dict)
+
     if dir_of_dir != None:
         dir_list = dir_of_dir.split('/')
-        fitness_value_dict = {}
-        variable_value_dict = {}
         if add_local_optimisation:
             try:
                 champion_fitness_local = np.loadtxt(dir_of_dir + "/local_optimisation/final_population.dat")[:, 1]
@@ -295,27 +314,42 @@ def objective_per_generation_visualisation(dir=None,
                                                                            champion_fitness_local[i]]])
         auxiliary_info = np.loadtxt(dir_of_dir + 'islands/island_0/auxiliary_info.dat', delimiter=',', dtype=str)
             # champions_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
-    auxiliary_info_dict = {}
-    for i in range(len(auxiliary_info)):
-        auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+
+    # print(auxiliary_info_dict[0])
+    # auxiliary_info_dict = {}
+    # for i in range(len(auxiliary_info)):
+    #     auxiliary_info_dict[auxiliary_info[i][0]] = auxiliary_info[i][1].replace('\t', '')
+    # print(evaluated_sequences_database)
 
     fitness_array = np.zeros((len(fitness_value_dict[0][:,0]), no_of_islands))
     for i in range(no_of_islands):
         fitness_array[:, i] = fitness_value_dict[i][:, 1] #if not add_local_optimisation else fitness_value_dict[i][:, 1]
 
     min_deltav_value_before_local = np.min(fitness_array[:-1, :])
-    min_deltav_value = np.min(fitness_array)
+    min_deltav_value = np.min(fitness_array) / 1000
+
+    c_list = ['b', 'r', 'y', 'g', 'c', 'm', 'k']
+
+    custom_lines = [Line2D([0], [0], color=c_list[0], lw=2),
+                    Line2D([0], [0], color=c_list[1], lw=2),
+                    Line2D([0], [0], color=c_list[2], lw=2),
+                    Line2D([0], [0], color=c_list[3], lw=2),
+                    Line2D([0], [0], color=c_list[4], lw=2)]
+    custom_names = [f'{evaluated_sequences_database[1][0]}',
+                    f'{evaluated_sequences_database[2][0]}',
+                    f'{evaluated_sequences_database[3][0]}',
+                    f'{evaluated_sequences_database[4][0]}',
+                    f'{evaluated_sequences_database[5][0]}']
     
-    fig, ax = plt.subplots(1, 1, figsize=(8, 8))
-    plt.figure(constrained_layout=True)
+    fig, ax = plt.subplots(1, 1)
     for island in range(no_of_islands):
-        ax.plot(fitness_value_dict[island][:,0], fitness_value_dict[island][:,1], label=f'Island {island}')
-        # ax.legend()
+        ax.plot(fitness_value_dict[island][:num_gen,0], fitness_value_dict[island][:num_gen,1] / 1000, 
+                c=c_list[(island // ips) % no_of_islands])
     ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value / 1000)}')
     if add_local_optimisation:
         ax.axhline(min_deltav_value_before_local, c='k', linestyle='-', label=f'Minimum : {int(min_deltav_value_before_local / 1000)}')
     trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
-    ax.text(0,min_deltav_value, "{:.0f}".format(min_deltav_value), color="red", transform=trans, 
+    ax.text(0,min_deltav_value, "{:.3f}".format(min_deltav_value), color="red", transform=trans, 
             ha="right", va="center")
     if add_local_optimisation:
         ax.text(0,min_deltav_value_before_local, "{:.0f}".format(min_deltav_value_before_local),
@@ -323,20 +357,29 @@ def objective_per_generation_visualisation(dir=None,
         ax.fill_between([len(fitness_value_dict[0]), len(fitness_value_dict[0])+10], 10000, 40000, color='lightskyblue')
 
 
-    ax.set_ylabel(r'$\Delta V$ [m / s]')
+    ax.legend(custom_lines, custom_names, loc='upper right')
+    ax.set_ylabel(r'$\Delta V$ [km / s]')
     ax.set_xlabel(r'Generation count [-]')
     # ax.legend()
     ax.grid()
     # ax.set_title(auxiliary_info_dict['MGA Sequence'], fontweight='semibold', fontsize=18)
-    title_elem = dir_of_dir.split('/')[title].split('_')
-    ax.set_title(f'{title_elem[0]} — 24 islands')
-    # ax.set_yscale('log')
-    ax.set_ylim([10000, 40000])
+
+    # dir_of_dir title
+    # title_elem = dir_of_dir.split('/')[title].split('_')
+    # ax.set_title(f'{title_elem[0]} — {no_of_islands} islands')
+
+    #dir title
+    # ax.set_title(title)
+
+    ax.set_yscale('log')
+    # ax.set_ylim([10000, 40000])
     if save_fig:
         if add_local_optimisation:
-            fig.savefig('figures/' + f"{dir_of_dir.split('/')[title]}_local.jpg", bbox_inches="tight")
+            fig.savefig('figures/' + f"{dir.split('/')[title]}_local.jpg")
+        # else:
+        #     fig.savefig('figures/' + f"{dir.split('/')[title]}.jpg")
         else:
-            fig.savefig('figures/' + f"{dir_of_dir.split('/')[title]}.jpg", bbox_inches="tight")
+            fig.savefig('figures/' + f"{title}.jpg")
 
 def get_scattered_objectives(dir_of_dir_of_dir=None,
                              dir_of_dir=None,
@@ -378,7 +421,7 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
         for i in range(len(optim_chars)):
             optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
 
-        ax.scatter(champions[it], champion_fitness[it], c=color_list[it], label=f'{lb} - {ub} [JD]' if grid_search else '')
+        ax.scatter(champions[it], champion_fitness[it], c=color_list[it], label=f'{lb} - {ub} [MJD]' if grid_search else '')
         if add_local_optimisation:
             champion_fitness_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population.dat")[:, 1]
             champions_local[it] = np.loadtxt(root + dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
@@ -392,7 +435,7 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
         # ax.axvline(float(lb), c='k', linestyle='-', linewidth=1)
         # ax.axvline(float(ub), c='k', linestyle='-', linewidth=1)
         ax.set_ylabel(r'$\Delta V$ [m / s]')
-        ax.set_xlabel(r'Departure Date [JD]')
+        ax.set_xlabel(r'Departure Date [MJD]')
 
     fitness_array = np.array(list(champion_fitness.values())) if not add_local_optimisation else \
                             np.array(list(champion_fitness_local.values())) 
@@ -406,14 +449,14 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
     ax.grid()
     if grid_search:
         title_elem = dir_of_dir_of_dir.split('/')[title].split('_')
-        ax.set_title(f'{title_elem[0]} — {title_elem[1].replace("lb","")} - {title_elem[2].replace("ub","")} [JD] — {title_elem[3]}')
+        ax.set_title(f'{title_elem[0]} — {title_elem[1].replace("lb","")} - {title_elem[2].replace("ub","")} [MJD] — {title_elem[3]}')
     else:
         title_elem = directory_list[0].split('_')
         lb = optim_chars_dict['Departure date [mjd2000] LB'] 
         lb_float = float(lb)+ 51544.5
         ub = optim_chars_dict['Departure date [mjd2000] UB'] 
         ub_float = float(ub)+ 51544.5
-        ax.set_title(f'{title_elem[0]} — {lb} - {ub} [JD]')
+        ax.set_title(f'{title_elem[0]} — {lb} - {ub} [MJD]')
 
     ax.set_ylim([20000, 35000])
     if not grid_search:
@@ -424,6 +467,103 @@ def get_scattered_objectives(dir_of_dir_of_dir=None,
         else:
             fig.savefig('figures/' + f"{dir_of_dir_of_dir.split('/')[title] if grid_search else dir_of_dir.split('/')[title]}.jpg", bbox_inches="tight")
     
+def get_scattered_objectives_extended(dir1,
+                                      dir2,
+                                      dir3,
+                                      title=2,
+                                      add_local_optimisation=False,
+                                      no_of_islands=4,
+                                      save_fig=False):
+
+
+    directory_list = []
+    for dir in [dir1, dir2, dir3]:
+        for root, dirs, files in os.walk(dir):
+            dirs_2 = [root + dir for dir in sorted(dirs)]
+            directory_list.extend(dirs_2)
+            # print(directory_list)
+            break
+
+    color_list = \
+    ['tab:blue','tab:orange','tab:green','tab:red','tab:purple','tab:brown','tab:pink','tab:gray','tab:olive','tab:cyan',]
+    
+    champion_fitness = {}
+    champion_fitness_local = {}
+    champions = {}
+    champions_local = {}
+    fig, ax = plt.subplots(1, 1)
+    for it, dir in enumerate(directory_list):
+
+        champions[it] = np.loadtxt(dir + "/champions/champions.dat")[:, 1] / 86400 + 51544.5
+        champion_fitness[it] = np.loadtxt(dir + "/champions/champion_fitness.dat")[:, 1] 
+        optim_chars = np.loadtxt(dir + '/optimisation_characteristics.dat', delimiter=',', dtype=str)
+        optim_chars_dict = {}
+        for i in range(len(optim_chars)):
+            optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
+
+        ax.scatter(champions[it], champion_fitness[it] / 1000, c=color_list[it%len(color_list)], s=20)#, label=f'{lb} - {ub} [MJD]' if grid_search else '')
+        if add_local_optimisation:
+            champion_fitness_local[it] = np.loadtxt(dir + "/local_optimisation/final_population.dat")[:, 1]
+            champions_local[it] = np.loadtxt(dir + "/local_optimisation/final_population_x.dat")[:, 1] / 86400 + 51544.5
+            ax.scatter(champions_local[it], champion_fitness_local[it]/ 1000, c=color_list[it%len(color_list)], marker="+",
+                       s=15)
+            for it2 in range(no_of_islands):
+                # ax.axvline((champions_local[it][it2] / 86400) + 51544.5, ymin=(champion_fitness_local[it][it2] - 15000) / 5000,
+                #            ymax=(champion_fitness[it][it2] - 15000) / 5000, c=color_list[it], linestyle='--', linewidth=0.5)
+                x_points = [champions[it][it2], champions_local[it][it2]]
+                f_points = [champion_fitness[it][it2], champion_fitness_local[it][it2]]
+                ax.plot(x_points, f_points, c=color_list[it%len(color_list)], linestyle='--', linewidth=0.5)
+        # ax.axvline(float(lb), c='k', linestyle='-', linewidth=1)
+        # ax.axvline(float(ub), c='k', linestyle='-', linewidth=1)
+        ax.set_ylabel(r'$\Delta V$ [km / s]')
+        ax.set_xlabel(r'Departure Date [MJD]')
+
+    # Add value + line for minimum
+    fitness_array = np.array(list(champion_fitness.values())) / 1000 if not add_local_optimisation else \
+                            np.array(list(champion_fitness_local.values()))  / 1000
+    min_deltav_value = np.min(fitness_array)
+    ax.axhline(min_deltav_value, c='k', linestyle='-', label=f'Minimum : {min_deltav_value} [km/s]')
+    trans = transforms.blended_transform_factory(
+    ax.get_yticklabels()[0].get_transform(), ax.transData)
+    ax.text(0,min_deltav_value,  f"{round(min_deltav_value, 3)}", color="red", transform=trans, 
+            ha="right", va="center")
+
+    # custom legend
+    custom_lines = [Line2D([0], [0], color='k', lw=2),
+                    Line2D([], [], c='k',  marker='o', linestyle='None'),
+                    Line2D([], [], c='k',  marker='+', linestyle='None')]
+    custom_names=[f'Minimum : {round(min_deltav_value, 3)} [km/s]', 'GA optima', 'locally optimised']
+    if not add_local_optimisation:
+        custom_lines.pop(-1)
+        custom_names.pop(-1)
+    ax.legend(custom_lines, custom_names)#, loc='upper right')
+    # ax.legend()
+    ax.grid()
+    x_data = ax.collections[0].get_offsets()
+    lb = int(x_data[0][0])
+    x_data = ax.collections[-1].get_offsets()
+    ub = int(x_data[-1][0])
+    title_elem = directory_list[0].split('/')[2].split('_')
+    # lb = optim_chars_dict['Departure date [mjd2000] LB'] 
+    # lb_float = float(lb)+ 51544.5
+    # ub = optim_chars_dict['Departure date [mjd2000] UB'] 
+    # ub_float = float(ub)+ 51544.5
+    ax.set_title(f'{title_elem[0]} transfer')
+    # if title_elem[0] == 'EJ':
+    #     ax.set_xlim([61400, 63400])
+    # elif title_elem[0] == 'EMJ':
+    #     ax.set_xlim([61400, 63400])
+    # elif title_elem[0] == 'EEMJ':
+    #     ax.set_xlim([61400, 63200])
+    # elif title_elem[0] == 'EEEMJ':
+    #     ax.set_xlim([61400, 63400])
+
+    ax.set_ylim([15, 25])
+    if save_fig:
+        if add_local_optimisation:
+            fig.savefig('figures/' + f"{title_elem[0]}_{lb}_{ub}_local.jpg", bbox_inches="tight")
+        else:
+            fig.savefig('figures/' + f"{title_elem[0]}_{lb}_{ub}.jpg", bbox_inches="tight")
 
 def pareto_front(dir=None,
                  deltav_as_obj=False,
@@ -629,6 +769,9 @@ def get_stats(dir_of_dir=None,
                                     range(no_of_legs) for j in range(len(values_to_analyse))]
         values_to_analyse = [radial_values_to_analyse, normal_values_to_analyse, axial_values_to_analyse]
 
+    if quantity_to_analyse == 'revs':
+        values_to_analyse.astype('int32')
+
     dict = {f'min {quantity_to_analyse},' : min_stats, f'mean {quantity_to_analyse},' : mean_stats}
     if quantity_to_analyse != 'dv':
         max_stats = np.max(values_to_analyse)
@@ -653,13 +796,14 @@ def get_stats(dir_of_dir=None,
               'revs' : [f"{i}" for i in list_of_legs]}
 
     if plot_quantity:
-        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        fig, ax = plt.subplots(1, 1)
         ax.hist(values_to_analyse, bins=bins, label=labels[quantity_to_analyse])
         ax.set_ylabel('Frequency [-]')
         ax.set_xlabel(bound_quantity[quantity_to_analyse])
         title_elem = dir_of_dir.split('/')[title].split('_')
-        ax.set_title(f'{title_elem[0]} — 24 islands')
-        # ax.set_xticks([])
+        ax.set_title(f'{title_elem[0]} transfer')
+        if quantity_to_analyse == 'revs':
+            ax.set_xticks([0.0, 1.0, 2.0])#, label['0', '1', '2'])
         # if quantity_to_analyse == 'swi_per':
         #     ax.set_xscale('log')
         ax.grid()
@@ -684,6 +828,9 @@ def compare_data_to_hs(data_file, hs_file):
     ax1 = fig.add_subplot(1, 1, 1, projection="3d")
     ax1.plot(data_state[:, 1], data_state[:, 2], data_state[:, 3], label='BEPI data')
     ax1.plot(hs_state[:, 1], hs_state[:, 2], hs_state[:, 3], label='HS recreation')
+    # ax1.set_aspect('equal')
+    ax1.set_aspect('equal')
+
     ax1.set_xlabel("x [m]", labelpad=15)
     ax1.set_ylabel("y [m]", labelpad=15)
     ax1.set_zlabel("z [m]", labelpad=15)
@@ -708,6 +855,102 @@ def compare_data_to_hs(data_file, hs_file):
     ax2.legend()
     return fig, fig2, ax1, ax2
 
+
+def mgaso_scatter_per_fitprop(data_directory, fitprop_values=None, frac_values=None, save_fig=False, title=1):
+    # OLD FUNCTION
+
+    # Helper class
+    class mgaso_run:
+        def __init__(self,
+                     frac=None, 
+                     fitprop=None,
+                     sequences=None,
+                     fitnesses=None,
+                     min_dvs=None,
+                     mean_dvs=None) -> None:
+
+            self.frac = frac
+            self.fitprop = fitprop
+            self.sequences = sequences
+            self.min_dvs = min_dvs
+            self.mean_dvs = mean_dvs
+            self.fitnesses = fitnesses if fitnesses != None else self.fitprop*self.min_dvs + (1-self.fitprop)*self.mean_dvs
+
+    #Get data
+    for root, dirs, files in os.walk(data_directory):
+        directory_list = sorted(dirs)
+        break
+
+    number_of_sims = len(fitprop_values) * len(frac_values)
+    sorted_database_sequences = {}
+    sorted_database_values = {}
+    it2 = 0
+    for it, dir in enumerate(directory_list):
+        if os.path.exists(root + dir + "/sorted_evaluated_sequences_database.txt") and it < number_of_sims:
+            # print(root + dir + "/sorted_evaluated_sequences_database.txt")
+            sorted_database_sequences[it2] = np.loadtxt(root + dir + "/sorted_evaluated_sequences_database.txt", dtype=str,
+                                             delimiter=",", usecols=0, skiprows=1)
+            sorted_database_values[it2] = np.loadtxt(root + dir + "/sorted_evaluated_sequences_database.txt",
+                                                    delimiter=",", usecols=(1, 2, 3), skiprows=1)
+            it2 +=1
+
+    # Make all mgaso run objects
+    mgaso_runs = []
+    max_value_per_frac = []
+    min_value_per_frac = []
+    it = 0
+    for i in range(len(frac_values)):
+        current_frac = frac_values[i]
+        fitnesses = []
+        for j in range(len(fitprop_values)):
+            current_fitprop = fitprop_values[j]
+            mgaso_runs.append(mgaso_run(frac=current_frac, 
+                                        fitprop=current_fitprop,
+                                        sequences=sorted_database_sequences[it],
+                                        min_dvs=sorted_database_values[it][:, 0],
+                                        mean_dvs=sorted_database_values[it][:, 1]))
+            fitnesses.append(mgaso_runs[it].fitnesses)
+            it += 1
+        fitnesses = list(np.concatenate(fitnesses).flat)
+        max_value_per_frac.append(max(fitnesses) + 2000)
+        min_value_per_frac.append(min(fitnesses) - 2000)
+
+
+    # Do plotting
+    it = 0
+    rot = [45, 90, 90, 90, 90, 90]
+    for i in range(len(frac_values)):
+        fig = plt.figure()
+        fig.suptitle(f"EJ transfer - Fraction explored: {frac_values[i]}", fontweight='bold', y=0.95)
+
+        for j in range(len(fitprop_values)):
+            ax = fig.add_subplot(2,3,1+j)
+            run = mgaso_runs[it]
+            ax.scatter(run.sequences, run.fitnesses)
+            index_list = []
+            for it2, p in enumerate(run.sequences):
+                if p in ['EJ', 'EMJ', 'EEMJ', 'EEEMJ']:
+                    index_list.append(it2)
+
+            it+=1
+            plt.setp(ax.get_xticklabels(), rotation=rot[i], horizontalalignment='right')
+            ax.set_ylim([min_value_per_frac[i], max_value_per_frac[i]])
+            ax.title.set_text(f'Fitprop fraction: {fitprop_values[j]}')
+            ax.grid()
+            # ax.legend()
+            trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+            ax.text(0,min_value_per_frac[i], "{:.0f}".format(min_value_per_frac[i]), color="red", transform=trans, 
+                    ha="right", va="center")
+            trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+            ax.text(0,max_value_per_frac[i], "{:.0f}".format(max_value_per_frac[i]), color="red", transform=trans, 
+                    ha="right", va="center")
+            for q in index_list:
+                plt.gca().get_xticklabels()[q].set_color('red')
+        plt.subplots_adjust(wspace=0.3, hspace=0.3)
+        if save_fig:
+            fig.savefig('figures/mgaso/' + f"{data_directory.split('/')[title]}_{frac_values[i]}.jpg", bbox_inches="tight")
+
+    plt.show()
 
 def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None, save_fig=False, title=1):
 
@@ -770,15 +1013,19 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None, save_fi
 
     # Do plotting
     it = 0
-    rot = [45, 90]
+    rot = [45, 90, 90, 90, 90, 90]
+
+    c_list = ['b', 'r', 'y']
+    m_list = ['o', 'x', 'd']
+    # fig, ax = plt.subplots(1, 1)
     for i in range(len(frac_values)):
         fig = plt.figure()
-        fig.suptitle(f"EJ transfer - Fraction explored: {frac_values[i]}", fontweight='bold', y=0.95)
+        fig.suptitle(f"EJ transfer — Fitprop_itbs=1.0", fontweight='bold', y=0.95)
 
         for j in range(len(fitprop_values)):
             ax = fig.add_subplot(2,3,1+j)
             run = mgaso_runs[it]
-            ax.scatter(run.sequences, run.fitnesses)
+            ax.scatter(run.sequences, run.fitnesses, c=c_list[i], marker=m_list[j])
             index_list = []
             for it2, p in enumerate(run.sequences):
                 if p in ['EJ', 'EMJ', 'EEMJ', 'EEEMJ']:
@@ -801,6 +1048,207 @@ def mgaso_scatter(data_directory, fitprop_values=None, frac_values=None, save_fi
         plt.subplots_adjust(wspace=0.3, hspace=0.3)
         if save_fig:
             fig.savefig('figures/mgaso/' + f"{data_directory.split('/')[title]}_{frac_values[i]}.jpg", bbox_inches="tight")
+
+    plt.show()
+
+def mgaso_scatter_multi(dir1, dir2, dir3, fitprop_values=None, fitprop_itbs_values=None, frac_values=None,
+                        save_fig=False, title=1):
+
+    # Helper class
+    class mgaso_run:
+        def __init__(self,
+                     frac=None, 
+                     fitprop=None,
+                     fitprop_itbs=None,
+                     sorted_sequences=None,
+                     sequences=None,
+                     fitnesses=None,
+                     optim_chars=None,
+                     min_dvs=None,
+                     mean_dvs=None,
+                     seed=None) -> None:
+
+            self.frac = frac
+            self.fitprop = fitprop
+            self.fitprop_itbs = fitprop_itbs
+            self.sorted_sequences = sorted_sequences
+            self.sequences = sequences
+            self.optim_chars = optim_chars
+            optim_chars_dict = {}
+            for i in range(len(optim_chars)):
+                optim_chars_dict[optim_chars[i][0]] = optim_chars[i][1].replace('\t', '')
+            self.layer_0 = int(optim_chars_dict[f'Number of sequences per planet - Layer 0']) * 4 + 1  # 4 possible planets
+            self.layer_1 = int(optim_chars_dict[f'Number of sequences per planet - Layer 1']) * 4 + 1 
+            # self.layer_2 = int(optim_chars_dict[f'Number of sequences per planet - Layer 2']) * 4 + 1 
+            self.layer_0_seq = sequences[0:self.layer_0]
+            self.layer_1_seq = sequences[self.layer_0:(self.layer_0+self.layer_1)]
+            # self.layer_2_seq = sequences[(self.layer_0+self.layer_1):(self.layer_0+self.layer_1+self.layer_2)]
+            self.min_dvs = min_dvs
+            self.mean_dvs = mean_dvs
+            self.fitnesses = fitnesses if fitnesses != None else self.fitprop*self.min_dvs + (1-self.fitprop)*self.mean_dvs
+            self.layer_list = []
+            for it, seq in enumerate(sorted_sequences):
+                if seq in self.layer_0_seq:
+                    self.layer_list.append(0)
+                elif seq in self.layer_1_seq:
+                    self.layer_list.append(1)
+                # elif seq in self.layer_2_seq:
+                #     self.layer_list.append(2)
+                else:
+                    raise RuntimeError("SOmething went wrong.")
+            self.seed = seed
+
+
+
+    #Get data
+    dir_list = []
+    if dir1 != None:
+        dir_list.append(dir1)
+    if dir2 != None:
+        dir_list.append(dir2)
+    if dir3 != None:
+        dir_list.append(dir3)
+    no_of_seeds = len(dir_list)
+
+    directory_list = []
+    for dir in dir_list:
+        for root, dirs, files in os.walk(dir):
+            dirs_2 = [root + dir for dir in sorted(dirs)]
+            directory_list.extend(dirs_2)
+            # print(directory_list)
+            break
+
+    # number_of_sims = len(fitprop_values) * len(frac_values)
+    sorted_database_sequences = {}
+    sorted_database_values = {}
+    evaluated_sequences_database = {}
+    optim_chars = {}
+    it2 = 0
+    for it, dir in enumerate(directory_list):
+        if os.path.exists(dir + "/sorted_evaluated_sequences_database.txt"):# and it < number_of_sims:
+            # print(root + dir + "/sorted_evaluated_sequences_database.txt")
+            sorted_database_sequences[it2] = np.loadtxt(dir + "/sorted_evaluated_sequences_database.txt", dtype=str,
+                                             delimiter=",", usecols=0, skiprows=1)
+            sorted_database_values[it2] = np.loadtxt(dir + "/sorted_evaluated_sequences_database.txt",
+                                                    delimiter=",", usecols=(1, 2, 3), skiprows=1)
+            evaluated_sequences_database[it2] = np.loadtxt(dir +
+                                                           "/topology_database/evaluated_sequences_database.txt",
+                                                           dtype=str, delimiter=",", usecols=(0), skiprows=1)
+            optim_chars[it2] = np.loadtxt(dir + '/optimisation_characteristics.dat', delimiter=',', dtype=str,
+                                          usecols=(0, 1))
+            it2 +=1
+
+    # Values
+    # frac_values = [0.1, 0.4, 0.7]
+    # fitprop_values = [1.0, 0.5, 0.0]
+    # fitprop_itbs_values = [1.0, 0.5, 0.0]
+
+    # Make all mgaso run objects
+    mgaso_runs = []
+    max_value_per_frac = []
+    min_value_per_frac = []
+    it = 0
+
+    # # Case for fitprop_itbs > frac > fitprop
+    # for k, fitprop_itbs in enumerate(fitprop_itbs_values):
+    #     for i, frac in enumerate(frac_values):
+    #         # fitnesses = []
+    #         for j, fitprop in enumerate(fitprop_values):
+    #             mgaso_runs.append(mgaso_run(frac=frac, 
+    #                                         fitprop=fitprop,
+    #                                         fitprop_itbs=fitprop_itbs,
+    #                                         sorted_sequences=sorted_database_sequences[it],
+    #                                         sequences = evaluated_sequences_database[it],
+    #                                         optim_chars = optim_chars[it],
+    #                                         min_dvs=sorted_database_values[it][:, 0],
+    #                                         mean_dvs=sorted_database_values[it][:, 1]))
+    #             # fitnesses.append(mgaso_runs[it].fitnesses)
+    #             it += 1
+
+    # Case for frac > fitprop > fitprop_itbs
+    for u in range(no_of_seeds):
+        for i, frac in enumerate(frac_values):
+            for j, fitprop in enumerate(fitprop_values):
+                for k, fitprop_itbs in enumerate(fitprop_itbs_values):
+                    mgaso_runs.append(mgaso_run(frac=frac, 
+                                                fitprop=fitprop,
+                                                fitprop_itbs=fitprop_itbs,
+                                                sorted_sequences=sorted_database_sequences[it],
+                                                sequences = evaluated_sequences_database[it],
+                                                optim_chars = optim_chars[it],
+                                                min_dvs=sorted_database_values[it][:, 0],
+                                                mean_dvs=sorted_database_values[it][:, 1],
+                                                seed=u))
+                    it += 1
+
+    assert it == len(directory_list)
+
+    # Do plotting
+    rot = [30, 80, 90, 90, 90, 90]
+
+    c_list = [['lightgray', 'gray', 'black'], ['lightskyblue', 'blue', 'darkblue'], ['limegreen', 'forestgreen',
+                                                                                     'darkgreen']]
+    m_list = ['o', 'x', 'd']
+
+    custom_lines = list(Line2D([0], [0], color=c_list[1][i], lw=8) for i in range(len(fitprop_itbs_values)))
+    custom_lines.extend([ Line2D([], [], c='k',  marker=m_list[i], linestyle='None') for i in
+                         range(len(fitprop_itbs_values))])
+
+    custom_names = list(f'Fitprop : {fitprop_values[i]}' for i in range(len(fitprop_values)))
+    custom_names.extend([ f'Fitprop ITBS : {fitprop_itbs_values[i]}' for i in range(len(fitprop_itbs_values))])
+
+    for i in range(len(frac_values)):
+        fig, ax = plt.subplots(1, 1) 
+        current_mgaso_frac_runs = [run for run in mgaso_runs if run.frac==frac_values[i]]# and run.seed == u]
+
+        it = 0
+        for k in range(len(fitprop_values)):
+            for j in range(len(fitprop_itbs_values)):
+                run = current_mgaso_frac_runs[it]
+                # current_m_list = [m_list[p] for p in run.layer_list]
+                current_m_list = [m_list[0] if p == 0 else m_list[1] for p in run.layer_list ]
+                ax.scatter(run.sorted_sequences, run.fitnesses / 1000, c=c_list[j][k], marker=current_m_list[it])
+
+                plt.setp(ax.get_xticklabels(), rotation=rot[i], horizontalalignment='right')
+                # ax.set_ylim([min_value_per_frac[i], max_value_per_frac[i]])
+                ax.title.set_text(f'Fraction: {frac_values[i]}')
+                ax.grid()
+                # ax.legend()
+                # trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+                # ax.text(0,min_value_per_frac[i], "{:.0f}".format(min_value_per_frac[i]), color="red", transform=trans, 
+                #         ha="right", va="center")
+                # trans = transforms.blended_transform_factory(ax.get_yticklabels()[0].get_transform(), ax.transData)
+                # ax.text(0,max_value_per_frac[i], "{:.0f}".format(max_value_per_frac[i]), color="red", transform=trans, 
+                #         ha="right", va="center")
+                it+=1
+                # break
+
+                # plt.show()
+
+
+        ax.set_ylabel('Fitness [km/s]')
+        ax.set_xlabel('Sequence [-]')
+        # ax.set_yscale('log')
+        ax.legend(custom_lines, custom_names)#, loc='upper right')
+
+        # index_list = []
+        for it2, q in enumerate(plt.gca().get_xticklabels()):
+            current_label = q.get_text()
+            if current_label in ['EJ', 'EMJ', 'EEMJ', 'EEEMJ']:
+                ax.get_xticklabels()[it2].set_color('red')
+
+        # customize xticks
+        # ticks = [r + 10 for r in ax.get_xticks() if i == 2]
+        # ax.set_xticks(ticks=ticks)
+        # values = []
+        # for it2, q in enumerate(plt.gca().get_yticks()):
+        #     # print(q)
+        #     values.append(q)
+        # plt.yticks(np.linspace(min(values), max(values), num=5))
+
+        # plt.subplots_adjust(wspace=0.3, hspace=0.3)
+        if save_fig:
+            fig.savefig('figures/mgaso/' + f"{title}_{frac_values[i]}.jpg", bbox_inches="tight")
 
     plt.show()
 

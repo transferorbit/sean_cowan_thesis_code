@@ -75,7 +75,7 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
             'swingby_outofplane' : False,
             'swingby_inplane' : False,
             'shaping_function' : False}
-    write_results_to_file = True
+    write_results_to_file = False
     manual_base_functions = False
     topology_type = None #float or None
     zero_revs = False
@@ -91,8 +91,8 @@ if __name__ == '__main__': #to prevent this code from running if this file is no
     #                      '/EEMJ_g300p1200_test90', '/EEMJ_g300p1200_test90']
 
     free_param_count = 1
-    num_gen = 3
-    pop_size = 120
+    num_gen = 10
+    pop_size = 100
     cpu_count = os.cpu_count() // 2# not very relevant because different machines + asynchronous
     # cpu_count = len(os.sched_getaffinity(0))
     print(f'CPUs used : {cpu_count}')

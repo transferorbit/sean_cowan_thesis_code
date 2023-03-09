@@ -52,9 +52,7 @@ def run_mgaso_optimisation(departure_planet : str,
                             top_x_sequences = 10, # for what legs to replace
                             objectives=['dv'],
                             zero_revs=False,
-                            fitness_proportion=1.0,
-                            fitprop_itbs=1.0,
-                            topology_weight=0.01):
+                            fitness_proportion=1.0):
 
 
     # if os.path.exists(output_directory + subdirectory):
@@ -193,7 +191,7 @@ def run_mgaso_optimisation(departure_planet : str,
                                 manual_base_functions=manual_base_functions, dynamic_bounds=dynamic_bounds,
                                 elitist_fraction=elitist_fraction, seed=current_seed, objectives=objectives,
                                 evaluated_sequences_chars_list=evaluated_sequences_chars_list, Isp=Isp, m0=Isp,
-                                zero_revs=zero_revs, topology_weight=topology_weight)
+                                zero_revs=zero_revs)
         if p == 0:
             archi_info = archi
 
@@ -232,8 +230,7 @@ def run_mgaso_optimisation(departure_planet : str,
                             champions_x=champions_x, output_directory=output_directory, subdirectory=subdirectory,
                             itbs=itbs, fitness_proportion=fitness_proportion, compute_mass=compute_mass,
                             max_no_of_gas=max_no_of_gas, write_results_to_file=write_results_to_file,
-                            no_of_points=no_of_points, planet_chars=planet_characters,
-                            fitness_proportion_itbs=fitprop_itbs)
+                            no_of_points=no_of_points)
 
     #################
     # End of p loop #
@@ -302,10 +299,7 @@ def run_mgaso_optimisation(departure_planet : str,
                             bounds=bounds,
                             archi=archi_info,
                             fraction_ss_evaluated=fraction_ss_evaluated,
-                            fitprop=fitness_proportion,
-                            fitprop_itbs=fitprop_itbs,
                             number_of_sequences_per_planet=number_of_sequences_per_planet,
                             planet_list=planet_list,
-                            itbs=itbs,
-                            topology_weight=topology_weight)
+                            itbs=itbs)
 
